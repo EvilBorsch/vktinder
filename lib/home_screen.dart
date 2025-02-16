@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,10 +30,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _cards.clear();
       _cards.addAll(storedCards);
       debugPrint("Loaded existing cards from SharedPreferences: $_cards");
-      setState(() {});
     } else {
       _generateCards();
     }
+    setState(() {});
   }
 
   /// Save cards to SharedPreferences.
@@ -53,7 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     debugPrint("Generating new cards: $_cards");
-    setState(() {});
     _saveCards(); // Save new set to SharedPreferences
   }
 
