@@ -98,6 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       children: [
         const SizedBox(height: 16),
@@ -105,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: TextField(
             readOnly: true,
+            style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'Значение (поле 1)',
@@ -112,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
             controller: TextEditingController(text: widget.controller.vkToken),
           ),
         ),
+        const SizedBox(height: 8),
         Expanded(
           child: Stack(
             alignment: Alignment.center,
@@ -125,7 +129,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 onDismissed: (dir) async {
                   _removeTopCard();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Свайп прошел успешно')),
+                    SnackBar(
+                      content: const Text('Свайп прошел успешно'),
+                      backgroundColor: theme.colorScheme.primary.withOpacity(
+                        0.75,
+                      ),
+                    ),
                   );
                   await _showSwipeDialog();
                 },
@@ -151,10 +160,13 @@ class CardWidget extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox.expand(
         child: Center(
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ),
