@@ -41,17 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _c2 = TextEditingController(text: widget.controller.defaultMessage);
   }
 
-  @override
-  void didUpdateWidget(covariant SettingsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.controller.vkToken != _c1.text) {
-      _c1.text = widget.controller.vkToken;
-    }
-    if (widget.controller.defaultMessage != _c2.text) {
-      _c2.text = widget.controller.defaultMessage;
-    }
-  }
-
   Future<void> _onSave() async {
     widget.controller.vkToken = _c1.text;
     widget.controller.defaultMessage = _c2.text;
