@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(50),
         children: [
           TextField(
             controller: _vkTokenController,
@@ -56,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               labelText: 'VK токен',
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
           TextField(
             controller: _defaultMessageController,
             style: theme.textTheme.bodyMedium,
@@ -65,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               labelText: 'Сообщение при свайпе',
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
           DropdownButtonFormField<String>(
             value: _selectedTheme,
             decoration: const InputDecoration(
@@ -84,7 +84,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _onSave, child: const Text('Сохранить')),
+          ElevatedButton(
+            onPressed: _onSave,
+            child: const Text(
+              'Сохранить',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );

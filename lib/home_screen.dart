@@ -42,7 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final prefs = await SharedPreferences.getInstance();
       var storedCardsRaw = prefs.getString('persisted_cards');
       if (storedCardsRaw != null && storedCardsRaw.isNotEmpty) {
-        _groupUserInfo = jsonDecode(storedCardsRaw);
+        _groupUserInfo = List<VKGroupUser>.from(
+          jsonDecode(storedCardsRaw).map((item) => VKGroupUser.fromJson(item)),
+        );
         debugPrint(
           "Loaded existing cards from SharedPreferences: $_groupUserInfo",
         );
@@ -71,8 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final randomWord = 'Random #${_rand.nextInt(1000)}';
       _groupUserInfo.add(
         VKGroupUser(
-          name:
-              '$randomWord + ${widget.controller.vkToken} + ${widget.controller.defaultMessage}',
+          name: '$randomWord + ${widget.controller.vkToken}',
           surname: "constant surname",
         ),
       );
@@ -194,6 +195,17 @@ class VKGroupUser {
   const VKGroupUser({required this.name, required this.surname});
 
   Map toJson() => {'name': name, 'surname': surname};
+  factory VKGroupUser.fromJson(Map<String, dynamic> json) {
+    return VKGroupUser(
+      name: json['name'] as String,
+      surname: json['surname'] as String,
+    );
+  }
+
+  @override
+  String toString() {
+    return '{name: $name, surname: $surname}';
+  }
 }
 
 class VKGroupUserWidget extends StatelessWidget {
@@ -208,7 +220,7 @@ class VKGroupUserWidget extends StatelessWidget {
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
                 Text(
                   userInfo.name,
