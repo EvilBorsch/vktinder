@@ -15,22 +15,17 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _cards = [];
   final _rand = Random();
   bool _hasLoaded = false;
-  String _oldToken = '';
 
   @override
   void initState() {
     super.initState();
-    _oldToken = widget.controller.vkToken;
     widget.controller.addListener(_onControllerChanged);
     _loadCards();
   }
 
   /// Reload if token changes
   void _onControllerChanged() {
-    if (widget.controller.vkToken != _oldToken) {
-      _oldToken = widget.controller.vkToken;
-      _loadCards();
-    }
+    _loadCards();
   }
 
   @override
@@ -41,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Load cards from SharedPreferences (if they exist).
   Future<void> _loadCards() async {
+    _hasLoaded = false;
     if (widget.controller.vkToken.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
       final storedCards = prefs.getStringList('persisted_cards');
@@ -56,7 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _cards.clear();
       debugPrint("vkToken is empty; clearing cards");
     }
-    setState(() => _hasLoaded = true);
+    _hasLoaded = true;
+    setState(() {});
   }
 
   /// Save cards to SharedPreferences.
@@ -78,6 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _saveCards(); // Save new set to SharedPreferences
   }
 
+  Future<void> sendVKMessage(String msg) async {
+    debugPrint("Sending message to vk $msg");
+  }
+
   Future<void> _showSwipeDialog() async {
     final inputController = TextEditingController(
       text: widget.controller.defaultMessage,
@@ -86,18 +87,26 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text('Карточка снята со стека'),
+          title: const Text('Что напишем?'),
           content: TextField(
             controller: inputController,
             decoration: const InputDecoration(
-              labelText: 'Введите что-нибудь',
+              labelText: 'Сообщение',
               border: OutlineInputBorder(),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Закрыть'),
+              child: const Text('Не будем писать'),
+            ),
+            TextButton(
+              onPressed:
+                  () => {
+                    sendVKMessage(inputController.text),
+                    Navigator.of(context).pop(),
+                  },
+              child: const Text('Отправляем'),
             ),
           ],
         );
@@ -121,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    //final theme = Theme.of(context);
 
     // Wait for the async data to load
     if (!_hasLoaded) {
@@ -143,20 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Column(
       children: [
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            readOnly: true,
-            style: theme.textTheme.bodyMedium,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Значение (поле 1)',
-            ),
-            controller: TextEditingController(text: widget.controller.vkToken),
-          ),
-        ),
-        const SizedBox(height: 8),
         Expanded(
           child: Stack(
             alignment: Alignment.center,
@@ -169,17 +164,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 resizeDuration: null,
                 onDismissed: (dir) async {
                   _removeTopCard();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Свайп прошел успешно'),
-                      backgroundColor: theme.colorScheme.primary.withOpacity(
-                        0.75,
-                      ),
-                    ),
-                  );
-                  await _showSwipeDialog();
+                  if (dir == DismissDirection.startToEnd) {
+                    await _showSwipeDialog();
+                  }
                 },
-                child: CardWidget(text: cardText),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: CardWidget(text: cardText),
+                ),
               );
             }),
           ),
@@ -196,8 +188,6 @@ class CardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox.expand(
         child: Center(

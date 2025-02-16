@@ -33,7 +33,6 @@ class SettingsController extends ChangeNotifier {
   set defaultMessage(String newValue) {
     if (_defaultMessage != newValue) {
       _defaultMessage = newValue;
-      notifyListeners();
     }
   }
 

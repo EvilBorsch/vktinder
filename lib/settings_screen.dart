@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vktinder/settings_controller.dart';
+import 'package:vktinder/util.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsController controller;
@@ -11,31 +12,31 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _c1;
-  late TextEditingController _c2;
+  late TextEditingController _vkTokenController;
+  late TextEditingController _defaultMessageController;
   late String _selectedTheme;
 
   @override
   void initState() {
     super.initState();
-    _c1 = TextEditingController(text: widget.controller.vkToken);
-    _c2 = TextEditingController(text: widget.controller.defaultMessage);
+    _vkTokenController = TextEditingController(text: widget.controller.vkToken);
+    _defaultMessageController = TextEditingController(
+      text: widget.controller.defaultMessage,
+    );
     _selectedTheme = widget.controller.selectedTheme;
   }
 
   Future<void> _onSave() async {
     // Update the controller fields, which triggers notifyListeners()
-    widget.controller.vkToken = _c1.text;
-    widget.controller.defaultMessage = _c2.text;
+    widget.controller.vkToken = _vkTokenController.text;
+    widget.controller.defaultMessage = _defaultMessageController.text;
     widget.controller.selectedTheme = _selectedTheme;
 
     // Persist the settings
     await widget.controller.save();
 
     // Provide user feedback
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Настройки сохранены')));
+    toast(context, 'Настройки сохранены');
   }
 
   @override
@@ -48,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
-            controller: _c1,
+            controller: _vkTokenController,
             style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -57,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _c2,
+            controller: _defaultMessageController,
             style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
