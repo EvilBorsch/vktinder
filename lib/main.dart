@@ -1,33 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:vktinder/settings_controller.dart';
 import 'package:vktinder/home_screen.dart';
 import 'package:vktinder/settings_screen.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Load settings once before running the app
+  final controller = await SettingsController.load();
+  runApp(MyApp(controller: controller));
+}
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final SettingsController controller;
+  const MyApp({super.key, required this.controller});
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
+/// This State listens to changes in [widget.controller] and updates the app.
 class _MyAppState extends State<MyApp> {
-  late SettingsController _controller;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _initializeSettings();
+    widget.controller.addListener(_onSettingsChanged);
+    // Once loaded, we can mark the app as ready
+    _isLoading = false;
   }
 
-  Future<void> _initializeSettings() async {
-    _controller = await SettingsController.load();
-    setState(() => _isLoading = false);
+  void _onSettingsChanged() {
+    // Force a rebuild whenever the controller notifies listeners.
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onSettingsChanged);
+    super.dispose();
   }
 
   ThemeMode _getThemeMode() {
-    switch (_controller.selectedTheme) {
+    switch (widget.controller.selectedTheme) {
       case 'light':
         return ThemeMode.light;
       case 'dark':
@@ -45,8 +60,10 @@ class _MyAppState extends State<MyApp> {
         home: Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
+
     return MaterialApp(
-      title: 'Beautiful Full-Screen Cards with Popup',
+      debugShowCheckedModeBanner: false,
+      title: 'VK tinder',
       // Light theme
       theme: ThemeData(
         brightness: Brightness.light,
@@ -72,6 +89,7 @@ class _MyAppState extends State<MyApp> {
           type: BottomNavigationBarType.fixed,
         ),
       ),
+
       // Dark theme
       darkTheme: ThemeData(
         brightness: Brightness.dark,
@@ -97,8 +115,12 @@ class _MyAppState extends State<MyApp> {
           type: BottomNavigationBarType.fixed,
         ),
       ),
+
       themeMode: _getThemeMode(),
-      home: MainPage(controller: _controller),
+
+      // Since the entire app is forced to rebuild when settings change,
+      // we merely need to pass the controller through to the pages:
+      home: MainPage(controller: widget.controller),
     );
   }
 }
@@ -126,18 +148,8 @@ class _MainPageState extends State<MainPage> {
   void _setUpPages() {
     _pages
       ..add(HomeScreen(controller: widget.controller))
-      ..add(
-        SettingsScreen(
-          controller: widget.controller,
-          onThemeChange: _onThemeChange,
-        ),
-      );
+      ..add(SettingsScreen(controller: widget.controller));
     setState(() => _isInitialized = true);
-  }
-
-  void _onThemeChange() {
-    // Force rebuild to apply the updated theme
-    setState(() {});
   }
 
   @override
@@ -146,9 +158,6 @@ class _MainPageState extends State<MainPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Beautiful Full-Screen Cards with Popup'),
-      ),
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

@@ -1,45 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-class SettingsController {
-  String vkToken;
-  String defaultMessage;
-
-  /// Holds user's desired theme mode: "system", "light", or "dark".
-  String selectedTheme;
-
-  SettingsController({
-    required this.vkToken,
-    required this.defaultMessage,
-    required this.selectedTheme,
-  });
-
-  static Future<SettingsController> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    return SettingsController(
-      vkToken: prefs.getString('vkToken') ?? '',
-      defaultMessage: prefs.getString('defaultMessage') ?? '',
-      selectedTheme: prefs.getString('selectedTheme') ?? 'system',
-    );
-  }
-
-  Future<void> save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('vkToken', vkToken);
-    await prefs.setString('defaultMessage', defaultMessage);
-    await prefs.setString('selectedTheme', selectedTheme);
-  }
-}
+import 'package:vktinder/settings_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsController controller;
-  final VoidCallback onThemeChange;
 
-  const SettingsScreen({
-    super.key,
-    required this.controller,
-    required this.onThemeChange,
-  });
+  const SettingsScreen({super.key, required this.controller});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -59,14 +24,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _onSave() async {
+    // Update the controller fields, which triggers notifyListeners()
     widget.controller.vkToken = _c1.text;
     widget.controller.defaultMessage = _c2.text;
     widget.controller.selectedTheme = _selectedTheme;
+
+    // Persist the settings
     await widget.controller.save();
+
+    // Provide user feedback
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Настройки сохранены')));
-    widget.onThemeChange();
   }
 
   @override

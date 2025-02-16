@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vktinder/settings_screen.dart';
+import 'package:vktinder/settings_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   final SettingsController controller;
@@ -14,26 +14,49 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final List<String> _cards = [];
   final _rand = Random();
+  bool _hasLoaded = false;
+  String _oldToken = '';
 
   @override
   void initState() {
     super.initState();
+    _oldToken = widget.controller.vkToken;
+    widget.controller.addListener(_onControllerChanged);
     _loadCards();
+  }
+
+  /// Reload if token changes
+  void _onControllerChanged() {
+    if (widget.controller.vkToken != _oldToken) {
+      _oldToken = widget.controller.vkToken;
+      _loadCards();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
   }
 
   /// Load cards from SharedPreferences (if they exist).
   Future<void> _loadCards() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedCards = prefs.getStringList('persisted_cards');
+    if (widget.controller.vkToken.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final storedCards = prefs.getStringList('persisted_cards');
 
-    if (storedCards != null && storedCards.isNotEmpty) {
-      _cards.clear();
-      _cards.addAll(storedCards);
-      debugPrint("Loaded existing cards from SharedPreferences: $_cards");
+      if (storedCards != null && storedCards.isNotEmpty) {
+        _cards.clear();
+        _cards.addAll(storedCards);
+        debugPrint("Loaded existing cards from SharedPreferences: $_cards");
+      } else {
+        _generateCards();
+      }
     } else {
-      _generateCards();
+      _cards.clear();
+      debugPrint("vkToken is empty; clearing cards");
     }
-    setState(() {});
+    setState(() => _hasLoaded = true);
   }
 
   /// Save cards to SharedPreferences.
@@ -99,6 +122,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Wait for the async data to load
+    if (!_hasLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // If vkToken is empty, skip showing any cards and prompt user
+    if (widget.controller.vkToken.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            "Задайте VK Token в настройках",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
 
     return Column(
       children: [
