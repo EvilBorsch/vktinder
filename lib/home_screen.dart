@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vktinder/settings_controller.dart';
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   final SettingsController controller;
@@ -12,7 +13,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<String> _cards = [];
+  List<VKGroupUser> _groupUserInfo = [];
   final _rand = Random();
   bool _hasLoaded = false;
 
@@ -39,17 +40,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _hasLoaded = false;
     if (widget.controller.vkToken.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
-      final storedCards = prefs.getStringList('persisted_cards');
-
-      if (storedCards != null && storedCards.isNotEmpty) {
-        _cards.clear();
-        _cards.addAll(storedCards);
-        debugPrint("Loaded existing cards from SharedPreferences: $_cards");
+      var storedCardsRaw = prefs.getString('persisted_cards');
+      if (storedCardsRaw != null && storedCardsRaw.isNotEmpty) {
+        _groupUserInfo = jsonDecode(storedCardsRaw);
+        debugPrint(
+          "Loaded existing cards from SharedPreferences: $_groupUserInfo",
+        );
       } else {
         _generateCards();
       }
     } else {
-      _cards.clear();
+      _groupUserInfo.clear();
       debugPrint("vkToken is empty; clearing cards");
     }
     _hasLoaded = true;
@@ -59,19 +60,24 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Save cards to SharedPreferences.
   Future<void> _saveCards() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('persisted_cards', _cards);
-    debugPrint("Saved cards to SharedPreferences: $_cards");
+    String marshalledGroupUserInfo = jsonEncode(_groupUserInfo);
+    await prefs.setString('persisted_cards', marshalledGroupUserInfo);
+    debugPrint("Saved cards to SharedPreferences: $_groupUserInfo");
   }
 
   void _generateCards() {
-    _cards.clear();
+    _groupUserInfo.clear();
     for (int i = 0; i < 5; i++) {
       final randomWord = 'Random #${_rand.nextInt(1000)}';
-      _cards.add(
-        '$randomWord + ${widget.controller.vkToken} + ${widget.controller.defaultMessage}',
+      _groupUserInfo.add(
+        VKGroupUser(
+          name:
+              '$randomWord + ${widget.controller.vkToken} + ${widget.controller.defaultMessage}',
+          surname: "constant surname",
+        ),
       );
     }
-    debugPrint("Generating new cards: $_cards");
+    debugPrint("Generating new cards: $_groupUserInfo");
     _saveCards(); // Save new set to SharedPreferences
   }
 
@@ -115,10 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _removeTopCard() {
-    if (_cards.isNotEmpty) {
-      _cards.removeAt(0);
+    if (_groupUserInfo.isNotEmpty) {
+      _groupUserInfo.removeAt(0);
     }
-    if (_cards.isEmpty) {
+    if (_groupUserInfo.isEmpty) {
       // Regenerate if empty
       _generateCards();
     } else {
@@ -155,11 +161,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: Stack(
             alignment: Alignment.center,
-            children: List.generate(_cards.length, (index) {
-              final cardIndex = _cards.length - 1 - index;
-              final cardText = _cards[cardIndex];
+            children: List.generate(_groupUserInfo.length, (index) {
+              final cardIndex = _groupUserInfo.length - 1 - index;
+              final cardUserInfo = _groupUserInfo[cardIndex];
               return Dismissible(
-                key: ValueKey(cardText),
+                key: ValueKey(cardUserInfo),
                 direction: DismissDirection.horizontal,
                 resizeDuration: null,
                 onDismissed: (dir) async {
@@ -170,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: CardWidget(text: cardText),
+                  child: VKGroupUserWidget(userInfo: cardUserInfo),
                 ),
               );
             }),
@@ -181,9 +187,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class CardWidget extends StatelessWidget {
-  final String text;
-  const CardWidget({super.key, required this.text});
+class VKGroupUser {
+  final String name;
+  final String surname;
+
+  const VKGroupUser({required this.name, required this.surname});
+
+  Map toJson() => {'name': name, 'surname': surname};
+}
+
+class VKGroupUserWidget extends StatelessWidget {
+  final VKGroupUser userInfo;
+  const VKGroupUserWidget({super.key, required this.userInfo});
 
   @override
   Widget build(BuildContext context) {
@@ -193,10 +208,19 @@ class CardWidget extends StatelessWidget {
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18),
+            child: Row(
+              children: [
+                Text(
+                  userInfo.name,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18),
+                ),
+                Text(
+                  userInfo.surname,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ],
             ),
           ),
         ),
