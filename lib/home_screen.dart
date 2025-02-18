@@ -1,74 +1,70 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vktinder/settings_controller.dart';
-import 'dart:convert';
+import 'settings_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   final SettingsController controller;
-  const HomeScreen({super.key, required this.controller});
+  const HomeScreen({Key? key, required this.controller}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<VKGroupUser> _groupUserInfo = [];
-  final _rand = Random();
   bool _hasLoaded = false;
+  final _rand = Random();
+  List<VKGroupUser> _groupUserInfo = [];
 
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_onControllerChanged);
+    widget.controller.addListener(_handleSettingsChange);
     _loadCards();
   }
 
-  /// Reload if token changes
-  void _onControllerChanged() {
+  void _handleSettingsChange() {
+    // If the token changes, reload cards
     _loadCards();
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
+    widget.controller.removeListener(_handleSettingsChange);
     super.dispose();
   }
 
-  /// Load cards from SharedPreferences (if they exist).
   Future<void> _loadCards() async {
-    _hasLoaded = false;
+    setState(() => _hasLoaded = false);
     if (widget.controller.vkToken.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
-      var storedCardsRaw = prefs.getString('persisted_cards');
+      final storedCardsRaw = prefs.getString('persisted_cards');
       if (storedCardsRaw != null && storedCardsRaw.isNotEmpty) {
-        _groupUserInfo = List<VKGroupUser>.from(
-          jsonDecode(storedCardsRaw).map((item) => VKGroupUser.fromJson(item)),
-        );
-        debugPrint(
-          "Loaded existing cards from SharedPreferences: $_groupUserInfo",
-        );
+        final List decoded = jsonDecode(storedCardsRaw);
+        _groupUserInfo =
+            decoded
+                .map(
+                  (item) => VKGroupUser.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
       } else {
-        _generateCards();
+        _generateInitialCards();
       }
     } else {
       _groupUserInfo.clear();
-      debugPrint("vkToken is empty; clearing cards");
     }
-    _hasLoaded = true;
-    setState(() {});
+    setState(() => _hasLoaded = true);
   }
 
-  /// Save cards to SharedPreferences.
   Future<void> _saveCards() async {
     final prefs = await SharedPreferences.getInstance();
-    String marshalledGroupUserInfo = jsonEncode(_groupUserInfo);
-    await prefs.setString('persisted_cards', marshalledGroupUserInfo);
-    debugPrint("Saved cards to SharedPreferences: $_groupUserInfo");
+    await prefs.setString('persisted_cards', jsonEncode(_groupUserInfo));
   }
 
-  void _generateCards() {
+  void _generateInitialCards() {
     _groupUserInfo.clear();
+    // Generate 5 random cards
     for (int i = 0; i < 5; i++) {
       final randomWord = 'Random #${_rand.nextInt(1000)}';
       _groupUserInfo.add(
@@ -78,12 +74,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-    debugPrint("Generating new cards: $_groupUserInfo");
-    _saveCards(); // Save new set to SharedPreferences
+    _saveCards();
   }
 
-  Future<void> sendVKMessage(String msg) async {
-    debugPrint("Sending message to vk $msg");
+  Future<void> _sendVKMessage(String msg) async {
+    // Replace with real messaging logic if needed
+    debugPrint("Sending message to VK: $msg");
   }
 
   Future<void> _showSwipeDialog() async {
@@ -92,63 +88,58 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     await showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('Что напишем?'),
-          content: TextField(
-            controller: inputController,
-            decoration: const InputDecoration(
-              labelText: 'Сообщение',
-              border: OutlineInputBorder(),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Что напишем?'),
+            content: TextField(
+              controller: inputController,
+              decoration: const InputDecoration(
+                labelText: 'Сообщение',
+                border: OutlineInputBorder(),
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Не писать'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _sendVKMessage(inputController.text);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Отправить'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Не будем писать'),
-            ),
-            TextButton(
-              onPressed:
-                  () => {
-                    sendVKMessage(inputController.text),
-                    Navigator.of(context).pop(),
-                  },
-              child: const Text('Отправляем'),
-            ),
-          ],
-        );
-      },
     );
   }
 
-  void _removeTopCard() {
+  void _dismissTopCard(DismissDirection dir) async {
     if (_groupUserInfo.isNotEmpty) {
       _groupUserInfo.removeAt(0);
+      if (dir == DismissDirection.startToEnd) {
+        await _showSwipeDialog();
+      }
+      if (_groupUserInfo.isEmpty) {
+        _generateInitialCards();
+      } else {
+        _saveCards();
+      }
+      setState(() {});
     }
-    if (_groupUserInfo.isEmpty) {
-      // Regenerate if empty
-      _generateCards();
-    } else {
-      // Otherwise, just save the updated list
-      _saveCards();
-    }
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    //final theme = Theme.of(context);
-
-    // Wait for the async data to load
     if (!_hasLoaded) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // If vkToken is empty, skip showing any cards and prompt user
     if (widget.controller.vkToken.isEmpty) {
-      return Center(
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Text(
             "Задайте VK Token в настройках",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -169,12 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 key: ValueKey(cardUserInfo),
                 direction: DismissDirection.horizontal,
                 resizeDuration: null,
-                onDismissed: (dir) async {
-                  _removeTopCard();
-                  if (dir == DismissDirection.startToEnd) {
-                    await _showSwipeDialog();
-                  }
-                },
+                onDismissed: (dir) => _dismissTopCard(dir),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: VKGroupUserWidget(userInfo: cardUserInfo),
@@ -188,29 +174,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// Simple model for a "VKGroupUser"
 class VKGroupUser {
   final String name;
   final String surname;
 
   const VKGroupUser({required this.name, required this.surname});
 
-  Map toJson() => {'name': name, 'surname': surname};
-  factory VKGroupUser.fromJson(Map<String, dynamic> json) {
-    return VKGroupUser(
-      name: json['name'] as String,
-      surname: json['surname'] as String,
-    );
-  }
+  Map<String, dynamic> toJson() => {'name': name, 'surname': surname};
+
+  factory VKGroupUser.fromJson(Map<String, dynamic> json) => VKGroupUser(
+    name: json['name'] as String,
+    surname: json['surname'] as String,
+  );
 
   @override
-  String toString() {
-    return '{name: $name, surname: $surname}';
-  }
+  String toString() => '{name: $name, surname: $surname}';
 }
 
 class VKGroupUserWidget extends StatelessWidget {
   final VKGroupUser userInfo;
-  const VKGroupUserWidget({super.key, required this.userInfo});
+  const VKGroupUserWidget({Key? key, required this.userInfo}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -221,12 +205,14 @@ class VKGroupUserWidget extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   userInfo.name,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 18),
                 ),
+                const SizedBox(height: 8),
                 Text(
                   userInfo.surname,
                   textAlign: TextAlign.center,

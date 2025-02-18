@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:vktinder/settings_controller.dart';
-import 'package:vktinder/home_screen.dart';
-import 'package:vktinder/settings_screen.dart';
+
+import 'home_screen.dart';
+import 'settings_controller.dart';
+import 'settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   // Load settings once before running the app
   final controller = await SettingsController.load();
   runApp(MyApp(controller: controller));
@@ -12,27 +14,27 @@ void main() async {
 
 class MyApp extends StatefulWidget {
   final SettingsController controller;
-  const MyApp({super.key, required this.controller});
+  const MyApp({Key? key, required this.controller}) : super(key: key);
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
-/// This State listens to changes in [widget.controller] and updates the app.
+/// This State listens to changes in [widget.controller] and updates the app accordingly.
 class _MyAppState extends State<MyApp> {
-  bool _isLoading = true;
+  int _currentIndex = 0;
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onSettingsChanged);
-    // Once loaded, we can mark the app as ready
-    _isLoading = false;
-  }
 
-  void _onSettingsChanged() {
-    // Force a rebuild whenever the controller notifies listeners.
-    setState(() {});
+    // Define the pages for bottom navigation
+    _pages = [
+      HomeScreen(controller: widget.controller),
+      SettingsScreen(controller: widget.controller),
+    ];
   }
 
   @override
@@ -41,13 +43,16 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
   ThemeMode _getThemeMode() {
     switch (widget.controller.selectedTheme) {
       case 'light':
         return ThemeMode.light;
       case 'dark':
         return ThemeMode.dark;
-      case 'system':
       default:
         return ThemeMode.system;
     }
@@ -55,16 +60,10 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
-    }
-
     return MaterialApp(
+      title: 'VK tinder (Simplified)',
       debugShowCheckedModeBanner: false,
-      title: 'VK tinder',
-      // Light theme
+      themeMode: _getThemeMode(),
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.blue,
@@ -89,8 +88,6 @@ class _MyAppState extends State<MyApp> {
           type: BottomNavigationBarType.fixed,
         ),
       ),
-
-      // Dark theme
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.blue,
@@ -115,60 +112,19 @@ class _MyAppState extends State<MyApp> {
           type: BottomNavigationBarType.fixed,
         ),
       ),
-
-      themeMode: _getThemeMode(),
-
-      // Since the entire app is forced to rebuild when settings change,
-      // we merely need to pass the controller through to the pages:
-      home: MainPage(controller: widget.controller),
-    );
-  }
-}
-
-class MainPage extends StatefulWidget {
-  final SettingsController controller;
-
-  const MainPage({super.key, required this.controller});
-
-  @override
-  State<MainPage> createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
-  final List<Widget> _pages = [];
-  bool _isInitialized = false;
-  int _currentIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _setUpPages();
-  }
-
-  void _setUpPages() {
-    _pages
-      ..add(HomeScreen(controller: widget.controller))
-      ..add(SettingsScreen(controller: widget.controller));
-    setState(() => _isInitialized = true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (idx) => setState(() => _currentIndex = idx),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Настройки',
-          ),
-        ],
+      home: Scaffold(
+        body: IndexedStack(index: _currentIndex, children: _pages),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (idx) => setState(() => _currentIndex = idx),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Настройки',
+            ),
+          ],
+        ),
       ),
     );
   }

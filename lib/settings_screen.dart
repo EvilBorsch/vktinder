@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:vktinder/settings_controller.dart';
-import 'package:vktinder/util.dart';
+import 'settings_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsController controller;
-
-  const SettingsScreen({super.key, required this.controller});
+  const SettingsScreen({Key? key, required this.controller}) : super(key: key);
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -13,30 +11,31 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _vkTokenController;
-  late TextEditingController _defaultMessageController;
-  late String _selectedTheme;
+  late TextEditingController _defaultMsgController;
+  late String _themeChoice;
 
   @override
   void initState() {
     super.initState();
     _vkTokenController = TextEditingController(text: widget.controller.vkToken);
-    _defaultMessageController = TextEditingController(
+    _defaultMsgController = TextEditingController(
       text: widget.controller.defaultMessage,
     );
-    _selectedTheme = widget.controller.selectedTheme;
+    _themeChoice = widget.controller.selectedTheme;
   }
 
   Future<void> _onSave() async {
-    // Update the controller fields, which triggers notifyListeners()
     widget.controller.vkToken = _vkTokenController.text;
-    widget.controller.defaultMessage = _defaultMessageController.text;
-    widget.controller.selectedTheme = _selectedTheme;
-
-    // Persist the settings
+    widget.controller.defaultMessage = _defaultMsgController.text;
+    widget.controller.selectedTheme = _themeChoice;
     await widget.controller.save();
 
-    // Provide user feedback
-    toast(context, 'Настройки сохранены');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Настройки сохранены'),
+        duration: Duration(seconds: 1),
+      ),
+    );
   }
 
   @override
@@ -44,33 +43,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      appBar: AppBar(title: const Text('Настройки')),
       backgroundColor: theme.scaffoldBackgroundColor,
       body: ListView(
-        padding: const EdgeInsets.all(50),
+        padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _vkTokenController,
             style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
               labelText: 'VK токен',
+              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           TextField(
-            controller: _defaultMessageController,
+            controller: _defaultMsgController,
             style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
               labelText: 'Сообщение при свайпе',
+              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedTheme,
+            value: _themeChoice,
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
               labelText: 'Выберите тему',
+              border: OutlineInputBorder(),
             ),
             items: const [
               DropdownMenuItem(value: 'system', child: Text('Системная')),
@@ -79,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
             onChanged: (value) {
               if (value != null) {
-                setState(() => _selectedTheme = value);
+                setState(() => _themeChoice = value);
               }
             },
           ),
