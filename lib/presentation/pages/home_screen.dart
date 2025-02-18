@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'settings/settings_controller.dart';
+import 'package:vktinder/data/models/home_screen.dart';
+import 'package:vktinder/presentation/controllers/settings_controller.dart';
+import 'package:vktinder/presentation/widgets/user_preview.dart';
 
 class HomeScreen extends StatefulWidget {
   final SettingsController controller;
@@ -166,59 +168,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-// Simple model for a "VKGroupUser"
-class VKGroupUser {
-  final String name;
-  final String surname;
-
-  const VKGroupUser({required this.name, required this.surname});
-
-  Map<String, dynamic> toJson() => {'name': name, 'surname': surname};
-
-  factory VKGroupUser.fromJson(Map<String, dynamic> json) => VKGroupUser(
-    name: json['name'] as String,
-    surname: json['surname'] as String,
-  );
-
-  @override
-  String toString() => '{name: $name, surname: $surname}';
-}
-
-class VKGroupUserWidget extends StatelessWidget {
-  final VKGroupUser userInfo;
-  const VKGroupUserWidget({super.key, required this.userInfo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox.expand(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  userInfo.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  userInfo.surname,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

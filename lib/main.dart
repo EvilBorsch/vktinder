@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import 'home_screen.dart';
-import 'settings/settings_controller.dart';
-import 'settings/settings_screen.dart';
+import 'package:vktinder/presentation/controllers/settings_controller.dart';
+import 'package:vktinder/presentation/pages/home_screen.dart';
+import 'package:vktinder/presentation/pages/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
