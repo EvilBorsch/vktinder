@@ -1,15 +1,18 @@
-import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vktinder/data/models/home_screen.dart';
+import 'package:vktinder/domain/user_group_info.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/presentation/widgets/user_preview.dart';
 
 class HomeScreen extends StatefulWidget {
-  final SettingsController controller;
+  final SettingsController settingsController;
+  final GroupUsersUsecase usecase;
 
-  const HomeScreen({super.key, required this.controller});
+  const HomeScreen({
+    super.key,
+    required this.settingsController,
+    required this.usecase,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,62 +20,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _hasLoaded = false;
-  final _rand = Random();
   List<VKGroupUser> _groupUserInfo = [];
 
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_handleSettingsChange);
+    widget.settingsController.addListener(_loadCards);
 
-    _loadCards();
-  }
-
-  void _handleSettingsChange() {
-    // If the token changes, reload cards
     _loadCards();
   }
 
   Future<void> _loadCards() async {
     setState(() => _hasLoaded = false);
-    if (widget.controller.settings.vkToken.isNotEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      final storedCardsRaw = prefs.getString('persisted_cards');
-      if (storedCardsRaw != null && storedCardsRaw.isNotEmpty) {
-        final List decoded = jsonDecode(storedCardsRaw);
-        _groupUserInfo =
-            decoded
-                .map(
-                  (item) => VKGroupUser.fromJson(item as Map<String, dynamic>),
-                )
-                .toList();
-      } else {
-        _generateCards();
-      }
-    } else {
-      _groupUserInfo.clear();
-    }
+    _groupUserInfo = await widget.usecase.get(
+      widget.settingsController.settings.vkToken,
+    );
     setState(() => _hasLoaded = true);
-  }
-
-  Future<void> _saveCards() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('persisted_cards', jsonEncode(_groupUserInfo));
-  }
-
-  void _generateCards() {
-    _groupUserInfo.clear();
-    // Generate 5 random cards
-    for (int i = 0; i < 5; i++) {
-      final randomWord = 'Random #${_rand.nextInt(1000)}';
-      _groupUserInfo.add(
-        VKGroupUser(
-          name: '$randomWord + ${widget.controller.settings.vkToken}',
-          surname: "constant surname",
-        ),
-      );
-    }
-    _saveCards();
   }
 
   Future<void> _sendVKMessage(String msg) async {
@@ -82,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showSwipeDialog() async {
     final inputController = TextEditingController(
-      text: widget.controller.settings.defaultMessage,
+      text: widget.settingsController.settings.defaultMessage,
     );
     await showDialog(
       context: context,
@@ -114,18 +77,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _dismissTopCard(DismissDirection dir) async {
-    if (_groupUserInfo.isNotEmpty) {
-      _groupUserInfo.removeAt(0);
-      if (dir == DismissDirection.startToEnd) {
-        await _showSwipeDialog();
-      }
-      if (_groupUserInfo.isEmpty) {
-        _generateCards();
-      } else {
-        _saveCards();
-      }
-      setState(() {});
+    if (dir == DismissDirection.startToEnd) {
+      await _showSwipeDialog();
     }
+    _groupUserInfo = await widget.usecase.removeFirst(
+      widget.settingsController.settings.vkToken,
+      _groupUserInfo,
+    );
+    setState(() {});
   }
 
   @override
@@ -134,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (widget.controller.settings.vkToken.isEmpty) {
+    if (widget.settingsController.settings.vkToken.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16),

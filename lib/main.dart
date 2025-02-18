@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vktinder/domain/user_group_info.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/presentation/pages/home_screen.dart';
 import 'package:vktinder/presentation/pages/settings_screen.dart';
@@ -30,7 +31,10 @@ class _MyAppState extends State<MyApp> {
 
     // Define the pages for bottom navigation
     _pages = [
-      HomeScreen(controller: widget.controller),
+      HomeScreen(
+        settingsController: widget.controller,
+        usecase: GroupUsersUsecase(),
+      ),
       SettingsScreen(controller: widget.controller),
     ];
   }
