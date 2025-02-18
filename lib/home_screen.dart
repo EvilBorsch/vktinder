@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'settings_controller.dart';
+import 'settings/settings_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   final SettingsController controller;
-  const HomeScreen({Key? key, required this.controller}) : super(key: key);
+
+  const HomeScreen({super.key, required this.controller});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     widget.controller.addListener(_handleSettingsChange);
+
     _loadCards();
   }
 
@@ -29,15 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadCards();
   }
 
-  @override
-  void dispose() {
-    widget.controller.removeListener(_handleSettingsChange);
-    super.dispose();
-  }
-
   Future<void> _loadCards() async {
     setState(() => _hasLoaded = false);
-    if (widget.controller.vkToken.isNotEmpty) {
+    if (widget.controller.settings.vkToken.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
       final storedCardsRaw = prefs.getString('persisted_cards');
       if (storedCardsRaw != null && storedCardsRaw.isNotEmpty) {
@@ -49,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
                 .toList();
       } else {
-        _generateInitialCards();
+        _generateCards();
       }
     } else {
       _groupUserInfo.clear();
@@ -62,14 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setString('persisted_cards', jsonEncode(_groupUserInfo));
   }
 
-  void _generateInitialCards() {
+  void _generateCards() {
     _groupUserInfo.clear();
     // Generate 5 random cards
     for (int i = 0; i < 5; i++) {
       final randomWord = 'Random #${_rand.nextInt(1000)}';
       _groupUserInfo.add(
         VKGroupUser(
-          name: '$randomWord + ${widget.controller.vkToken}',
+          name: '$randomWord + ${widget.controller.settings.vkToken}',
           surname: "constant surname",
         ),
       );
@@ -84,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showSwipeDialog() async {
     final inputController = TextEditingController(
-      text: widget.controller.defaultMessage,
+      text: widget.controller.settings.defaultMessage,
     );
     await showDialog(
       context: context,
@@ -122,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await _showSwipeDialog();
       }
       if (_groupUserInfo.isEmpty) {
-        _generateInitialCards();
+        _generateCards();
       } else {
         _saveCards();
       }
@@ -136,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (widget.controller.vkToken.isEmpty) {
+    if (widget.controller.settings.vkToken.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -194,7 +190,7 @@ class VKGroupUser {
 
 class VKGroupUserWidget extends StatelessWidget {
   final VKGroupUser userInfo;
-  const VKGroupUserWidget({Key? key, required this.userInfo}) : super(key: key);
+  const VKGroupUserWidget({super.key, required this.userInfo});
 
   @override
   Widget build(BuildContext context) {

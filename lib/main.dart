@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'home_screen.dart';
-import 'settings_controller.dart';
-import 'settings_screen.dart';
+import 'settings/settings_controller.dart';
+import 'settings/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +14,7 @@ void main() async {
 
 class MyApp extends StatefulWidget {
   final SettingsController controller;
-  const MyApp({Key? key, required this.controller}) : super(key: key);
+  const MyApp({super.key, required this.controller});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -28,7 +28,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_onSettingsChanged);
 
     // Define the pages for bottom navigation
     _pages = [
@@ -37,18 +36,8 @@ class _MyAppState extends State<MyApp> {
     ];
   }
 
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onSettingsChanged);
-    super.dispose();
-  }
-
-  void _onSettingsChanged() {
-    setState(() {});
-  }
-
   ThemeMode _getThemeMode() {
-    switch (widget.controller.selectedTheme) {
+    switch (widget.controller.settings.selectedTheme) {
       case 'light':
         return ThemeMode.light;
       case 'dark':
@@ -61,57 +50,11 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VK tinder (Simplified)',
+      title: 'VK tinder',
       debugShowCheckedModeBanner: false,
       themeMode: _getThemeMode(),
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey[100],
-        cardTheme: CardTheme(
-          color: Colors.white,
-          shadowColor: Colors.grey[350],
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        appBarTheme: const AppBarTheme(
-          color: Colors.blue,
-          centerTitle: true,
-          elevation: 2,
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Colors.white,
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
-        ),
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey[900],
-        cardTheme: CardTheme(
-          color: Colors.grey[850],
-          shadowColor: Colors.black54,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        appBarTheme: AppBarTheme(
-          color: Colors.grey[850],
-          centerTitle: true,
-          elevation: 2,
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Colors.grey[850],
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey[500],
-          type: BottomNavigationBarType.fixed,
-        ),
-      ),
+      theme: lightThemeColors(),
+      darkTheme: darkThemeColors(),
       home: Scaffold(
         body: IndexedStack(index: _currentIndex, children: _pages),
         bottomNavigationBar: BottomNavigationBar(
@@ -125,6 +68,56 @@ class _MyAppState extends State<MyApp> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  ThemeData darkThemeColors() {
+    return ThemeData(
+      brightness: Brightness.dark,
+      primarySwatch: Colors.blue,
+      scaffoldBackgroundColor: Colors.grey[900],
+      cardTheme: CardTheme(
+        color: Colors.grey[850],
+        shadowColor: Colors.black54,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      appBarTheme: AppBarTheme(
+        color: Colors.grey[850],
+        centerTitle: true,
+        elevation: 2,
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: Colors.grey[850],
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey[500],
+        type: BottomNavigationBarType.fixed,
+      ),
+    );
+  }
+
+  ThemeData lightThemeColors() {
+    return ThemeData(
+      brightness: Brightness.light,
+      primarySwatch: Colors.blue,
+      scaffoldBackgroundColor: Colors.grey[100],
+      cardTheme: CardTheme(
+        color: Colors.white,
+        shadowColor: Colors.grey[350],
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      appBarTheme: const AppBarTheme(
+        color: Colors.blue,
+        centerTitle: true,
+        elevation: 2,
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }

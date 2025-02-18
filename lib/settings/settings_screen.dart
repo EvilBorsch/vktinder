@@ -3,7 +3,7 @@ import 'settings_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsController controller;
-  const SettingsScreen({Key? key, required this.controller}) : super(key: key);
+  const SettingsScreen({super.key, required this.controller});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -17,17 +17,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _vkTokenController = TextEditingController(text: widget.controller.vkToken);
-    _defaultMsgController = TextEditingController(
-      text: widget.controller.defaultMessage,
+    _vkTokenController = TextEditingController(
+      text: widget.controller.settings.vkToken,
     );
-    _themeChoice = widget.controller.selectedTheme;
+    _defaultMsgController = TextEditingController(
+      text: widget.controller.settings.defaultMessage,
+    );
+    _themeChoice = widget.controller.settings.selectedTheme;
   }
 
   Future<void> _onSave() async {
-    widget.controller.vkToken = _vkTokenController.text;
-    widget.controller.defaultMessage = _defaultMsgController.text;
-    widget.controller.selectedTheme = _themeChoice;
+    widget.controller.settings = Settings(
+      vkToken: _vkTokenController.text,
+      defaultMessage: _defaultMsgController.text,
+      selectedTheme: _themeChoice,
+    );
     await widget.controller.save();
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -40,17 +44,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Настройки')),
-      backgroundColor: theme.scaffoldBackgroundColor,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _vkTokenController,
-            style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
               labelText: 'VK токен',
               border: OutlineInputBorder(),
@@ -59,7 +59,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _defaultMsgController,
-            style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
               labelText: 'Сообщение при свайпе',
               border: OutlineInputBorder(),
