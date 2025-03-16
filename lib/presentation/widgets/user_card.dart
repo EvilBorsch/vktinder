@@ -11,79 +11,90 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  Card(
-      elevation: 8,
+    return Card(
       margin: EdgeInsets.zero, // No margin
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).cardColor,
-              Theme.of(context).cardColor.withOpacity(0.8),
-            ],
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Profile Image Placeholder
-            CircleAvatar(
-              radius: 60,
-              backgroundColor: Colors.blue.withOpacity(0.2),
-              child: Icon(
-                Icons.person,
-                size: 80,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            const SizedBox(height: 24),
+      child: cardContent(context),
+    );
+  }
 
-            // User Name
-            Text(
-              user.name,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-
-            // User Surname
-            Text(
-              user.surname,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 32),
-
-            // Swipe instruction
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.swipe, color: Colors.grey),
-                SizedBox(width: 8),
-                Text(
-                  "Свайпните влево или вправо",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ),
+  Container cardContent(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Theme.of(context).cardColor,
+            Theme.of(context).cardColor.withOpacity(0.8),
           ],
         ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          userAvatar(context),
+          const SizedBox(height: 24),
+          userName(),
+          const SizedBox(height: 8),
+          userSurname(),
+          const SizedBox(height: 32),
+          swipeHelpInstruction(),
+        ],
+      ),
+    );
+  }
+
+  Text userSurname() {
+    return Text(
+      user.surname,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w400,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Text userName() {
+    return Text(
+      user.name,
+      style: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Row swipeHelpInstruction() {
+    return const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.swipe, color: Colors.grey),
+        SizedBox(width: 8),
+        Text(
+          "Свайпните влево или вправо",
+          style: TextStyle(
+            color: Colors.grey,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
+    );
+  }
+
+  CircleAvatar userAvatar(BuildContext context) {
+    return CircleAvatar(
+      radius: 60,
+      backgroundColor: Colors.blue.withOpacity(0.2),
+      child: Icon(
+        Icons.person,
+        size: 80,
+        color: Theme.of(context).primaryColor,
       ),
     );
   }
