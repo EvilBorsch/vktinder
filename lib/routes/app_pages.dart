@@ -1,16 +1,20 @@
 import 'package:get/get.dart';
-import 'package:vktinder/presentation/controllers/home_controller.dart';
-import 'package:vktinder/presentation/pages/home_page.dart';
-import 'package:vktinder/presentation/pages/settings_page.dart';
+import 'package:vktinder/presentation/bindings/main_binding.dart';
+import 'package:vktinder/presentation/pages/main_screen.dart';
 
 // Define routes as constants
 abstract class Routes {
-  static const HOME = '/home';
-  static const SETTINGS = '/settings';
+  static const MAIN = '/main';
 }
 
 class AppPages {
-  static const initial = Routes.HOME;
+  static const initial = Routes.MAIN;
 
-  static final routes = [    GetPage(      name: Routes.HOME,      page: () => HomePage(),      binding: BindingsBuilder(() {        Get.lazyPut(() => HomeController());      }),    ),    GetPage(      name: Routes.SETTINGS,      page: () => SettingsPage(),    ),  ];
+  static final routes = [
+    GetPage(
+      name: Routes.MAIN,
+      page: () => const MainScreen(),
+      binding: MainBinding(),
+    ),
+  ];
 }

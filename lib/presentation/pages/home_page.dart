@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vktinder/presentation/controllers/home_controller.dart';
 import 'package:vktinder/presentation/widgets/user_preview.dart';
-import 'package:vktinder/routes/app_pages.dart';
 
-class HomePage extends GetView {
-  HomePage({Key? key}) : super(key: key);
+class HomePage extends GetView<HomeController> {
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -52,21 +51,6 @@ class HomePage extends GetView {
           ],
         );
       }),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (idx) {
-          if (idx == 1) {
-            Get.toNamed(Routes.SETTINGS);
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Настройки',
-          ),
-        ],
-      ),
     );
   }
 }

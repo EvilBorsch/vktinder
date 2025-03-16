@@ -8,10 +8,16 @@ import 'package:vktinder/utils/theme_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize services and controllers
-  await Get.putAsync(() => ThemeService().init());
-  await Get.putAsync(() => GroupUsersUsecase().init());
-  await Get.putAsync(() => SettingsController().init());
+  // Initialize core services
+  final themeService = await ThemeService().init();
+  Get.put(themeService, permanent: true);
+
+  final groupUsersUsecase = await GroupUsersUsecase().init();
+  Get.put(groupUsersUsecase, permanent: true);
+
+  // Initialize SettingsController
+  final settingsController = await SettingsController().init();
+  Get.put(settingsController, permanent: true);
 
   runApp(const MyApp());
 }
