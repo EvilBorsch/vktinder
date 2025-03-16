@@ -40,14 +40,13 @@ class HomeController extends GetxController {
     }
 
     isLoading.value = true;
-
     try {
       users.value = await _groupUsersRepository.getUsers(vkToken);
     } catch (e) {
       Get.snackbar(
-        'Error',
+        'Ошибка',
         'Failed to load users: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
       users.clear();
     } finally {
@@ -103,8 +102,9 @@ class HomeController extends GetxController {
       await showMessageDialog();
     }
 
-    // Remove the card regardless of swipe direction
+    isLoading.value = true;
     users.value =
         await _groupUsersRepository.removeFirstUser(vkToken, users.toList());
+    isLoading.value = false;
   }
 }

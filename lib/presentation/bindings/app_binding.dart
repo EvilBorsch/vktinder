@@ -8,6 +8,7 @@ import 'package:vktinder/presentation/controllers/home_controller.dart';
 import 'package:vktinder/presentation/controllers/nav_controller.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
+
 class AppBinding extends Bindings {
   @override
   void dependencies() {
@@ -16,21 +17,20 @@ class AppBinding extends Bindings {
 
     // Providers
     Get.put(LocalStorageProvider(), permanent: true);
-    Get.put(VkApiProvider(), permanent: true);
+    Get.put(VkApiProvider());
 
     // Repositories
     Get.put<GroupUsersRepository>(
       GroupUsersRepository(),
-      permanent: true,
     );
     Get.put<SettingsRepository>(
-      SettingsRepository(),
-      permanent: true,
+      SettingsRepository(), permanent: true,
     );
 
     // Controllers
     Get.put(NavController(), permanent: true);
-    Get.lazyPut(() => HomeController());
+
     Get.lazyPut(() => SettingsController());
+    Get.lazyPut(() => HomeController());
   }
 }

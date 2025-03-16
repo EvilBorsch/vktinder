@@ -35,7 +35,7 @@ class LocalStorageProvider extends GetxService {
   }
 
   // Settings methods
-  Future<String> getVkToken() async {
+  String getVkToken()  {
     return _storage.read(_vkTokenKey) ?? '';
   }
 
@@ -43,7 +43,7 @@ class LocalStorageProvider extends GetxService {
     await _storage.write(_vkTokenKey, token);
   }
 
-  Future<String> getDefaultMessage() async {
+  String getDefaultMessage()  {
     return _storage.read(_defaultMessageKey) ?? '';
   }
 
@@ -51,7 +51,7 @@ class LocalStorageProvider extends GetxService {
     await _storage.write(_defaultMessageKey, message);
   }
 
-  Future<String> getTheme() async {
+  String getTheme()  {
     return _storage.read(_themeKey) ?? 'system';
   }
 

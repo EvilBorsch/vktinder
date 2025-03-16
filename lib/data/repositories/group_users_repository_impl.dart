@@ -4,16 +4,16 @@ import 'package:vktinder/data/providers/local_storage_provider.dart';
 import 'package:vktinder/data/providers/vk_api_provider.dart';
 
 class GroupUsersRepository {
-  final LocalStorageProvider _storageProvider = Get.find<LocalStorageProvider>();
+  final LocalStorageProvider _storageProvider =
+      Get.find<LocalStorageProvider>();
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
 
-  @override
   Future<List<VKGroupUser>> getUsers(String vkToken) async {
     // Try to load from cache first
     var cachedUsers = await _storageProvider.getStoredCards();
 
     // If cache is empty or token changed, fetch from network
-    if (cachedUsers.isEmpty && vkToken.isNotEmpty) {
+    if (cachedUsers.length <= 1 && vkToken.isNotEmpty) {
       cachedUsers = await _apiProvider.getGroupUsers(vkToken);
       await _storageProvider.saveCards(cachedUsers);
     }
@@ -21,8 +21,8 @@ class GroupUsersRepository {
     return cachedUsers;
   }
 
-  @override
-  Future<List<VKGroupUser>> removeFirstUser(String vkToken, List<VKGroupUser> users) async {
+  Future<List<VKGroupUser>> removeFirstUser(
+      String vkToken, List<VKGroupUser> users) async {
     if (users.isEmpty) {
       return await getUsers(vkToken);
     }
@@ -42,8 +42,8 @@ class GroupUsersRepository {
     return updatedUsers;
   }
 
-  @override
-  Future<bool> sendMessage(String vkToken, String userId, String message) async {
+  Future<bool> sendMessage(
+      String vkToken, String userId, String message) async {
     return await _apiProvider.sendMessage(vkToken, userId, message);
   }
 }

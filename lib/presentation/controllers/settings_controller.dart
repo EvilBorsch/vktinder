@@ -27,10 +27,10 @@ class SettingsController extends GetxController {
     loadSettings();
   }
 
-  Future<void> loadSettings() async {
-    final vkToken = await _settingsRepository.getVkToken();
-    final defaultMessage = await _settingsRepository.getDefaultMessage();
-    final theme = await _settingsRepository.getTheme();
+  void loadSettings()  {
+    final vkToken = _settingsRepository.getVkToken();
+    final defaultMessage = _settingsRepository.getDefaultMessage();
+    final theme = _settingsRepository.getTheme();
 
     _vkToken.value = vkToken;
     _defaultMessage.value = defaultMessage;
@@ -65,10 +65,10 @@ class SettingsController extends GetxController {
     }
 
     Get.snackbar(
-      'Success',
-      'Settings saved successfully',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
+      'Успех',
+      'Настройки успешно сохранены',
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(milliseconds: 1500),
     );
   }
 }
