@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:vktinder/data/models/home_screen.dart';
+import 'package:vktinder/data/models/vk_group_user.dart';
 
 class VKGroupUserWidget extends StatelessWidget {
   final VKGroupUser userInfo;
+  
   const VKGroupUserWidget({super.key, required this.userInfo});
 
   @override

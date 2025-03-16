@@ -1,51 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
-class SettingsScreen extends StatefulWidget {
-  final SettingsController controller;
-  const SettingsScreen({super.key, required this.controller});
+class SettingsPage extends GetView {
+  SettingsPage({Key? key}) : super(key: key);
 
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _vkTokenController;
-  late TextEditingController _defaultMsgController;
-  late String _themeChoice;
-
-  @override
-  void initState() {
-    super.initState();
-    _vkTokenController = TextEditingController(
-      text: widget.controller.settings.vkToken,
-    );
-    _defaultMsgController = TextEditingController(
-      text: widget.controller.settings.defaultMessage,
-    );
-    _themeChoice = widget.controller.settings.selectedTheme;
-  }
-
-  Future<void> _onSave() async {
-    widget.controller.settings = Settings(
-      vkToken: _vkTokenController.text,
-      defaultMessage: _defaultMsgController.text,
-      selectedTheme: _themeChoice,
-    );
-    await widget.controller.save();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Настройки сохранены'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-  }
+  final _vkTokenController = TextEditingController();
+  final _defaultMsgController = TextEditingController();
+  final _themeChoice = RxString('system');
 
   @override
   Widget build(BuildContext context) {
+    // Initialize controllers with current values
+    _vkTokenController.text = controller.vkToken;
+    _defaultMsgController.text = controller.defaultMessage;
+    _themeChoice.value = controller.selectedTheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Настройки')),
+      appBar: AppBar(
+        title: const Text('Настройки'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -65,8 +43,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _themeChoice,
+          Obx(() => DropdownButtonFormField(
+            value: _themeChoice.value,
             decoration: const InputDecoration(
               labelText: 'Выберите тему',
               border: OutlineInputBorder(),
@@ -78,13 +56,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
             onChanged: (value) {
               if (value != null) {
-                setState(() => _themeChoice = value);
+                _themeChoice.value = value;
               }
             },
-          ),
+          )),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: _onSave,
+            onPressed: () => _onSave(),
             child: const Text(
               'Сохранить',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -92,6 +70,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _onSave() async {
+    await controller.save(
+      _vkTokenController.text,
+      _defaultMsgController.text,
+      _themeChoice.value,
+    );
+
+    Get.snackbar(
+      'Успех',
+      'Настройки сохранены',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 1),
     );
   }
 }

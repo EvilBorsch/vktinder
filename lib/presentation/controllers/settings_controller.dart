@@ -1,13 +1,13 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vktinder/utils/theme_service.dart';
 
 class Settings {
   String vkToken;
   String defaultMessage;
   String selectedTheme;
+
   Settings({
     required this.vkToken,
     required this.defaultMessage,
@@ -34,50 +34,54 @@ class Settings {
 
   factory Settings.fromJson(String source) =>
       Settings.fromMap(json.decode(source) as Map<String, dynamic>);
-
-  @override
-  String toString() =>
-      'Settings(vkToken: $vkToken, defaultMessage: $defaultMessage, selectedTheme: $selectedTheme)';
-
-  @override
-  bool operator ==(covariant Settings other) {
-    if (identical(this, other)) return true;
-
-    return other.vkToken == vkToken &&
-        other.defaultMessage == defaultMessage &&
-        other.selectedTheme == selectedTheme;
-  }
-
-  @override
-  int get hashCode =>
-      vkToken.hashCode ^ defaultMessage.hashCode ^ selectedTheme.hashCode;
 }
 
-/// By extending ChangeNotifier, SettingsController can trigger
-/// rebuilds via notifyListeners() when settings are updated.
-class SettingsController extends ChangeNotifier {
-  late Settings settings;
-  SettingsController({required this.settings});
+class SettingsController extends GetxController {
+  static SettingsController get to => Get.find<SettingsController>();
 
-  static Future<SettingsController> load() async {
+  // Make this public so it can be observed from outside
+  final settings = Settings(
+    vkToken: '',
+    defaultMessage: '',
+    selectedTheme: 'system',
+  ).obs;
+
+  // Getters for individual properties
+  String get vkToken => settings.value.vkToken;
+  String get defaultMessage => settings.value.defaultMessage;
+  String get selectedTheme => settings.value.selectedTheme;
+
+  Future<SettingsController> init() async {
     final prefs = await SharedPreferences.getInstance();
     final vkToken = prefs.getString('vkToken') ?? '';
     final defaultMsg = prefs.getString('defaultMessage') ?? '';
     final selectedTheme = prefs.getString('selectedTheme') ?? 'system';
-    return SettingsController(
-      settings: Settings(
-        vkToken: vkToken,
-        defaultMessage: defaultMsg,
-        selectedTheme: selectedTheme,
-      ),
+
+    settings.value = Settings(
+      vkToken: vkToken,
+      defaultMessage: defaultMsg,
+      selectedTheme: selectedTheme,
     );
+
+    // Initialize ThemeService with current theme
+    ThemeService.to.updateTheme(selectedTheme);
+
+    return this;
   }
 
-  Future<void> save() async {
+  Future<void> save(String vkToken, String defaultMessage, String selectedTheme) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('vkToken', settings.vkToken);
-    await prefs.setString('defaultMessage', settings.defaultMessage);
-    await prefs.setString('selectedTheme', settings.selectedTheme);
-    notifyListeners();
+    await prefs.setString('vkToken', vkToken);
+    await prefs.setString('defaultMessage', defaultMessage);
+    await prefs.setString('selectedTheme', selectedTheme);
+
+    settings.value = Settings(
+      vkToken: vkToken,
+      defaultMessage: defaultMessage,
+      selectedTheme: selectedTheme,
+    );
+
+    // Update theme if changed
+    ThemeService.to.updateTheme(selectedTheme);
   }
 }

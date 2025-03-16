@@ -1,8 +1,14 @@
 import 'dart:convert';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vktinder/data/models/home_screen.dart';
+import 'package:vktinder/data/models/vk_group_user.dart';
 
-class GroupUsersUsecase {
+class GroupUsersUsecase extends GetxService {
+  // Initialize method for GetxService
+  Future<GroupUsersUsecase> init() async {
+    return this;
+  }
+
   Future<List<VKGroupUser>> get(String vkToken) async {
     var res = await _loadFromCache(vkToken);
     if (res.isEmpty) {
