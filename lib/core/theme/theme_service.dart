@@ -5,17 +5,15 @@ import 'package:get_storage/get_storage.dart';
 class ThemeService extends GetxService {
   final _storage = GetStorage();
   final _themeKey = 'theme_mode';
+  final _themeMode = ThemeMode.system.obs;
+  
+  ThemeMode get themeMode => _themeMode.value;
 
-  ThemeMode get themeMode {
+  @override
+  void onInit() {
+    super.onInit();
     final savedTheme = _storage.read(_themeKey);
-    switch (savedTheme) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      default:
-        return ThemeMode.system;
-    }
+    updateTheme(savedTheme ?? 'system');
   }
 
   Future<void> saveTheme(String theme) async {
@@ -26,17 +24,20 @@ class ThemeService extends GetxService {
   void updateTheme(String theme) {
     switch (theme) {
       case 'light':
+        _themeMode.value = ThemeMode.light;
         Get.changeThemeMode(ThemeMode.light);
         break;
       case 'dark':
+        _themeMode.value = ThemeMode.dark;
         Get.changeThemeMode(ThemeMode.dark);
         break;
       default:
+        _themeMode.value = ThemeMode.system;
         Get.changeThemeMode(ThemeMode.system);
         break;
     }
   }
-
+  
   static ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
@@ -70,7 +71,7 @@ class ThemeService extends GetxService {
       ),
     );
   }
-
+  
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
