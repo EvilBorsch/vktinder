@@ -5,10 +5,10 @@ import 'package:vktinder/data/models/vk_group_user.dart';
 
 class LocalStorageProvider extends GetxService {
   final _storage = GetStorage();
-  
+
   // User cards storage
   static const String _cardsKey = 'persisted_cards';
-  
+
   // Settings storage keys
   static const String _vkTokenKey = 'vk_token';
   static const String _defaultMessageKey = 'default_message';
@@ -35,7 +35,7 @@ class LocalStorageProvider extends GetxService {
   }
 
   // Settings methods
-  String getVkToken() {
+  Future<String> getVkToken() async {
     return _storage.read(_vkTokenKey) ?? '';
   }
 
@@ -43,7 +43,7 @@ class LocalStorageProvider extends GetxService {
     await _storage.write(_vkTokenKey, token);
   }
 
-  String getDefaultMessage() {
+  Future<String> getDefaultMessage() async {
     return _storage.read(_defaultMessageKey) ?? '';
   }
 
@@ -51,7 +51,7 @@ class LocalStorageProvider extends GetxService {
     await _storage.write(_defaultMessageKey, message);
   }
 
-  String getTheme() {
+  Future<String> getTheme() async {
     return _storage.read(_themeKey) ?? 'system';
   }
 

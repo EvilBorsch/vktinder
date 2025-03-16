@@ -1,8 +1,8 @@
 abstract class SettingsRepository {
-  String getVkToken();
-  String getDefaultMessage();
-  String getTheme();
-  
+  Future<String> getVkToken();
+  Future<String> getDefaultMessage();
+  Future<String> getTheme();
+
   Future<void> saveSettings({
     required String vkToken,
     required String defaultMessage,

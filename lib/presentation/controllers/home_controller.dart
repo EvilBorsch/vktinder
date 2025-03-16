@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
-import 'package:vktinder/domain/repositories/group_users_repository.dart';
+import 'package:vktinder/domain/usecases/group_users_usecase.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
 class HomeController extends GetxController {
   final SettingsController _settingsController = Get.find<SettingsController>();
-  final GroupUsersRepository _groupUsersRepository = Get.find<GroupUsersRepository>();
+  final GroupUsersUsecase _groupUsersUsecase = Get.find<GroupUsersUsecase>();
 
   // Reactive variables
   final RxList<VKGroupUser> users = <VKGroupUser>[].obs;
@@ -20,10 +20,10 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    
+
     // Load cards when controller initializes
     loadCards();
-    
+
     // Listen to settings changes and reload cards if needed
     ever(_settingsController.tokenChange, (_) => loadCards());
   }
@@ -34,11 +34,11 @@ class HomeController extends GetxController {
       isLoading.value = false;
       return;
     }
-    
+
     isLoading.value = true;
-    
+
     try {
-      users.value = await _groupUsersRepository.getUsers(vkToken);
+      users.value = await _groupUsersUsecase.getUsers(vkToken);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -53,10 +53,10 @@ class HomeController extends GetxController {
 
   Future<bool> sendVKMessage(String message) async {
     if (users.isEmpty || !hasVkToken) return false;
-    
+
     // In a real app, you'd send the message to the specific user
     final userId = users.first.name;
-    return await _groupUsersRepository.sendMessage(vkToken, userId, message);
+    return await _groupUsersUsecase.sendMessage(vkToken, userId, message);
   }
 
   Future<void> showMessageDialog() async {
@@ -93,13 +93,13 @@ class HomeController extends GetxController {
 
   Future<void> dismissCard(DismissDirection direction) async {
     if (users.isEmpty) return;
-    
+
     // If swiped right, show message dialog
     if (direction == DismissDirection.startToEnd) {
       await showMessageDialog();
     }
-    
+
     // Remove the card regardless of swipe direction
-    users.value = await _groupUsersRepository.removeFirstUser(vkToken, users.toList());
+    users.value = await _groupUsersUsecase.removeFirstUser(vkToken, users.toList());
   }
 }

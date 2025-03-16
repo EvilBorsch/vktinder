@@ -6,18 +6,18 @@ class SettingsRepositoryImpl implements SettingsRepository {
   final LocalStorageProvider _storageProvider = Get.find<LocalStorageProvider>();
 
   @override
-  String getVkToken() {
-    return _storageProvider.getVkToken();
+  Future<String> getVkToken() async {
+    return await _storageProvider.getVkToken();
   }
 
   @override
-  String getDefaultMessage() {
-    return _storageProvider.getDefaultMessage();
+  Future<String> getDefaultMessage() async {
+    return await _storageProvider.getDefaultMessage();
   }
 
   @override
-  String getTheme() {
-    return _storageProvider.getTheme();
+  Future<String> getTheme() async {
+    return await _storageProvider.getTheme();
   }
 
   @override

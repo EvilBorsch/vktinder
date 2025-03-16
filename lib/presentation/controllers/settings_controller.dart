@@ -1,16 +1,14 @@
 import 'package:get/get.dart';
-import 'package:vktinder/core/theme/theme_service.dart';
-import 'package:vktinder/domain/repositories/settings_repository.dart';
+import 'package:vktinder/domain/usecases/settings_usecase.dart';
 
 class SettingsController extends GetxController {
-  final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
-  final ThemeService _themeService = Get.find<ThemeService>();
+  final SettingsUsecase _settingsUsecase = Get.find<SettingsUsecase>();
 
   // Observable settings
   final RxString _vkToken = ''.obs;
   final RxString _defaultMessage = ''.obs;
   final RxString _theme = 'system'.obs;
-  
+
   // Observable to trigger reload after token change
   final RxInt tokenChange = 0.obs;
 
@@ -26,13 +24,11 @@ class SettingsController extends GetxController {
   }
 
   Future<void> loadSettings() async {
-    final vkToken = await _settingsRepository.getVkToken();
-    final defaultMessage = await _settingsRepository.getDefaultMessage();
-    final theme = await _settingsRepository.getTheme();
-    
-    _vkToken.value = vkToken;
-    _defaultMessage.value = defaultMessage;
-    _theme.value = theme;
+    final settings = await _settingsUsecase.getSettings();
+
+    _vkToken.value = settings['vkToken'] ?? '';
+    _defaultMessage.value = settings['defaultMessage'] ?? '';
+    _theme.value = settings['theme'] ?? 'system';
   }
 
   Future<void> saveSettings({
@@ -42,26 +38,23 @@ class SettingsController extends GetxController {
   }) async {
     // First update our reactive variables
     final bool tokenChanged = _vkToken.value != vkToken;
-    
+
     _vkToken.value = vkToken;
     _defaultMessage.value = defaultMessage;
     _theme.value = theme;
-    
+
     // Save to repository
-    await _settingsRepository.saveSettings(
+    await _settingsUsecase.saveSettings(
       vkToken: vkToken,
       defaultMessage: defaultMessage,
       theme: theme,
     );
-    
-    // Update theme
-    _themeService.updateTheme(theme);
-    
+
     // Trigger reload if token changed
     if (tokenChanged) {
       tokenChange.value++;
     }
-    
+
     Get.snackbar(
       'Success',
       'Settings saved successfully',
