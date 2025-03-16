@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vktinder/domain/usecases/group_users_usecase.dart';
+import 'package:vktinder/presentation/controllers/home_controller.dart';
+import 'package:vktinder/presentation/controllers/nav_controller.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/routes/app_pages.dart';
 import 'package:vktinder/utils/theme_service.dart';
@@ -18,6 +20,9 @@ void main() async {
   // Initialize SettingsController
   final settingsController = await SettingsController().init();
   Get.put(settingsController, permanent: true);
+
+  Get.put(NavController());
+  Get.put(HomeController());
 
   runApp(const MyApp());
 }

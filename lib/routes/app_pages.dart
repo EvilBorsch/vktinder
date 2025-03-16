@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:vktinder/presentation/bindings/main_binding.dart';
 import 'package:vktinder/presentation/pages/main_screen.dart';
 
 // Define routes as constants
@@ -14,7 +13,6 @@ class AppPages {
     GetPage(
       name: Routes.MAIN,
       page: () => const MainScreen(),
-      binding: MainBinding(),
     ),
   ];
 }
