@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
-import 'package:vktinder/domain/usecases/settings_usecase.dart';
+import 'package:vktinder/core/theme/theme_service.dart';
+import 'package:vktinder/data/repositories/settings_repository_impl.dart';
 
 class SettingsController extends GetxController {
-  final SettingsUsecase _settingsUsecase = Get.find<SettingsUsecase>();
+  final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
+  final ThemeService _themeService = Get.find<ThemeService>();
 
   // Observable settings
   final RxString _vkToken = ''.obs;
@@ -14,7 +16,9 @@ class SettingsController extends GetxController {
 
   // Getters for settings
   String get vkToken => _vkToken.value;
+
   String get defaultMessage => _defaultMessage.value;
+
   String get theme => _theme.value;
 
   @override
@@ -24,11 +28,13 @@ class SettingsController extends GetxController {
   }
 
   Future<void> loadSettings() async {
-    final settings = await _settingsUsecase.getSettings();
+    final vkToken = await _settingsRepository.getVkToken();
+    final defaultMessage = await _settingsRepository.getDefaultMessage();
+    final theme = await _settingsRepository.getTheme();
 
-    _vkToken.value = settings['vkToken'] ?? '';
-    _defaultMessage.value = settings['defaultMessage'] ?? '';
-    _theme.value = settings['theme'] ?? 'system';
+    _vkToken.value = vkToken;
+    _defaultMessage.value = defaultMessage;
+    _theme.value = theme;
   }
 
   Future<void> saveSettings({
@@ -44,11 +50,14 @@ class SettingsController extends GetxController {
     _theme.value = theme;
 
     // Save to repository
-    await _settingsUsecase.saveSettings(
+    await _settingsRepository.saveSettings(
       vkToken: vkToken,
       defaultMessage: defaultMessage,
       theme: theme,
     );
+
+    // Update theme immediately
+    _themeService.updateTheme(theme);
 
     // Trigger reload if token changed
     if (tokenChanged) {

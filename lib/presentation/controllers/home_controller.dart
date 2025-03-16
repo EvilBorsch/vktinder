@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
-import 'package:vktinder/domain/usecases/group_users_usecase.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
+
+import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
 
 class HomeController extends GetxController {
   final SettingsController _settingsController = Get.find<SettingsController>();
-  final GroupUsersUsecase _groupUsersUsecase = Get.find<GroupUsersUsecase>();
+  final GroupUsersRepository _groupUsersRepository =
+      Get.find<GroupUsersRepository>();
 
   // Reactive variables
   final RxList<VKGroupUser> users = <VKGroupUser>[].obs;
@@ -14,7 +16,9 @@ class HomeController extends GetxController {
 
   // Getters
   String get vkToken => _settingsController.vkToken;
+
   String get defaultMessage => _settingsController.defaultMessage;
+
   bool get hasVkToken => vkToken.isNotEmpty;
 
   @override
@@ -38,7 +42,7 @@ class HomeController extends GetxController {
     isLoading.value = true;
 
     try {
-      users.value = await _groupUsersUsecase.getUsers(vkToken);
+      users.value = await _groupUsersRepository.getUsers(vkToken);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -56,7 +60,7 @@ class HomeController extends GetxController {
 
     // In a real app, you'd send the message to the specific user
     final userId = users.first.name;
-    return await _groupUsersUsecase.sendMessage(vkToken, userId, message);
+    return await _groupUsersRepository.sendMessage(vkToken, userId, message);
   }
 
   Future<void> showMessageDialog() async {
@@ -100,6 +104,7 @@ class HomeController extends GetxController {
     }
 
     // Remove the card regardless of swipe direction
-    users.value = await _groupUsersUsecase.removeFirstUser(vkToken, users.toList());
+    users.value =
+        await _groupUsersRepository.removeFirstUser(vkToken, users.toList());
   }
 }

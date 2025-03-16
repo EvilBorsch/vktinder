@@ -2,9 +2,8 @@ import 'package:get/get.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/data/providers/local_storage_provider.dart';
 import 'package:vktinder/data/providers/vk_api_provider.dart';
-import 'package:vktinder/domain/repositories/group_users_repository.dart';
 
-class GroupUsersRepositoryImpl implements GroupUsersRepository {
+class GroupUsersRepository {
   final LocalStorageProvider _storageProvider = Get.find<LocalStorageProvider>();
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
 

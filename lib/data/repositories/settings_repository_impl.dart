@@ -1,8 +1,7 @@
 import 'package:get/get.dart';
 import 'package:vktinder/data/providers/local_storage_provider.dart';
-import 'package:vktinder/domain/repositories/settings_repository.dart';
 
-class SettingsRepositoryImpl implements SettingsRepository {
+class SettingsRepository {
   final LocalStorageProvider _storageProvider = Get.find<LocalStorageProvider>();
 
   @override
