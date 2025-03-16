@@ -17,7 +17,7 @@ class UserCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.6,
+        height: MediaQuery.of(context).size.height, // Full screen height
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),

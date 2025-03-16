@@ -75,7 +75,7 @@ class HomePage extends GetView<HomeController> {
 
         // Show the stack of cards
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(32.0),
           child: Stack(
             alignment: Alignment.center,
             children: List.generate(
