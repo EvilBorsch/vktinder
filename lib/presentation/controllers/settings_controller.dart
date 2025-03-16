@@ -1,87 +1,65 @@
-import 'dart:convert';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vktinder/utils/theme_service.dart';
-
-class Settings {
-  String vkToken;
-  String defaultMessage;
-  String selectedTheme;
-
-  Settings({
-    required this.vkToken,
-    required this.defaultMessage,
-    required this.selectedTheme,
-  });
-
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'vkToken': vkToken,
-      'defaultMessage': defaultMessage,
-      'selectedTheme': selectedTheme,
-    };
-  }
-
-  factory Settings.fromMap(Map<String, dynamic> map) {
-    return Settings(
-      vkToken: map['vkToken'] as String,
-      defaultMessage: map['defaultMessage'] as String,
-      selectedTheme: map['selectedTheme'] as String,
-    );
-  }
-
-  String toJson() => json.encode(toMap());
-
-  factory Settings.fromJson(String source) =>
-      Settings.fromMap(json.decode(source) as Map<String, dynamic>);
-}
+import 'package:vktinder/domain/usecases/settings_usecase.dart';
 
 class SettingsController extends GetxController {
-  static SettingsController get to => Get.find<SettingsController>();
+  final SettingsUsecase _settingsUsecase = Get.find<SettingsUsecase>();
 
-  // Make this public so it can be observed from outside
-  final settings = Settings(
-    vkToken: '',
-    defaultMessage: '',
-    selectedTheme: 'system',
-  ).obs;
+  // Observable settings
+  final RxString _vkToken = ''.obs;
+  final RxString _defaultMessage = ''.obs;
+  final RxString _theme = 'system'.obs;
 
-  // Getters for individual properties
-  String get vkToken => settings.value.vkToken;
-  String get defaultMessage => settings.value.defaultMessage;
-  String get selectedTheme => settings.value.selectedTheme;
+  // Observable to trigger reload after token change
+  final RxInt tokenChange = 0.obs;
 
-  Future<SettingsController> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final vkToken = prefs.getString('vkToken') ?? '';
-    final defaultMsg = prefs.getString('defaultMessage') ?? '';
-    final selectedTheme = prefs.getString('selectedTheme') ?? 'system';
+  // Getters for settings
+  String get vkToken => _vkToken.value;
+  String get defaultMessage => _defaultMessage.value;
+  String get theme => _theme.value;
 
-    settings.value = Settings(
-      vkToken: vkToken,
-      defaultMessage: defaultMsg,
-      selectedTheme: selectedTheme,
-    );
-
-    // Initialize ThemeService with current theme
-    ThemeService.to.updateTheme(selectedTheme);
-
-    return this;
+  @override
+  void onInit() {
+    super.onInit();
+    loadSettings();
   }
 
-  Future<void> save(String vkToken, String defaultMessage, String selectedTheme) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('vkToken', vkToken);
-    await prefs.setString('defaultMessage', defaultMessage);
-    await prefs.setString('selectedTheme', selectedTheme);
+  Future<void> loadSettings() async {
+    final settings = await _settingsUsecase.getSettings();
 
-    settings.value = Settings(
+    _vkToken.value = settings['vkToken'] ?? '';
+    _defaultMessage.value = settings['defaultMessage'] ?? '';
+    _theme.value = settings['theme'] ?? 'system';
+  }
+
+  Future<void> saveSettings({
+    required String vkToken,
+    required String defaultMessage,
+    required String theme,
+  }) async {
+    // First update our reactive variables
+    final bool tokenChanged = _vkToken.value != vkToken;
+
+    _vkToken.value = vkToken;
+    _defaultMessage.value = defaultMessage;
+    _theme.value = theme;
+
+    // Save to repository
+    await _settingsUsecase.saveSettings(
       vkToken: vkToken,
       defaultMessage: defaultMessage,
-      selectedTheme: selectedTheme,
+      theme: theme,
     );
 
-    // Update theme if changed
-    ThemeService.to.updateTheme(selectedTheme);
+    // Trigger reload if token changed
+    if (tokenChanged) {
+      tokenChange.value++;
+    }
+
+    Get.snackbar(
+      'Success',
+      'Settings saved successfully',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
   }
 }

@@ -11,23 +11,28 @@ class MainScreen extends GetView<NavController> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Obx(() => IndexedStack(
-        index: controller.selectedIndex,
-        children: const [
-          HomePage(),
-          SettingsPage(),
-        ],
-      )),
+            index: controller.selectedIndex.value,
+            children: const [
+              HomePage(),
+              SettingsPage(),
+            ],
+          )),
       bottomNavigationBar: Obx(() => BottomNavigationBar(
-        currentIndex: controller.selectedIndex,
-        onTap: controller.changePage,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Настройки',
-          ),
-        ],
-      )),
+            currentIndex: controller.selectedIndex.value,
+            onTap: controller.changePage,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Главная',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined),
+                activeIcon: Icon(Icons.settings),
+                label: 'Настройки',
+              ),
+            ],
+          )),
     );
   }
 }

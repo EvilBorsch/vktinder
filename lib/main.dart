@@ -1,28 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:vktinder/domain/usecases/group_users_usecase.dart';
-import 'package:vktinder/presentation/controllers/home_controller.dart';
-import 'package:vktinder/presentation/controllers/nav_controller.dart';
-import 'package:vktinder/presentation/controllers/settings_controller.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:vktinder/core/theme/theme_service.dart';
 import 'package:vktinder/routes/app_pages.dart';
-import 'package:vktinder/utils/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize core services
-  final themeService = await ThemeService().init();
-  Get.put(themeService, permanent: true);
-
-  final groupUsersUsecase = await GroupUsersUsecase().init();
-  Get.put(groupUsersUsecase, permanent: true);
-
-  // Initialize SettingsController
-  final settingsController = await SettingsController().init();
-  Get.put(settingsController, permanent: true);
-
-  Get.put(NavController());
-  Get.put(HomeController());
+  // Initialize GetStorage for persistent storage
+  await GetStorage.init();
 
   runApp(const MyApp());
 }
@@ -32,13 +18,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Initialize ThemeService here to get initial theme
+    final themeService = Get.put(ThemeService());
+
     return GetMaterialApp(
-      title: 'VK tinder',
+      title: 'VK Tinder',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeService.to.themeMode,
+      defaultTransition: Transition.fade,
+      themeMode: themeService.themeMode,
       theme: ThemeService.lightTheme,
       darkTheme: ThemeService.darkTheme,
-      initialRoute: AppPages.initial,
+      initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
     );
   }
