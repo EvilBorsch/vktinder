@@ -73,66 +73,45 @@ class HomePage extends GetView<HomeController> {
           );
         }
 
-        // Show the stack of cards
+        // Show only the top card with proper animation
         return Padding(
           padding: const EdgeInsets.all(32.0),
-          child: Stack(
-            alignment: Alignment.center,
-            children: List.generate(
-              controller.users.length,
-              (index) {
-                // Stack cards from end to start (last card on top)
-                final cardIndex = controller.users.length - 1 - index;
-                if (cardIndex >= 0 && cardIndex < controller.users.length) {
-                  final user = controller.users[cardIndex];
-
-                  // Only the top card is dismissible
-                  if (cardIndex == 0) {
-                    return Dismissible(
-                      key:
-                          ValueKey(user.toString() + DateTime.now().toString()),
-                      direction: DismissDirection.horizontal,
-                      background: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: const Icon(
-                          Icons.message,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                      secondaryBackground: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                      onDismissed: (direction) {
-                        controller.dismissCard(direction);
-                      },
-                      child: UserCard(user: user),
-                    );
-                  }
-
-                  // Other cards in the stack (not dismissible)
-                  return Transform.translate(
-                    offset: Offset(0, -10.0 * index),
-                    child: UserCard(user: user),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
+          child: Dismissible(
+            key: ValueKey(controller.users.first.toString() +
+                DateTime.now().toString()),
+            direction: DismissDirection.horizontal,
+            background: Container(
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20),
+              child: const Icon(
+                Icons.message,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            secondaryBackground: Container(
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            onDismissed: (direction) {
+              controller.dismissCard(direction);
+            },
+            child: UserCard(
+              key: ValueKey(controller.users.first.toString()),
+              user: controller.users.first,
             ),
           ),
         );

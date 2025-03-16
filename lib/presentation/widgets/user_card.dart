@@ -11,14 +11,13 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return  Card(
       elevation: 8,
+      margin: EdgeInsets.zero, // No margin
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
-        height: MediaQuery.of(context).size.height, // Full screen height
-        width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
