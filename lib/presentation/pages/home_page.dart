@@ -10,13 +10,6 @@ class HomePage extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('VK Tinder',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        ),
-        centerTitle: true,
-        // Removed heart icon and refresh icon as requested
-      ),
       body: Obx(() {
         // Show loading indicator
         if (controller.isLoading.value) {

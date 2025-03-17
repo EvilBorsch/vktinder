@@ -53,12 +53,6 @@ class ThemeService extends GetxService {
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.blue,
-        centerTitle: true,
-        elevation: 0,
-        foregroundColor: Colors.white,
-      ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: Colors.blue,
@@ -111,11 +105,6 @@ class ThemeService extends GetxService {
         shadowColor: Colors.black54,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF1E1E1E),
-        centerTitle: true,
-        elevation: 0,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Color(0xFF1E1E1E),

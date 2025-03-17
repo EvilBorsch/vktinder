@@ -119,12 +119,12 @@ class HomeController extends GetxController {
                     Get.snackbar(
                       'Успех',
                       'Сообщение отправлено',
-                      snackPosition: SnackPosition.BOTTOM,
+                      snackPosition: SnackPosition.TOP,
                       backgroundColor: Colors.green[100],
                       colorText: Colors.green[900],
                       margin: const EdgeInsets.all(8),
                       borderRadius: 10,
-                      duration: const Duration(seconds: 2),
+                      duration: const Duration(seconds: 1),
                     );
                   }
                   

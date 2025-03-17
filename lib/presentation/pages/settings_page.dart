@@ -8,12 +8,6 @@ class SettingsPage extends GetView<SettingsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Настройки',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        ),
-        centerTitle: true,
-      ),
       body: Obx(() => _buildSettingsForm()),
     );
   }
