@@ -8,6 +8,12 @@ class SettingsPage extends GetView<SettingsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Настройки',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        ),
+        centerTitle: true,
+      ),
       body: Obx(() => _buildSettingsForm()),
     );
   }
@@ -20,17 +26,11 @@ class SettingsPage extends GetView<SettingsController> {
     final themeValue = controller.theme.obs;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       children: [
         // VK Token Input
-        const Text(
-          'VK Токен',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 8),
+        _buildSectionHeader('VK Токен', Icons.key),
+        const SizedBox(height: 12),
         TextField(
           controller: vkTokenController,
           decoration: const InputDecoration(
@@ -39,17 +39,16 @@ class SettingsPage extends GetView<SettingsController> {
             prefixIcon: Icon(Icons.key),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
+        const Text(
+          'Токен необходим для доступа к API ВКонтакте',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+        const SizedBox(height: 32),
 
         // Default Message Input
-        const Text(
-          'Стандартное сообщение',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 8),
+        _buildSectionHeader('Стандартное сообщение', Icons.message),
+        const SizedBox(height: 12),
         TextField(
           controller: defaultMsgController,
           maxLines: 3,
@@ -59,51 +58,48 @@ class SettingsPage extends GetView<SettingsController> {
             prefixIcon: Icon(Icons.message),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
+        const Text(
+          'Будет использоваться как шаблон при отправке сообщений',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+        const SizedBox(height: 32),
 
         // Theme Selection
-        const Text(
-          'Тема приложения',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 8),
+        _buildSectionHeader('Тема приложения', Icons.palette),
+        const SizedBox(height: 12),
         Obx(() => Card(
               elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Column(
                 children: [
-                  RadioListTile<String>(
-                    title: const Text('Системная'),
-                    value: 'system',
-                    groupValue: themeValue.value,
-                    onChanged: (value) {
-                      if (value != null) themeValue.value = value;
-                    },
+                  _buildThemeOption(
+                    'Системная',
+                    'Следовать настройкам системы',
+                    Icons.settings_suggest,
+                    'system',
+                    themeValue,
                   ),
                   const Divider(height: 1),
-                  RadioListTile<String>(
-                    title: const Text('Светлая'),
-                    value: 'light',
-                    groupValue: themeValue.value,
-                    onChanged: (value) {
-                      if (value != null) themeValue.value = value;
-                    },
+                  _buildThemeOption(
+                    'Светлая',
+                    'Использовать светлую тему',
+                    Icons.wb_sunny,
+                    'light',
+                    themeValue,
                   ),
                   const Divider(height: 1),
-                  RadioListTile<String>(
-                    title: const Text('Темная'),
-                    value: 'dark',
-                    groupValue: themeValue.value,
-                    onChanged: (value) {
-                      if (value != null) themeValue.value = value;
-                    },
+                  _buildThemeOption(
+                    'Темная',
+                    'Использовать темную тему',
+                    Icons.nights_stay,
+                    'dark',
+                    themeValue,
                   ),
                 ],
               ),
             )),
-        const SizedBox(height: 32),
+        const SizedBox(height: 40),
 
         // Save Button
         ElevatedButton.icon(
@@ -114,10 +110,10 @@ class SettingsPage extends GetView<SettingsController> {
               theme: themeValue.value,
             );
           },
-          icon: const Icon(Icons.save),
+          icon: const Icon(Icons.save, size: 24),
           label: const Text(
             'Сохранить настройки',
-            style: TextStyle(fontSize: 16),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -125,6 +121,42 @@ class SettingsPage extends GetView<SettingsController> {
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Get.theme.primaryColor),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThemeOption(String title, String subtitle, IconData icon, String value, RxString groupValue) {
+    return RadioListTile<String>(
+      title: Row(
+        children: [
+          Icon(icon),
+          const SizedBox(width: 12),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      value: value,
+      groupValue: groupValue.value,
+      onChanged: (value) {
+        if (value != null) groupValue.value = value;
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
   }
 }

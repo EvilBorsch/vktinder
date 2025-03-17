@@ -14,6 +14,8 @@ class AppPages {
       name: Routes.MAIN,
       page: () => const MainScreen(),
       binding: AppBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 300),
     ),
   ];
 }

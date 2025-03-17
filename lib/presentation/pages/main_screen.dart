@@ -20,15 +20,16 @@ class MainScreen extends GetView<NavController> {
       bottomNavigationBar: Obx(() => BottomNavigationBar(
             currentIndex: controller.selectedIndex.value,
             onTap: controller.changePage,
+            elevation: 8,
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
+                icon: Icon(Icons.home_outlined, size: 28),
+                activeIcon: Icon(Icons.home, size: 28),
                 label: 'Главная',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.settings_outlined),
-                activeIcon: Icon(Icons.settings),
+                icon: Icon(Icons.settings_outlined, size: 28),
+                activeIcon: Icon(Icons.settings, size: 28),
                 label: 'Настройки',
               ),
             ],

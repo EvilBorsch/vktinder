@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vktinder/core/theme/theme_service.dart';
 import 'package:vktinder/data/repositories/settings_repository_impl.dart';
@@ -68,7 +69,12 @@ class SettingsController extends GetxController {
       'Успех',
       'Настройки успешно сохранены',
       snackPosition: SnackPosition.TOP,
-      duration: const Duration(milliseconds: 1500),
+      backgroundColor: Colors.green[100],
+      colorText: Colors.green[900],
+      margin: const EdgeInsets.all(8),
+      borderRadius: 10,
+      duration: const Duration(seconds: 2),
+      icon: const Icon(Icons.check_circle, color: Colors.green),
     );
   }
 }

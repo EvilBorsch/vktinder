@@ -11,19 +11,25 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero, // No margin
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    // Use the full width available
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        margin: EdgeInsets.zero, // No margin
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 8,
+        child: cardContent(context),
       ),
-      child: cardContent(context),
     );
   }
 
-  Container cardContent(BuildContext context) {
+  Widget cardContent(BuildContext context) {
     return Container(
+      width: double.infinity,  // Ensure full width
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -32,18 +38,30 @@ class UserCard extends StatelessWidget {
             Theme.of(context).cardColor.withOpacity(0.8),
           ],
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          userAvatar(context),
-          const SizedBox(height: 24),
-          userName(),
-          const SizedBox(height: 8),
-          userSurname(),
-          const SizedBox(height: 32),
-          swipeHelpInstruction(),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 16,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            userAvatar(context),
+            const SizedBox(height: 28),
+            userName(),
+            const SizedBox(height: 12),
+            userSurname(),
+            const SizedBox(height: 40),
+            swipeInstructions(context),
+          ],
+        ),
       ),
     );
   }
@@ -63,38 +81,63 @@ class UserCard extends StatelessWidget {
     return Text(
       user.name,
       style: const TextStyle(
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: FontWeight.bold,
+        letterSpacing: 0.5,
       ),
       textAlign: TextAlign.center,
     );
   }
 
-  Row swipeHelpInstruction() {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.swipe, color: Colors.grey),
-        SizedBox(width: 8),
-        Text(
-          "Свайпните влево или вправо",
-          style: TextStyle(
-            color: Colors.grey,
-            fontStyle: FontStyle.italic,
+  Widget swipeInstructions(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.swipe, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            "Свайпните влево или вправо",
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  CircleAvatar userAvatar(BuildContext context) {
-    return CircleAvatar(
-      radius: 60,
-      backgroundColor: Colors.blue.withOpacity(0.2),
-      child: Icon(
-        Icons.person,
-        size: 80,
-        color: Theme.of(context).primaryColor,
+  Widget userAvatar(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).primaryColor.withOpacity(0.4),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 70,
+        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+        child: CircleAvatar(
+          radius: 60,
+          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+          child: Icon(
+            Icons.person,
+            size: 80,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
       ),
     );
   }
