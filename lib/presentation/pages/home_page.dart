@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:vktinder/presentation/controllers/home_controller.dart';
 import 'package:vktinder/presentation/controllers/nav_controller.dart';
 import 'package:vktinder/presentation/widgets/user_card.dart';
+import 'package:vktinder/routes/app_pages.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
@@ -19,7 +20,8 @@ class HomePage extends GetView<HomeController> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('Загрузка пользователей...',
+                Text(
+                  'Загрузка пользователей...',
                   style: TextStyle(color: Colors.grey),
                 ),
               ],
@@ -34,7 +36,8 @@ class HomePage extends GetView<HomeController> {
               padding: const EdgeInsets.all(24),
               child: Card(
                 elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24)),
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -68,7 +71,8 @@ class HomePage extends GetView<HomeController> {
                         icon: const Icon(Icons.settings),
                         label: const Text('Перейти в настройки'),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
                         ),
                       ),
                     ],
@@ -86,7 +90,8 @@ class HomePage extends GetView<HomeController> {
               padding: const EdgeInsets.all(24),
               child: Card(
                 elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24)),
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -118,7 +123,8 @@ class HomePage extends GetView<HomeController> {
                         icon: const Icon(Icons.refresh),
                         label: const Text('Обновить'),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
                         ),
                       ),
                     ],
@@ -131,44 +137,52 @@ class HomePage extends GetView<HomeController> {
 
         // Show only the top card with proper animation
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),  // Reduced padding to allow card to take more width
-            child: Dismissible(
-              key: ValueKey(controller.users.first.toString() +
-                  DateTime.now().toString()),
-              direction: DismissDirection.horizontal,
-              background: Container(
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(16),
+          child: GestureDetector(
+            onTap: () async {
+              // Load and display full profile
+              final user = controller.users.first;
+              Get.toNamed(Routes.UserDetails, arguments: user);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              // Reduced padding to allow card to take more width
+              child: Dismissible(
+                key: ValueKey(controller.users.first.toString() +
+                    DateTime.now().toString()),
+                direction: DismissDirection.horizontal,
+                background: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: 32),
+                  child: const Icon(
+                    Icons.message_rounded,
+                    color: Colors.white,
+                    size: 56,
+                  ),
                 ),
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.only(left: 32),
-                child: const Icon(
-                  Icons.message_rounded,
-                  color: Colors.white,
-                  size: 56,
+                secondaryBackground: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 32),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 56,
+                  ),
                 ),
-              ),
-              secondaryBackground: Container(
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(16),
+                onDismissed: (direction) {
+                  controller.dismissCard(direction);
+                },
+                child: UserCard(
+                  key: ValueKey(controller.users.first.toString()),
+                  user: controller.users.first,
                 ),
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 32),
-                child: const Icon(
-                  Icons.close_rounded,
-                  color: Colors.white,
-                  size: 56,
-                ),
-              ),
-              onDismissed: (direction) {
-                controller.dismissCard(direction);
-              },
-              child: UserCard(
-                key: ValueKey(controller.users.first.toString()),
-                user: controller.users.first,
               ),
             ),
           ),

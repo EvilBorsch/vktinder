@@ -13,7 +13,6 @@ class UserCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use the full width available
     return SizedBox(
-      width: double.infinity,
       child: Card(
         margin: EdgeInsets.zero, // No margin
         shape: RoundedRectangleBorder(
@@ -27,7 +26,6 @@ class UserCard extends StatelessWidget {
 
   Widget cardContent(BuildContext context) {
     return Container(
-      width: double.infinity,  // Ensure full width
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
@@ -102,12 +100,14 @@ class UserCard extends StatelessWidget {
         children: [
           Icon(Icons.swipe, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
-          Text(
-            "Свайпните влево или вправо",
+          Expanded(
+            child: Text(
+            "Свайпните влево или вправо\nКликните чтобы узнать больше",
             style: TextStyle(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w500,
             ),
+            )
           ),
         ],
       ),
@@ -126,19 +126,7 @@ class UserCard extends StatelessWidget {
           ),
         ],
       ),
-      child: CircleAvatar(
-        radius: 70,
-        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-        child: CircleAvatar(
-          radius: 60,
-          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-          child: Icon(
-            Icons.person,
-            size: 80,
-            color: Theme.of(context).primaryColor,
-          ),
-        ),
-      ),
+      child: Image.network(user.avatar!),
     );
   }
 }

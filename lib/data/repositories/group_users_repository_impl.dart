@@ -21,6 +21,13 @@ class GroupUsersRepository {
     return cachedUsers;
   }
 
+  Future<VKGroupUser> getFullProfile(String vkToken, String userID) async {
+    var profileInfo = await _apiProvider.getFullProfile(vkToken, userID);
+    final photoInfo = await _apiProvider.getUserPhotos(vkToken, userID);
+    profileInfo.photos = photoInfo;
+    return profileInfo;
+  }
+
   Future<List<VKGroupUser>> removeFirstUser(
       String vkToken, List<VKGroupUser> users) async {
     if (users.isEmpty) {
