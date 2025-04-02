@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
@@ -43,10 +45,14 @@ class DetailedAbout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      CircleAvatar(
-        radius: 40,
-        backgroundImage:
-            NetworkImage(controller.user.value?.avatar ?? ''),
+      Row(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundImage:
+                NetworkImage(controller.user.value?.avatar ?? ''),
+          ),
+        ],
       ),
       const SizedBox(height: 16),
       Text(

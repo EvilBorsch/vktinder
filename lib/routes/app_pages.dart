@@ -16,15 +16,11 @@ class AppPages {
       name: Routes.MAIN,
       page: () => const MainScreen(),
       binding: AppBinding(),
-      transition: Transition.fadeIn,
-      transitionDuration: const Duration(milliseconds: 300),
     ),
     GetPage(
       name: Routes.UserDetails,
       page: () => const UserDetailsPage(),
       binding: DetailsBindings(),
-      transition: Transition.fadeIn,
-      transitionDuration: const Duration(milliseconds: 300),
     ),
   ];
 }
