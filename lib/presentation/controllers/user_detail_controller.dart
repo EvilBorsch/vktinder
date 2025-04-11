@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
+import 'package:vktinder/data/models/vk_group_info.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
 
@@ -11,9 +12,12 @@ class UserDetailsController extends GetxController {
   final RxBool isLoading = true.obs;
   final RxBool isSendingMessage = false.obs;
 
+  // Add separate observables for photos and groups
+  final RxList<String> photos = <String>[].obs;
+  final RxList<VKGroupInfo> groups = <VKGroupInfo>[].obs;
+
   final SettingsController _settingsController = Get.find<SettingsController>();
-  final GroupUsersRepository _groupUsersRepository =
-      Get.find<GroupUsersRepository>();
+  final GroupUsersRepository _groupUsersRepository = Get.find<GroupUsersRepository>();
 
   @override
   void onInit() {
@@ -21,6 +25,11 @@ class UserDetailsController extends GetxController {
     final targetUser = Get.arguments as VKGroupUser;
     // Initialize the user with the basic info we already have
     user.value = targetUser;
+
+    // Initialize photos and groups with any existing data
+    photos.assignAll(targetUser.photos);
+    groups.assignAll(targetUser.groups);
+
     // Set isLoading to false initially since we already have basic info
     isLoading.value = false;
   }
@@ -42,7 +51,17 @@ class UserDetailsController extends GetxController {
         _settingsController.vkToken,
         userID,
       );
+
+      // Update separate observables first
+      photos.assignAll(userDetails.photos);
+      groups.assignAll(userDetails.groups);
+
+      // Then update the user object itself
       user.value = userDetails;
+
+      // Print debug info
+      print("Loaded full profile - Photos: ${photos.length}, Groups: ${groups.length}");
+
     } catch (e) {
       Get.snackbar(
         'Ошибка',

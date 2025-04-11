@@ -10,16 +10,17 @@ import 'package:vktinder/data/providers/vk_api_provider.dart';
 import 'package:vktinder/data/repositories/settings_repository_impl.dart'; // Import SettingsRepository
 
 class GroupUsersRepository {
-  final LocalStorageProvider _storageProvider = Get.find<LocalStorageProvider>();
+  final LocalStorageProvider _storageProvider =
+      Get.find<LocalStorageProvider>();
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
   // Get SettingsRepository to access all settings easily
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
-  
+
   // Get stored cards from local storage
   Future<List<VKGroupUser>> getStoredCards() async {
     return await _storageProvider.getStoredCards();
   }
-  
+
   // Save cards to local storage
   Future<void> saveCards(List<VKGroupUser> cards) async {
     await _storageProvider.saveCards(cards);
@@ -47,11 +48,19 @@ class GroupUsersRepository {
     }
 
     // 2. Resolve City Names and Group URLs to IDs concurrently
-    final Map<String, int> cityIdMap = await _resolveCityNames(vkToken, cityNames);
-    final List<VKGroupInfo?> groupInfos = await _resolveGroupUrls(vkToken, groupUrls);
+    final Map<String, int> cityIdMap =
+        await _resolveCityNames(vkToken, cityNames);
+    final List<VKGroupInfo?> groupInfos =
+        await _resolveGroupUrls(vkToken, groupUrls);
 
-    final List<int> targetGroupIds = groupInfos.whereType<VKGroupInfo>().map((g) => g.id).where((id) => id > 0).toSet().toList(); // Unique, valid IDs
-    final List<int> targetCityIds = cityIdMap.values.toSet().toList(); // Unique, valid IDs
+    final List<int> targetGroupIds = groupInfos
+        .whereType<VKGroupInfo>()
+        .map((g) => g.id)
+        .where((id) => id > 0)
+        .toSet()
+        .toList(); // Unique, valid IDs
+    final List<int> targetCityIds =
+        cityIdMap.values.toSet().toList(); // Unique, valid IDs
 
     if (targetGroupIds.isEmpty) {
       print("Could not resolve any valid group IDs from the provided URLs.");
@@ -60,7 +69,8 @@ class GroupUsersRepository {
       return [];
     }
 
-    print("Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo, SkipClosed=$skipClosedProfiles");
+    print(
+        "Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo, SkipClosed=$skipClosedProfiles");
 
     // 3. Perform Search using users.search
     // We need to iterate through groups and potentially cities if the API requires it.
@@ -68,19 +78,26 @@ class GroupUsersRepository {
     // If multiple cities are selected, we might need multiple searches.
     // If multiple groups are selected, we *definitely* need multiple searches.
 
-    final Set<VKGroupUser> foundUsers = {}; // Use a Set to automatically handle duplicates
-    final Set<String> closedProfileIds = {}; // Track closed profile IDs for logging
-    const int searchLimitPerRequest = 100; // VK limit is 1000, but smaller batches might be safer/faster start
+    final Set<VKGroupUser> foundUsers =
+        {}; // Use a Set to automatically handle duplicates
+    final Set<String> closedProfileIds =
+        {}; // Track closed profile IDs for logging
+    const int searchLimitPerRequest =
+        100; // VK limit is 1000, but smaller batches might be safer/faster start
     bool reachedVkLimit = false; // Flag if VK stops returning results
 
     // Prioritize searching within specified cities if any are given
-    final searchCityIds = targetCityIds.isNotEmpty ? targetCityIds : [null]; // Use null if no cities specified
+    final searchCityIds = targetCityIds.isNotEmpty
+        ? targetCityIds
+        : [null]; // Use null if no cities specified
 
     for (final groupId in targetGroupIds) {
       for (final cityId in searchCityIds) {
         int currentOffset = 0;
-        int totalFoundInCombo = 0; // Track total for this specific group/city combo
-        const maxOffset = 900; // VK search offset limit seems to be around 1000 total results
+        int totalFoundInCombo =
+            0; // Track total for this specific group/city combo
+        const maxOffset =
+            900; // VK search offset limit seems to be around 1000 total results
 
         while (currentOffset <= maxOffset && !reachedVkLimit) {
           try {
@@ -98,9 +115,11 @@ class GroupUsersRepository {
             if (batch.isEmpty) {
               // If we get an empty batch, assume we've got all users for this combo or hit a VK limit
               if (currentOffset > 0) {
-                print("Finished searching group $groupId / city ${cityId ?? 'any'} at offset $currentOffset.");
+                print(
+                    "Finished searching group $groupId / city ${cityId ?? 'any'} at offset $currentOffset.");
               } else {
-                print("No users found for group $groupId / city ${cityId ?? 'any'} with current filters.");
+                print(
+                    "No users found for group $groupId / city ${cityId ?? 'any'} with current filters.");
               }
               break; // Move to the next city/group combination
             }
@@ -110,7 +129,8 @@ class GroupUsersRepository {
             int closedCount = 0;
             for (var user in batch) {
               // Check if we should skip closed profiles
-              bool isClosed = await _isProfileClosed(vkToken, user.userID);
+              bool isClosed =
+                  await _isProfileClosed(vkToken, user.userID, user: user);
               if (isClosed) {
                 closedProfileIds.add(user.userID);
                 closedCount++;
@@ -118,38 +138,45 @@ class GroupUsersRepository {
                   continue; // Skip this user
                 }
               }
-              
-              if (foundUsers.add(user)) { // add returns true if element was not already in the set
+
+              if (foundUsers.add(user)) {
+                // add returns true if element was not already in the set
                 addedCount++;
               }
             }
-            print("Added $addedCount new users from group $groupId / city ${cityId ?? 'any'} (offset: $currentOffset). Skipped $closedCount closed profiles. Total unique: ${foundUsers.length}");
+            print(
+                "Added $addedCount new users from group $groupId / city ${cityId ?? 'any'} (offset: $currentOffset). Skipped $closedCount closed profiles. Total unique: ${foundUsers.length}");
 
-            totalFoundInCombo += batch.length; // Increment total for this specific combo
+            totalFoundInCombo +=
+                batch.length; // Increment total for this specific combo
             currentOffset += searchLimitPerRequest; // Prepare for the next page
 
             // Optional: Add a small delay between paginated requests
-            if(batch.length == searchLimitPerRequest) { // Only delay if we likely hit the count limit
+            if (batch.length == searchLimitPerRequest) {
+              // Only delay if we likely hit the count limit
               await Future.delayed(const Duration(milliseconds: 350));
             }
-
-
           } catch (e) {
-            print("Error during users.search (group $groupId, city ${cityId ?? 'any'}, offset $currentOffset): $e");
+            print(
+                "Error during users.search (group $groupId, city ${cityId ?? 'any'}, offset $currentOffset): $e");
             // Decide whether to stop all searches or just skip this combo/group
             // For now, let's break this inner loop and try the next combo
-            reachedVkLimit = true; // Assume a potentially blocking error (like rate limit/auth)
+            reachedVkLimit =
+                true; // Assume a potentially blocking error (like rate limit/auth)
             break; // Stop searching this city/group combo on error
           }
         } // End while loop (pagination)
-        if (reachedVkLimit) break; // Stop searching cities if a major error occurred
+        if (reachedVkLimit)
+          break; // Stop searching cities if a major error occurred
       } // End city loop
-      if (reachedVkLimit) break; // Stop searching groups if a major error occurred
+      if (reachedVkLimit)
+        break; // Stop searching groups if a major error occurred
     } // End group loop
 
     // 4. Convert Set to List and Return
     final usersList = foundUsers.toList();
-    print("Total unique users found across all groups/cities: ${usersList.length}");
+    print(
+        "Total unique users found across all groups/cities: ${usersList.length}");
 
     // We no longer clear storage here - the HomeController will handle
     // saving the combined list of existing and new cards
@@ -158,7 +185,8 @@ class GroupUsersRepository {
   }
 
   // Helper to resolve city names
-  Future<Map<String, int>> _resolveCityNames(String vkToken, List<String> cityNames) async {
+  Future<Map<String, int>> _resolveCityNames(
+      String vkToken, List<String> cityNames) async {
     if (cityNames.isEmpty) return {};
     try {
       return await _apiProvider.getCityIdsByNames(vkToken, cityNames);
@@ -169,7 +197,8 @@ class GroupUsersRepository {
   }
 
   // Helper to resolve group URLs/screen names
-  Future<List<VKGroupInfo?>> _resolveGroupUrls(String vkToken, List<String> groupUrls) async {
+  Future<List<VKGroupInfo?>> _resolveGroupUrls(
+      String vkToken, List<String> groupUrls) async {
     List<Future<VKGroupInfo?>> futures = [];
     for (final url in groupUrls) {
       futures.add(_apiProvider.getGroupInfoByScreenName(vkToken, url));
@@ -179,18 +208,21 @@ class GroupUsersRepository {
     try {
       final results = await Future.wait(futures);
       // Filter out nulls (failed resolutions) and potentially log them
-      final failedUrls = groupUrls.whereIndexed((index, url) => results[index] == null).toList();
+      final failedUrls = groupUrls
+          .whereIndexed((index, url) => results[index] == null)
+          .toList();
       if (failedUrls.isNotEmpty) {
-        print("Could not resolve the following group URLs/names: ${failedUrls.join(', ')}");
+        print(
+            "Could not resolve the following group URLs/names: ${failedUrls.join(', ')}");
         // Consider notifying the user via the controller
       }
       return results; // Keep nulls for now, filter later
     } catch (e) {
       print("Error resolving group URLs: $e");
-      return List.filled(groupUrls.length, null); // Return list of nulls on major error
+      return List.filled(
+          groupUrls.length, null); // Return list of nulls on major error
     }
   }
-
 
   // --- getFullProfile (Important Fix: Ensure Groups are fetched) ---
   Future<VKGroupUser> getFullProfile(String vkToken, String userID) async {
@@ -209,10 +241,21 @@ class GroupUsersRepository {
       photos = results[0] as List<String>;
       groups = results[1] as List<VKGroupInfo>;
     } catch (e) {
-      print("Error fetching photos or groups concurrently for profile $userID: $e");
+      print(
+          "Error fetching photos or groups concurrently for profile $userID: $e");
       // Try fetching sequentially if concurrent fails (optional, adds complexity)
-      try { photos = await _apiProvider.getUserPhotos(vkToken, userID); } catch (e) { print("Sequential photo fetch failed: $e"); photos = []; }
-      try { groups = await _fetchUserGroups(vkToken, userID); } catch (e) { print("Sequential group fetch failed: $e"); groups = []; }
+      try {
+        photos = await _apiProvider.getUserPhotos(vkToken, userID);
+      } catch (e) {
+        print("Sequential photo fetch failed: $e");
+        photos = [];
+      }
+      try {
+        groups = await _fetchUserGroups(vkToken, userID);
+      } catch (e) {
+        print("Sequential group fetch failed: $e");
+        groups = [];
+      }
     }
 
     // Return a new VKGroupUser instance with all data
@@ -233,20 +276,23 @@ class GroupUsersRepository {
       online: baseProfileInfo.online,
       lastSeen: baseProfileInfo.lastSeen,
       photos: photos, // Assign fetched photos
-      groups: groups,  // Assign fetched groups
+      groups: groups, // Assign fetched groups
     );
   }
 
   // Helper function to fetch group info for a user
-  Future<List<VKGroupInfo>> _fetchUserGroups(String vkToken, String userID) async {
+  Future<List<VKGroupInfo>> _fetchUserGroups(
+      String vkToken, String userID) async {
     try {
-      final groupIdsInt = await _apiProvider.getUserSubscriptionIds(vkToken, userID);
+      final groupIdsInt =
+          await _apiProvider.getUserSubscriptionIds(vkToken, userID);
       if (groupIdsInt.isNotEmpty) {
         final groupIdsStr = groupIdsInt.map((id) => id.toString()).toList();
         // Fetch detailed group info
         return await _apiProvider.getGroupsById(vkToken, groupIdsStr);
       } else {
-        print("No group subscription IDs found or accessible for user $userID.");
+        print(
+            "No group subscription IDs found or accessible for user $userID.");
         return [];
       }
     } catch (e) {
@@ -255,21 +301,22 @@ class GroupUsersRepository {
     }
   }
 
-
   // This method is no longer needed as we handle card removal directly in HomeController
   // and save the updated list to storage there
 
-  // Helper method to check if a profile is closed
-  Future<bool> _isProfileClosed(String vkToken, String userId) async {
-    try {
-      // Try to fetch photos - if we get an empty list, the profile is likely closed
-      final photos = await _apiProvider.getUserPhotos(vkToken, userId);
-      return photos.isEmpty;
-    } catch (e) {
-      // If there's an error fetching photos, assume the profile is closed
-      print("Error checking if profile $userId is closed: $e");
-      return true;
+  // Helper method to check if a profile is closed based on the canWritePrivateMessage field
+  Future<bool> _isProfileClosed(String vkToken, String userId,
+      {VKGroupUser? user}) async {
+    // If we have the user object and it has the canWritePrivateMessage field,
+    // we can use that to determine if the profile is closed
+    if (user != null && user.canWritePrivateMessage != null) {
+      // If canWritePrivateMessage is false, the profile is likely closed
+      return !user.canWritePrivateMessage!;
     }
+
+    // If we don't have the user object or it doesn't have the canWritePrivateMessage field,
+    // we'll just return false to avoid making additional API calls
+    return false;
   }
 
   // sendMessage (Remains the same)

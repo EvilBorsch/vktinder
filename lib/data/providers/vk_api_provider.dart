@@ -815,7 +815,7 @@ class VkApiProvider extends getx.GetxService {
       'count': count.clamp(1, 1000),
       'offset': offset,
       'sex': sex,
-      'fields': 'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen',
+      'fields': 'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen,can_write_private_message',
     };
 
     if (groupId != null) queryParams['group_id'] = groupId;

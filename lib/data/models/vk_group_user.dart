@@ -20,6 +20,7 @@ class VKGroupUser {
   final String? screenName;
   final bool? online;
   final Map<String, dynamic>? lastSeen;
+  final bool? canWritePrivateMessage;
 
   VKGroupUser({
     required this.name,
@@ -39,6 +40,7 @@ class VKGroupUser {
     this.screenName,
     this.online,
     this.lastSeen,
+    this.canWritePrivateMessage,
   });
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +59,7 @@ class VKGroupUser {
     'screen_name': screenName,
     'online': online,
     'last_seen': lastSeen,
+    'can_write_private_message': canWritePrivateMessage,
     // Serialize groups correctly
     'groups': groups.map((g) => g.toJson()).toList(),
     'photos': photos,
@@ -141,6 +144,13 @@ class VKGroupUser {
 
       // Parse complex/nested fields
       lastSeen: json['last_seen'] as Map<String, dynamic>?,
+
+      // Parse can_write_private_message field
+      canWritePrivateMessage: json['can_write_private_message'] != null
+          ? (json['can_write_private_message'] is bool
+              ? json['can_write_private_message'] as bool
+              : (json['can_write_private_message'] as int) == 1)
+          : null,
 
       // We expect photos to be populated separately later
       photos: (json['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? const [],

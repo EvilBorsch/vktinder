@@ -58,37 +58,35 @@ class UserDetailsPage extends GetView<UserDetailsController> {
       ),
       body: Obx(() {
         if (controller.user.value == null && !controller.isLoading.value) {
-          // Show error if loading finished but user is still null
           return const Center(child: Text("Не удалось загрузить профиль."));
         }
 
-        // User data is available (might still be loading groups/photos in background)
+        // User data is available
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DetailedProfile(controller: controller),
               // Conditionally display Photos section header
-              if (controller.user.value!.photos.isNotEmpty)
+              if (controller.photos.isNotEmpty)  // <-- Changed from user.value!.photos to controller.photos
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
                   child: _buildSectionHeader(
-                    title:
-                        'Фотографии (${controller.user.value!.photos.length})',
+                    title: 'Фотографии (${controller.photos.length})',  // <-- Changed
                     icon: Icons.photo_library,
                     context: context,
                   ),
                 ),
               PhotosGallery(
-                photos: controller.user.value?.photos ?? [],
+                photos: controller.photos,  // <-- Changed from user.value?.photos
               ),
-              const SizedBox(height: 16), // Space before groups
-              // Pass the list of groups to the new widget
+              const SizedBox(height: 16),
+              // Pass the dedicated groups observable
               UserGroupsList(
-                groups: controller.user.value?.groups ?? [],
-                isLoading: controller.isLoading.value, // Pass loading state
+                groups: controller.groups,  // <-- Changed from user.value?.groups
+                isLoading: controller.isLoading.value,
               ),
-              const SizedBox(height: 24), // Space at the bottom
+              const SizedBox(height: 24),
             ],
           ),
         );
@@ -411,7 +409,7 @@ class DetailedProfile extends StatelessWidget {
 // --- NEW WIDGET FOR GROUPS ---
 class UserGroupsList extends StatelessWidget {
   final List<VKGroupInfo> groups;
-  final bool isLoading; // To show a message while groups might still be loading
+  final bool isLoading;
 
   const UserGroupsList({
     required this.groups,
@@ -421,14 +419,26 @@ class UserGroupsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("UserGroupsList build: ${groups.length} groups, isLoading: $isLoading"); // Debug log
+
     // Don't show anything if loading is finished and groups are empty
     if (!isLoading && groups.isEmpty) {
-      // You could optionally show a "No groups found" message here
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Text(
-          'Нет информации о группах или профиль скрыт.',
-          style: TextStyle(color: Colors.grey[600]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            UserDetailsPage(key: key)._buildSectionHeader(
+              title: 'Группы',
+              icon: Icons.group_work_outlined,
+              context: context,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Нет информации о группах или профиль скрыт.',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
         ),
       );
     }
@@ -441,11 +451,8 @@ class UserGroupsList extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Use the shared header builder
           UserDetailsPage(key: key)._buildSectionHeader(
-            // Hacky way to access it, better to make it static or move outside
-            title:
-                'Группы и страницы', // (${groups.length}) // Don't show count if still loading
+            title: 'Группы (${groups.length})',
             icon: Icons.group_work_outlined,
             context: context,
           ),
@@ -468,55 +475,36 @@ class UserGroupsList extends StatelessWidget {
               ),
             ),
 
-          // Display the groups using ListView.builder for performance if list can be long
-          // Limited height to prevent excessive scrolling within the main scroll view
+          // Display the groups
           if (groups.isNotEmpty)
             ListView.separated(
-              physics:
-                  const NeverScrollableScrollPhysics(), // Disable scrolling inside SingleChildScrollView
+              physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
               itemCount: groups.length,
               itemBuilder: (context, index) {
                 final group = groups[index];
                 String membersText = 'Участников: ?';
                 if (group.membersCount != null) {
-                  membersText =
-                      '${formatter.format(group.membersCount)} участ.';
+                  membersText = '${formatter.format(group.membersCount)} участ.';
                 }
 
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundImage: NetworkImage(group.avatarUrl),
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
                   ),
-                  title: Text(group.name,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(membersText,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                  dense: true, // Make list items more compact
-                  contentPadding:
-                      EdgeInsets.zero, // Remove default padding if needed
-                  // Optional: Add onTap to open the group in VK?
-                  // onTap: () => _launchURL('https://vk.com/${group.screenName}'),
+                  title: Text(group.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(membersText, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
                 );
               },
-              separatorBuilder: (context, index) => Divider(
-                  height: 1, thickness: 0.5, indent: 60), // Add dividers
+              separatorBuilder: (context, index) => Divider(height: 1, thickness: 0.5, indent: 60),
             ),
         ],
       ),
     );
   }
-
-// Helper to launch URL (requires url_launcher package)
-// Future<void> _launchURL(String url) async {
-//   final Uri uri = Uri.parse(url);
-//   if (!await launchUrl(uri)) {
-//     // Could not launch URL
-//     Get.snackbar('Ошибка', 'Не удалось открыть ссылку');
-//   }
-// }
 }
 // --- END NEW WIDGET ---
 
