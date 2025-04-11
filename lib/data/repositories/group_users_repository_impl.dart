@@ -14,6 +14,16 @@ class GroupUsersRepository {
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
   // Get SettingsRepository to access all settings easily
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
+  
+  // Get stored cards from local storage
+  Future<List<VKGroupUser>> getStoredCards() async {
+    return await _storageProvider.getStoredCards();
+  }
+  
+  // Save cards to local storage
+  Future<void> saveCards(List<VKGroupUser> cards) async {
+    await _storageProvider.saveCards(cards);
+  }
 
   // --- MODIFIED getUsers ---
   Future<List<VKGroupUser>> getUsers(String vkToken) async {
@@ -25,12 +35,12 @@ class GroupUsersRepository {
     // Check prerequisites
     if (vkToken.isEmpty) {
       print("VK Token missing, cannot fetch users.");
-      await _storageProvider.saveCards([]); // Clear cache if token removed
+      // Don't clear storage here, let the controller handle it
       return [];
     }
     if (groupUrls.isEmpty) {
       print("No target groups configured in settings.");
-      await _storageProvider.saveCards([]);
+      // Don't clear storage here, let the controller handle it
       return [];
     }
 
@@ -44,7 +54,7 @@ class GroupUsersRepository {
     if (targetGroupIds.isEmpty) {
       print("Could not resolve any valid group IDs from the provided URLs.");
       // Optionally show a message to the user via controller/snackbar
-      await _storageProvider.saveCards([]);
+      // Don't clear storage here, let the controller handle it
       return [];
     }
 
@@ -127,14 +137,8 @@ class GroupUsersRepository {
     final usersList = foundUsers.toList();
     print("Total unique users found across all groups/cities: ${usersList.length}");
 
-    // 5. Persist fetched users (optional, maybe only persist if filters are off?)
-    // Let's skip caching search results for now as they depend on filters.
-    // If filters are complex, caching might show inconsistent results if filters change.
-    // await _storageProvider.saveCards(usersList);
-
-    // Clear the old cache if we performed a search
-    await _storageProvider.saveCards([]);
-
+    // We no longer clear storage here - the HomeController will handle
+    // saving the combined list of existing and new cards
 
     return usersList;
   }
@@ -238,28 +242,8 @@ class GroupUsersRepository {
   }
 
 
-  // removeFirstUser (might need adjustment depending on caching strategy)
-  // If we don't cache search results, this method might become irrelevant or needs rework.
-  // For now, assume it operates on the list currently held by HomeController.
-  Future<List<VKGroupUser>> removeFirstUser(
-      String vkToken, List<VKGroupUser> currentUsers) async {
-    if (currentUsers.isEmpty) {
-      return []; // Cannot remove from empty list
-    }
-
-    final updatedUsers = List<VKGroupUser>.from(currentUsers);
-    updatedUsers.removeAt(0);
-
-    // We decided not to cache search results for now.
-    // So, saving back to storage is commented out.
-    // await _storageProvider.saveCards(updatedUsers);
-
-    // Reload logic might still be needed in HomeController depending on UX desired.
-    // If the list becomes small, HomeController might trigger a new search.
-    print("Removed first user. Remaining count: ${updatedUsers.length}");
-
-    return updatedUsers;
-  }
+  // This method is no longer needed as we handle card removal directly in HomeController
+  // and save the updated list to storage there
 
   // sendMessage (Remains the same)
   Future<bool> sendMessage(
