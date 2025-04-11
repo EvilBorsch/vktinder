@@ -19,6 +19,19 @@ class UserDetailsController extends GetxController {
   void onInit() {
     super.onInit();
     final targetUser = Get.arguments as VKGroupUser;
+    // Initialize the user with the basic info we already have
+    user.value = targetUser;
+    // Set isLoading to false initially since we already have basic info
+    isLoading.value = false;
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    // Only load the full profile when the page is actually shown
+    final targetUser = Get.arguments as VKGroupUser;
+    // Set loading state to true before fetching full profile
+    isLoading.value = true;
     loadFullProfile(targetUser.userID);
   }
 

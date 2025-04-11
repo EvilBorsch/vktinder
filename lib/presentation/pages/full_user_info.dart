@@ -57,10 +57,6 @@ class UserDetailsPage extends GetView<UserDetailsController> {
         ],
       ),
       body: Obx(() {
-        if (controller.isLoading.value && controller.user.value == null) {
-          // Show loading only if user data is not yet available at all
-          return const Center(child: CircularProgressIndicator());
-        }
         if (controller.user.value == null && !controller.isLoading.value) {
           // Show error if loading finished but user is still null
           return const Center(child: Text("Не удалось загрузить профиль."));
