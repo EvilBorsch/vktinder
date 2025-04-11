@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,7 +13,7 @@ class UserDetailsController extends GetxController {
 
   final SettingsController _settingsController = Get.find<SettingsController>();
   final GroupUsersRepository _groupUsersRepository =
-  Get.find<GroupUsersRepository>();
+      Get.find<GroupUsersRepository>();
 
   @override
   void onInit() {
@@ -48,43 +48,59 @@ class UserDetailsController extends GetxController {
 
   void openVkProfile() async {
     if (user.value == null) return;
-    
+
     final userId = user.value!.userID;
     final url = 'https://vk.com/id$userId';
-    
+
     try {
       final uri = Uri.parse(url);
-      // Try to launch in the VK app first
       bool launched = false;
-      
-      if (Platform.isAndroid) {
-        // Try to launch VK app on Android
+
+      // Handle platform-specific behavior
+      if (kIsWeb) {
+        // For web, just open in a new tab
+        launched = false;
+      } else {
+        // On mobile platforms, try to launch the VK app first
         try {
-          launched = await launchUrl(
-            Uri.parse('vk://profile/$userId'),
-            mode: LaunchMode.externalApplication,
-          );
-        } catch (e) {
-          print("Could not launch VK app: $e");
-        }
-      } else if (Platform.isIOS) {
-        // Try to launch VK app on iOS
-        try {
-          launched = await launchUrl(
-            Uri.parse('vk://vk.com/id$userId'),
-            mode: LaunchMode.externalApplication,
-          );
+          // Try Android deep link
+          try {
+            launched = await launchUrl(
+              Uri.parse('vk://profile/$userId'),
+              mode: LaunchMode.externalApplication,
+            );
+          } catch (e) {
+            print("Could not launch Android VK app: $e");
+          }
+
+          // If Android didn't work, try iOS deep link
+          if (!launched) {
+            try {
+              launched = await launchUrl(
+                Uri.parse('vk://vk.com/id$userId'),
+                mode: LaunchMode.externalApplication,
+              );
+            } catch (e) {
+              print("Could not launch iOS VK app: $e");
+            }
+          }
         } catch (e) {
           print("Could not launch VK app: $e");
         }
       }
-      
-      // If app launch failed, open in browser
+
+      // If app launch failed or we're on web, open in browser
       if (!launched) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.platformDefault,
-        );
+        if (kIsWeb) {
+          // For web, use default mode
+          await launchUrl(uri);
+        } else {
+          // For mobile, use external application
+          await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+        }
       }
     } catch (e) {
       Get.snackbar(
@@ -104,7 +120,7 @@ class UserDetailsController extends GetxController {
     if (user.value == null) return;
 
     final TextEditingController messageController =
-    TextEditingController(text: _settingsController.defaultMessage);
+        TextEditingController(text: _settingsController.defaultMessage);
 
     Get.dialog(
       AlertDialog(
@@ -146,52 +162,52 @@ class UserDetailsController extends GetxController {
             child: const Text('Отмена', style: TextStyle(fontSize: 16)),
           ),
           Obx(() => ElevatedButton.icon(
-            onPressed: isSendingMessage.value
-                ? null
-                : () async {
-              isSendingMessage.value = true;
+                onPressed: isSendingMessage.value
+                    ? null
+                    : () async {
+                        isSendingMessage.value = true;
 
-              // Close dialog immediately
-              Get.back();
+                        // Close dialog immediately
+                        Get.back();
 
-              // Send message
-              final success = await _groupUsersRepository.sendMessage(
-                _settingsController.vkToken,
-                user.value!.userID,
-                messageController.text,
-              );
+                        // Send message
+                        final success = await _groupUsersRepository.sendMessage(
+                          _settingsController.vkToken,
+                          user.value!.userID,
+                          messageController.text,
+                        );
 
-              if (success) {
-                Get.snackbar(
-                  'Успех',
-                  'Сообщение отправлено',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.green[100],
-                  colorText: Colors.green[900],
-                  margin: const EdgeInsets.all(8),
-                  borderRadius: 10,
-                  duration: const Duration(seconds: 2),
-                );
-              } else {
-                Get.snackbar(
-                  'Ошибка',
-                  'Не удалось отправить сообщение',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.red[100],
-                  colorText: Colors.red[900],
-                  margin: const EdgeInsets.all(8),
-                  borderRadius: 10,
-                  duration: const Duration(seconds: 2),
-                );
-              }
+                        if (success) {
+                          Get.snackbar(
+                            'Успех',
+                            'Сообщение отправлено',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.green[100],
+                            colorText: Colors.green[900],
+                            margin: const EdgeInsets.all(8),
+                            borderRadius: 10,
+                            duration: const Duration(seconds: 2),
+                          );
+                        } else {
+                          Get.snackbar(
+                            'Ошибка',
+                            'Не удалось отправить сообщение',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red[100],
+                            colorText: Colors.red[900],
+                            margin: const EdgeInsets.all(8),
+                            borderRadius: 10,
+                            duration: const Duration(seconds: 2),
+                          );
+                        }
 
-              isSendingMessage.value = false;
-            },
-            icon: const Icon(Icons.send),
-            label: Text(
-                isSendingMessage.value ? 'Отправка...' : 'Отправить',
-                style: const TextStyle(fontSize: 16)),
-          )),
+                        isSendingMessage.value = false;
+                      },
+                icon: const Icon(Icons.send),
+                label: Text(
+                    isSendingMessage.value ? 'Отправка...' : 'Отправить',
+                    style: const TextStyle(fontSize: 16)),
+              )),
         ],
       ),
     );
