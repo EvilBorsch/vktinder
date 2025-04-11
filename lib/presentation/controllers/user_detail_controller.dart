@@ -6,42 +6,69 @@ import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/data/models/vk_group_info.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
+import 'package:vktinder/routes/app_pages.dart';
 
 class UserDetailsController extends GetxController {
   final Rx<VKGroupUser?> user = Rx<VKGroupUser?>(null);
   final RxBool isLoading = true.obs;
   final RxBool isSendingMessage = false.obs;
 
-  // Add separate observables for photos and groups
+  // Create empty lists instead of null
   final RxList<String> photos = <String>[].obs;
   final RxList<VKGroupInfo> groups = <VKGroupInfo>[].obs;
 
   final SettingsController _settingsController = Get.find<SettingsController>();
   final GroupUsersRepository _groupUsersRepository = Get.find<GroupUsersRepository>();
 
+  String? _userID;
+
   @override
   void onInit() {
     super.onInit();
-    final targetUser = Get.arguments as VKGroupUser;
-    // Initialize the user with the basic info we already have
-    user.value = targetUser;
 
-    // Initialize photos and groups with any existing data
-    photos.assignAll(targetUser.photos);
-    groups.assignAll(targetUser.groups);
+    // Check for arguments
+    if (Get.arguments != null && Get.arguments is VKGroupUser) {
+      final targetUser = Get.arguments as VKGroupUser;
+      user.value = targetUser;
+      _userID = targetUser.userID;
 
-    // Set isLoading to false initially since we already have basic info
-    isLoading.value = false;
+      // Initialize photos and groups with existing data (ensure not null)
+      photos.assignAll(targetUser.photos);
+      groups.assignAll(targetUser.groups);
+
+      // Set loading state
+      isLoading.value = false;
+    } else {
+      // If no arguments, we'll try to handle it gracefully in onReady
+      isLoading.value = true;
+    }
   }
 
   @override
   void onReady() {
     super.onReady();
-    // Only load the full profile when the page is actually shown
-    final targetUser = Get.arguments as VKGroupUser;
-    // Set loading state to true before fetching full profile
-    isLoading.value = true;
-    loadFullProfile(targetUser.userID);
+
+    // Only attempt to load full profile if we have a valid user ID
+    if (_userID != null) {
+      isLoading.value = true;
+      loadFullProfile(_userID!);
+    } else {
+      // No user ID, cannot proceed
+      isLoading.value = false;
+      Get.snackbar(
+        'Ошибка',
+        'Не удалось найти данные пользователя',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+        margin: const EdgeInsets.all(8),
+        borderRadius: 10,
+      );
+      // Give time for snackbar to appear before navigating back
+      Future.delayed(const Duration(seconds: 1), () {
+        Get.offAllNamed(Routes.MAIN);
+      });
+    }
   }
 
   Future<void> loadFullProfile(String userID) async {
@@ -52,20 +79,21 @@ class UserDetailsController extends GetxController {
         userID,
       );
 
-      // Update separate observables first
+      // Update separate observables
       photos.assignAll(userDetails.photos);
-      groups.assignAll(userDetails.groups);
+      groups.assignAll(userDetails.groups); // This should be safe now
 
-      // Then update the user object itself
+      // Update the user object itself
       user.value = userDetails;
+      _userID = userDetails.userID;
 
-      // Print debug info
       print("Loaded full profile - Photos: ${photos.length}, Groups: ${groups.length}");
 
     } catch (e) {
+      print("Error loading full profile: $e");
       Get.snackbar(
         'Ошибка',
-        'Не удалось загрузить полный профиль: ${e.toString()}',
+        'Не удалось загрузить профиль: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red[100],
         colorText: Colors.red[900],
@@ -77,6 +105,8 @@ class UserDetailsController extends GetxController {
       isLoading.value = false;
     }
   }
+
+
 
   void openVkProfile() async {
     if (user.value == null) return;

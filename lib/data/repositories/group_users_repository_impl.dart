@@ -224,7 +224,6 @@ class GroupUsersRepository {
     }
   }
 
-  // --- getFullProfile (Important Fix: Ensure Groups are fetched) ---
   Future<VKGroupUser> getFullProfile(String vkToken, String userID) async {
     List<String> photos = [];
     List<VKGroupInfo> groups = [];
@@ -241,8 +240,7 @@ class GroupUsersRepository {
       photos = results[0] as List<String>;
       groups = results[1] as List<VKGroupInfo>;
     } catch (e) {
-      print(
-          "Error fetching photos or groups concurrently for profile $userID: $e");
+      print("Error fetching photos or groups concurrently for profile $userID: $e");
       // Try fetching sequentially if concurrent fails (optional, adds complexity)
       try {
         photos = await _apiProvider.getUserPhotos(vkToken, userID);
@@ -276,7 +274,8 @@ class GroupUsersRepository {
       online: baseProfileInfo.online,
       lastSeen: baseProfileInfo.lastSeen,
       photos: photos, // Assign fetched photos
-      groups: groups, // Assign fetched groups
+      groups: groups.isNotEmpty ? groups : [], // Ensure groups is never null
+      canWritePrivateMessage: baseProfileInfo.canWritePrivateMessage,
     );
   }
 

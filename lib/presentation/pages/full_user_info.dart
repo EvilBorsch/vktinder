@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart'; // For number formatting
 import 'package:vktinder/data/models/vk_group_info.dart'; // Import Group Info
 import 'package:vktinder/presentation/controllers/user_detail_controller.dart';
+import 'package:vktinder/routes/app_pages.dart';
 
 class UserDetailsPage extends GetView<UserDetailsController> {
   const UserDetailsPage({Key? key}) : super(key: key);
@@ -57,8 +58,41 @@ class UserDetailsPage extends GetView<UserDetailsController> {
         ],
       ),
       body: Obx(() {
-        if (controller.user.value == null && !controller.isLoading.value) {
-          return const Center(child: Text("Не удалось загрузить профиль."));
+        // Show loading indicator when starting to load
+        if (controller.isLoading.value) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Загрузка профиля...'),
+              ],
+            ),
+          );
+        }
+
+        // Show error state if no user is available after loading
+        if (controller.user.value == null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text("Не удалось загрузить профиль."),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Вернуться назад'),
+                  onPressed: () {
+                    // Use the main route directly instead of Get.back()
+                    Get.offAllNamed(Routes.MAIN);
+                  },
+                )
+              ],
+            ),
+          );
         }
 
         // User data is available
@@ -68,22 +102,20 @@ class UserDetailsPage extends GetView<UserDetailsController> {
             children: [
               DetailedProfile(controller: controller),
               // Conditionally display Photos section header
-              if (controller.photos.isNotEmpty)  // <-- Changed from user.value!.photos to controller.photos
+              if (controller.photos.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
                   child: _buildSectionHeader(
-                    title: 'Фотографии (${controller.photos.length})',  // <-- Changed
+                    title: 'Фотографии (${controller.photos.length})',
                     icon: Icons.photo_library,
                     context: context,
                   ),
                 ),
-              PhotosGallery(
-                photos: controller.photos,  // <-- Changed from user.value?.photos
-              ),
+              PhotosGallery(photos: controller.photos),
               const SizedBox(height: 16),
               // Pass the dedicated groups observable
               UserGroupsList(
-                groups: controller.groups,  // <-- Changed from user.value?.groups
+                groups: controller.groups,
                 isLoading: controller.isLoading.value,
               ),
               const SizedBox(height: 24),
