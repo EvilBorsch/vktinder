@@ -723,7 +723,7 @@ class VkApiProvider extends getx.GetxService {
               (lowerInput == "питер" && mockEntry['id'] == 2) || // Handle specific aliases used in mock
               (predefinedCities[lowerInput]?['id'] == mockEntry['id'] ) //Check pre-defined map as well
           ){
-            resultMap[inputName.toLowerCase().trim()] = mockEntry['id'] as int;
+            resultMap[inputName.trim()] = mockEntry['id'] as int; // Use original case
             break; // Take first match for this input name
           }
         }
@@ -780,7 +780,7 @@ class VkApiProvider extends getx.GetxService {
     for (String originalName in cityNames) {
       final key = originalName.toLowerCase().trim();
       if (cityIdMap.containsKey(key)) {
-        finalResultMap[key] = cityIdMap[key]!; // Use lowercase key for consistency downstream
+        finalResultMap[originalName.trim()] = cityIdMap[key]!; // Use original name as key to preserve case
       }
     }
     print("Resolved ${finalResultMap.length} cities out of ${cityNames.length} requested names.");

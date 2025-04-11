@@ -6,39 +6,49 @@ import 'package:vktinder/presentation/controllers/settings_controller.dart';
 class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({Key? key}) : super(key: key);
 
-  // Define controllers here to manage their lifecycle within the page
-  // Note: Initialize them in build or initState if needed, or pass from controller if complex
-  // For simplicity here, we create them in the build method when needed.
-
   @override
   Widget build(BuildContext context) {
-    // Use Obx only around parts that need to rebuild based on controller state
+    // Initialize the controllers here but only once by accessing via controller
+    // We'll add these to the controller if they don't exist yet
+    if (controller.vkTokenController == null) {
+      controller.vkTokenController = TextEditingController(text: controller.vkToken);
+    }
+    if (controller.defaultMsgController == null) {
+      controller.defaultMsgController = TextEditingController(text: controller.defaultMessage);
+    }
+    if (controller.citiesController == null) {
+      controller.citiesController = TextEditingController(text: controller.cities.join(', '));
+    }
+    if (controller.ageFromController == null) {
+      controller.ageFromController = TextEditingController(text: controller.ageFrom.value?.toString() ?? '');
+    }
+    if (controller.ageToController == null) {
+      controller.ageToController = TextEditingController(text: controller.ageTo.value?.toString() ?? '');
+    }
+    if (controller.newGroupUrlController == null) {
+      controller.newGroupUrlController = TextEditingController();
+    }
+
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Настройки'),
-          elevation: 1, // Subtle shadow
-        ),
-        body: Obx(() => _buildSettingsForm(context))); // Rebuild whole form on any change for simplicity now
+      appBar: AppBar(
+        title: const Text('Настройки'),
+        elevation: 1, // Subtle shadow
+      ),
+      body: _buildSettingsForm(context),
+    );
   }
 
   Widget _buildSettingsForm(BuildContext context) {
-    // Create controllers HERE, initialized with current values from the GetX controller
-    // This ensures they reset correctly if the user navigates away and back without saving
-    final vkTokenController = TextEditingController(text: controller.vkToken);
-    final defaultMsgController = TextEditingController(text: controller.defaultMessage);
-    final citiesController = TextEditingController(text: controller.cities.join(', '));
-    final ageFromController = TextEditingController(text: controller.ageFrom.value?.toString() ?? '');
-    final ageToController = TextEditingController(text: controller.ageTo.value?.toString() ?? '');
-    final newGroupUrlController = TextEditingController();
+    // Use the controllers from the SettingsController
+    final vkTokenController = controller.vkTokenController!;
+    final defaultMsgController = controller.defaultMsgController!;
+    final citiesController = controller.citiesController!;
+    final ageFromController = controller.ageFromController!;
+    final ageToController = controller.ageToController!;
+    final newGroupUrlController = controller.newGroupUrlController!;
+
+    // No need to initialize these here, use them directly from controller
     final themeValue = controller.theme.obs; // Use local obs for RadioListTile
-
-    // Ensure selection is maintained if user edits text field
-    vkTokenController.selection = TextSelection.fromPosition(TextPosition(offset: vkTokenController.text.length));
-    defaultMsgController.selection = TextSelection.fromPosition(TextPosition(offset: defaultMsgController.text.length));
-    citiesController.selection = TextSelection.fromPosition(TextPosition(offset: citiesController.text.length));
-    ageFromController.selection = TextSelection.fromPosition(TextPosition(offset: ageFromController.text.length));
-    ageToController.selection = TextSelection.fromPosition(TextPosition(offset: ageToController.text.length));
-
 
     return ListView(
       padding: const EdgeInsets.all(16), // Reduced padding slightly
@@ -106,7 +116,6 @@ class SettingsPage extends GetView<SettingsController> {
         _buildGroupManagementSection(context, newGroupUrlController), // Extracted for clarity
         const SizedBox(height: 24),
 
-
         // --- Default Message ---
         _buildSectionHeader('Стандартное сообщение', Icons.message_outlined),
         const SizedBox(height: 12),
@@ -155,6 +164,10 @@ class SettingsPage extends GetView<SettingsController> {
                 .where((s) => s.isNotEmpty)
                 .toList();
 
+            // Debug printing
+            print("Cities from text field: ${citiesController.text}");
+            print("Parsed cities list: $citiesList");
+
             controller.saveSettings(
               vkToken: vkTokenController.text.trim(),
               defaultMessage: defaultMsgController.text.trim(),
@@ -201,21 +214,15 @@ class SettingsPage extends GetView<SettingsController> {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       decoration: InputDecoration(
-        // border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), // Use theme's default
-        // enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[400]!)),
-        // focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Get.theme.primaryColor, width: 1.5)),
         prefixIcon: Icon(icon, size: 20),
         suffixIcon: suffixIcon,
         labelText: labelText,
         hintText: hintText,
-        // contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), // Adjust padding
-        filled: true, // Use theme defaults for fill color
-        // fillColor: Get.theme.inputDecorationTheme.fillColor,
-        isDense: true, // Make it slightly more compact
+        filled: true,
+        isDense: true,
       ),
     );
   }
-
 
   Widget _buildGroupManagementSection(BuildContext context, TextEditingController newGroupUrlController) {
     return Column(
@@ -281,7 +288,6 @@ class SettingsPage extends GetView<SettingsController> {
                 final url = controller.groupUrls[index];
                 final displayName = url.startsWith('http') ? Uri.tryParse(url)?.pathSegments.last ?? url : url;
                 return ListTile(
-                  // leading: CircleAvatar(child: Text('${index + 1}')), // Optional: index number
                   leading: Icon(Icons.group, color: Get.theme.colorScheme.primary),
                   title: Text(displayName, overflow: TextOverflow.ellipsis),
                   subtitle: Text(url, style: Get.textTheme.bodySmall?.copyWith(color: Colors.grey), overflow: TextOverflow.ellipsis), // Show full url subtly
@@ -302,7 +308,6 @@ class SettingsPage extends GetView<SettingsController> {
       ],
     );
   }
-
 
   // Helper for section headers
   Widget _buildSectionHeader(String title, IconData icon) {
@@ -329,8 +334,6 @@ class SettingsPage extends GetView<SettingsController> {
     );
   }
 
-
-  // Copied from original _buildThemeOption, adjusted slightly
   Widget _buildThemeOption(String title, String subtitle, IconData icon, String value, RxString groupValue) {
     return RadioListTile<String>(
       title: Row(

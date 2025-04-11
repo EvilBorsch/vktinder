@@ -74,9 +74,14 @@ class LocalStorageProvider extends GetxService {
   // --- NEW Settings methods ---
   List<String> getCities() {
     final storedCities = _storage.read<String>(_citiesKey);
+    print("Raw stored cities data: $storedCities");
+
     if (storedCities != null && storedCities.isNotEmpty) {
       try {
-        return List<String>.from(jsonDecode(storedCities));
+        final List<dynamic> decoded = jsonDecode(storedCities);
+        final List<String> cities = decoded.map((item) => item.toString()).toList();
+        print("Decoded cities: $cities");
+        return cities;
       } catch (e) {
         print("Error decoding cities: $e");
         _storage.remove(_citiesKey); // Clear corrupted data
@@ -87,8 +92,16 @@ class LocalStorageProvider extends GetxService {
   }
 
   Future<void> saveCities(List<String> cities) async {
-    await _storage.write(_citiesKey, jsonEncode(cities));
+    print("Saving cities to storage: $cities");
+    final String encoded = jsonEncode(cities);
+    print("Encoded cities: $encoded");
+    await _storage.write(_citiesKey, encoded);
+
+    // Verify save
+    final saved = _storage.read<String>(_citiesKey);
+    print("Verified raw cities in storage: $saved");
   }
+
 
   (int?, int?) getAgeRange() {
     final ageFrom = _storage.read<int?>(_ageFromKey);

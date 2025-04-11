@@ -7,6 +7,13 @@ import 'package:vktinder/data/repositories/settings_repository_impl.dart';
 import '../../data/models/vk_group_info.dart';
 
 class SettingsController extends GetxController {
+  TextEditingController? vkTokenController;
+  TextEditingController? defaultMsgController;
+  TextEditingController? citiesController;
+  TextEditingController? ageFromController;
+  TextEditingController? ageToController;
+  TextEditingController? newGroupUrlController;
+
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
   final ThemeService _themeService = Get.find<ThemeService>();
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>(); // Needed for validating group URLs
@@ -31,10 +38,6 @@ class SettingsController extends GetxController {
   String get vkToken => _vkToken.value;
   String get defaultMessage => _defaultMessage.value;
   String get theme => _theme.value;
-  // --- NEW Getters (already have Rx vars, but getters can be convenient) ---
-  // List<String> get searchCities => cities.toList();
-  // (int?, int?) get searchAgeRange => (ageFrom.value, ageTo.value);
-  // List<String> get searchGroupUrls => groupUrls.toList();
 
   @override
   void onInit() {
@@ -42,12 +45,25 @@ class SettingsController extends GetxController {
     loadSettings();
   }
 
+  @override
+  void onClose() {
+    // Dispose text controllers
+    vkTokenController?.dispose();
+    defaultMsgController?.dispose();
+    citiesController?.dispose();
+    ageFromController?.dispose();
+    ageToController?.dispose();
+    newGroupUrlController?.dispose();
+    super.onClose();
+  }
+
   void loadSettings() {
     _vkToken.value = _settingsRepository.getVkToken();
     _defaultMessage.value = _settingsRepository.getDefaultMessage();
     _theme.value = _settingsRepository.getTheme();
     // --- NEW Loads ---
-    cities.assignAll(_settingsRepository.getCities());
+    cities.clear();
+    cities.addAll(_settingsRepository.getCities());
     final (from, to) = _settingsRepository.getAgeRange();
     ageFrom.value = from;
     ageTo.value = to;
@@ -60,13 +76,11 @@ class SettingsController extends GetxController {
     final trimmed = cityName.trim();
     if (trimmed.isNotEmpty && !cities.contains(trimmed)) {
       cities.add(trimmed);
-      // Possibly trigger save or indicate changes unsaved
     }
   }
 
   void removeCity(String cityName) {
     cities.remove(cityName);
-    // Possibly trigger save or indicate changes unsaved
   }
 
   void setAgeFrom(String value) {
@@ -76,7 +90,6 @@ class SettingsController extends GetxController {
     } else if (intValue != null && intValue >= 14) { // VK min age is often 14
       ageFrom.value = intValue;
     }
-    // Add validation feedback if needed (e.g., if parse fails or value is too low)
   }
 
   void setAgeTo(String value) {
@@ -86,9 +99,7 @@ class SettingsController extends GetxController {
     } else if (intValue != null && intValue > 0) {
       ageTo.value = intValue;
     }
-    // Add validation feedback if needed
   }
-
 
   // Add/Remove Group URLs
   Future<void> addGroupUrl(String url) async {
@@ -166,7 +177,6 @@ class SettingsController extends GetxController {
     );
   }
 
-
   // --- Updated Save Method ---
   Future<void> saveSettings({
     required String vkToken,
@@ -202,21 +212,27 @@ class SettingsController extends GetxController {
     _vkToken.value = vkToken;
     _defaultMessage.value = defaultMessage;
     _theme.value = theme;
-    cities.assignAll(currentCities);
+
+    // Clear and add items individually to ensure proper reactivity
+    cities.clear();
+    cities.addAll(currentCities);
+
     ageFrom.value = parsedAgeFrom;
     ageTo.value = parsedAgeTo;
-    groupUrls.assignAll(currentGroupUrls);
 
+    // Same for group URLs
+    groupUrls.clear();
+    groupUrls.addAll(currentGroupUrls);
 
     // Save to repository
     await _settingsRepository.saveSettings(
       vkToken: vkToken,
       defaultMessage: defaultMessage,
       theme: theme,
-      cities: cities.toList(), // Pass current list
-      ageFrom: ageFrom.value,
-      ageTo: ageTo.value,
-      groupUrls: groupUrls.toList(), // Pass current list
+      cities: currentCities, // Pass the parameter directly to ensure correct values
+      ageFrom: parsedAgeFrom,
+      ageTo: parsedAgeTo,
+      groupUrls: currentGroupUrls, // Pass the parameter directly
     );
 
     // Update theme immediately
