@@ -26,6 +26,10 @@ class SettingsRepository {
   (int?, int?) getAgeRange() {
     return _storageProvider.getAgeRange();
   }
+  
+  int getSexFilter() {
+    return _storageProvider.getSexFilter();
+  }
 
   List<String> getGroupUrls() {
     return _storageProvider.getGroupUrls();
@@ -40,6 +44,7 @@ class SettingsRepository {
     required List<String> cities,
     required int? ageFrom,
     required int? ageTo,
+    required int sexFilter,
     required List<String> groupUrls,
   }) async {
     await Future.wait([
@@ -49,6 +54,7 @@ class SettingsRepository {
       // --- NEW Saves ---
       _storageProvider.saveCities(cities),
       _storageProvider.saveAgeRange(ageFrom, ageTo),
+      _storageProvider.saveSexFilter(sexFilter),
       _storageProvider.saveGroupUrls(groupUrls),
     ]);
   }

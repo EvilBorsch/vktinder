@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
@@ -41,6 +43,60 @@ class UserDetailsController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void openVkProfile() async {
+    if (user.value == null) return;
+    
+    final userId = user.value!.userID;
+    final url = 'https://vk.com/id$userId';
+    
+    try {
+      final uri = Uri.parse(url);
+      // Try to launch in the VK app first
+      bool launched = false;
+      
+      if (Platform.isAndroid) {
+        // Try to launch VK app on Android
+        try {
+          launched = await launchUrl(
+            Uri.parse('vk://profile/$userId'),
+            mode: LaunchMode.externalApplication,
+          );
+        } catch (e) {
+          print("Could not launch VK app: $e");
+        }
+      } else if (Platform.isIOS) {
+        // Try to launch VK app on iOS
+        try {
+          launched = await launchUrl(
+            Uri.parse('vk://vk.com/id$userId'),
+            mode: LaunchMode.externalApplication,
+          );
+        } catch (e) {
+          print("Could not launch VK app: $e");
+        }
+      }
+      
+      // If app launch failed, open in browser
+      if (!launched) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Ошибка',
+        'Не удалось открыть профиль VK: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+        margin: const EdgeInsets.all(8),
+        borderRadius: 10,
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 

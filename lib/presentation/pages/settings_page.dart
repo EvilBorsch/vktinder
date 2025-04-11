@@ -108,6 +108,30 @@ class SettingsPage extends GetView<SettingsController> {
           ],
         ),
         _buildHelpText('Оставьте поля пустыми, чтобы не ограничивать возраст.'),
+        const SizedBox(height: 16),
+        
+        // Sex Filter
+        Obx(() => Card(
+          elevation: 1,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            children: [
+              _buildSexOption(
+                'Любой пол', 'Показывать всех пользователей', Icons.people_outline, 0, controller.sexFilter,
+              ),
+              const Divider(height: 0, indent: 50),
+              _buildSexOption(
+                'Женский', 'Показывать только женщин', Icons.female, 1, controller.sexFilter,
+              ),
+              const Divider(height: 0, indent: 50),
+              _buildSexOption(
+                'Мужской', 'Показывать только мужчин', Icons.male, 2, controller.sexFilter,
+              ),
+            ],
+          ),
+        )),
+        _buildHelpText('Выберите пол пользователей для поиска.'),
         const SizedBox(height: 24),
 
         // --- Group Bank ---
@@ -175,6 +199,7 @@ class SettingsPage extends GetView<SettingsController> {
               currentCities: citiesList,
               ageFromString: ageFromController.text.trim(),
               ageToString: ageToController.text.trim(),
+              sexFilter: controller.sexFilter.value, // Pass the sex filter value
               currentGroupUrls: controller.groupUrls.toList(), // Get current list from controller
             );
             // Consider unfocusing keyboard
@@ -349,6 +374,30 @@ class SettingsPage extends GetView<SettingsController> {
       onChanged: (newValue) {
         if (newValue != null) {
           groupValue.value = newValue; // Update the local RxString
+          // No need to call controller.saveSettings here, it's done via the main button
+        }
+      },
+      shape: const RoundedRectangleBorder(), // Remove individual shape, rely on Card
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical padding
+      dense: true, // Make tile more compact
+    );
+  }
+  
+  Widget _buildSexOption(String title, String subtitle, IconData icon, int value, RxInt groupValue) {
+    return RadioListTile<int>(
+      title: Row(
+        children: [
+          Icon(icon, size: 20), // Slightly smaller icon
+          const SizedBox(width: 12),
+          Text(title, style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)), // Adjusted style
+        ],
+      ),
+      subtitle: Text(subtitle, style: Get.textTheme.bodySmall),
+      value: value,
+      groupValue: groupValue.value, // Reactive group value
+      onChanged: (newValue) {
+        if (newValue != null) {
+          groupValue.value = newValue; // Update the local RxInt
           // No need to call controller.saveSettings here, it's done via the main button
         }
       },

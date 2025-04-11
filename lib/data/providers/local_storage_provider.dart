@@ -18,6 +18,7 @@ class LocalStorageProvider extends GetxService {
   static const String _ageFromKey = 'search_age_from'; // Stores int?
   static const String _ageToKey = 'search_age_to'; // Stores int?
   static const String _groupUrlsKey = 'search_group_urls'; // Stores List<String> as JSON
+  static const String _sexFilterKey = 'search_sex_filter'; // Stores int (0, 1, 2)
   // --- END NEW KEYS ---
 
   // Cards methods (keep if still needed, but maybe less relevant with search)
@@ -108,6 +109,10 @@ class LocalStorageProvider extends GetxService {
     final ageTo = _storage.read<int?>(_ageToKey);
     return (ageFrom, ageTo);
   }
+  
+  int getSexFilter() {
+    return _storage.read<int>(_sexFilterKey) ?? 0; // Default to 0 (any)
+  }
 
   Future<void> saveAgeRange(int? ageFrom, int? ageTo) async {
     if (ageFrom == null) {
@@ -120,6 +125,10 @@ class LocalStorageProvider extends GetxService {
     } else {
       await _storage.write(_ageToKey, ageTo);
     }
+  }
+  
+  Future<void> saveSexFilter(int sex) async {
+    await _storage.write(_sexFilterKey, sex);
   }
 
   List<String> getGroupUrls() {

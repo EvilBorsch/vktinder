@@ -27,11 +27,20 @@ class UserDetailsPage extends GetView<UserDetailsController> {
               ),
             ),
           )
-              : IconButton(
-            icon: const Icon(Icons.message),
-            onPressed: controller.user.value == null ? null : () => controller.sendMessage(),
-            tooltip: 'Отправить сообщение',
-          )),
+              : Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new),
+                      onPressed: controller.user.value == null ? null : () => controller.openVkProfile(),
+                      tooltip: 'Открыть в VK',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.message),
+                      onPressed: controller.user.value == null ? null : () => controller.sendMessage(),
+                      tooltip: 'Отправить сообщение',
+                    ),
+                  ],
+                )),
         ],
       ),
       body: Obx(() {
@@ -600,4 +609,3 @@ class PhotosGallery extends StatelessWidget {
     );
   }
 }
-

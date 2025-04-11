@@ -27,6 +27,7 @@ dependencies:
   mockingjay: ^1.0.0
   image_cache: ^1.0.1
   intl: ^0.19.0
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

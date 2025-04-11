@@ -30,6 +30,7 @@ class GroupUsersRepository {
     // 1. Get settings
     final cityNames = _settingsRepository.getCities();
     final (ageFrom, ageTo) = _settingsRepository.getAgeRange();
+    final sexFilter = _settingsRepository.getSexFilter();
     final groupUrls = _settingsRepository.getGroupUrls();
 
     // Check prerequisites
@@ -87,7 +88,7 @@ class GroupUsersRepository {
               cityId: cityId, // Can be null
               ageFrom: ageFrom,
               ageTo: ageTo,
-              sex: 1, // Hardcoded female for now
+              sex: sexFilter, // Use the sex filter from settings
               count: searchLimitPerRequest,
               offset: currentOffset,
             );
