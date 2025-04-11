@@ -42,6 +42,5 @@ class DetailsBindings extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut(() => UserDetailsController());
-    Get.lazyPut(() => SettingsController());
   }
 }

@@ -132,6 +132,34 @@ class SettingsPage extends GetView<SettingsController> {
           ),
         )),
         _buildHelpText('Выберите пол пользователей для поиска.'),
+        const SizedBox(height: 16),
+        
+        // Skip Closed Profiles Option
+        Obx(() => Card(
+          elevation: 1,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: SwitchListTile(
+            title: Row(
+              children: [
+                Icon(Icons.lock_outline, size: 20),
+                const SizedBox(width: 12),
+                Text('Пропускать закрытые профили', 
+                  style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
+              ],
+            ),
+            subtitle: Text('Не показывать пользователей с закрытыми профилями', 
+              style: Get.textTheme.bodySmall),
+            value: controller.skipClosedProfiles.value,
+            onChanged: (value) {
+              controller.skipClosedProfiles.value = value;
+            },
+            shape: const RoundedRectangleBorder(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            dense: true,
+          ),
+        )),
+        _buildHelpText('Закрытые профили не позволяют просматривать фотографии и другую информацию.'),
         const SizedBox(height: 24),
 
         // --- Group Bank ---
@@ -201,6 +229,7 @@ class SettingsPage extends GetView<SettingsController> {
               ageToString: ageToController.text.trim(),
               sexFilter: controller.sexFilter.value, // Pass the sex filter value
               currentGroupUrls: controller.groupUrls.toList(), // Get current list from controller
+              skipClosedProfiles: controller.skipClosedProfiles.value, // Pass the skip closed profiles value
             );
             // Consider unfocusing keyboard
             FocusScope.of(context).unfocus();

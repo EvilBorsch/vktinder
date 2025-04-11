@@ -30,6 +30,7 @@ class SettingsController extends GetxController {
   final RxInt sexFilter = 0.obs; // 0 = any, 1 = female, 2 = male
   final RxList<String> groupUrls =
       <String>[].obs; // Store URLs as entered by user
+  final RxBool skipClosedProfiles = false.obs; // Skip users with closed profiles
 
   // UI State
   final RxBool isGroupUrlValidating = false.obs;
@@ -73,6 +74,7 @@ class SettingsController extends GetxController {
     ageTo.value = to;
     sexFilter.value = _settingsRepository.getSexFilter();
     groupUrls.assignAll(_settingsRepository.getGroupUrls());
+    skipClosedProfiles.value = _settingsRepository.getSkipClosedProfiles();
   }
 
   // --- Methods to modify settings reactively ---
@@ -219,6 +221,7 @@ class SettingsController extends GetxController {
     required String? ageToString,
     required int sexFilter,
     required List<String> currentGroupUrls,
+    bool? skipClosedProfiles,
   }) async {
     // Validate and parse age
     final parsedAgeFrom = (ageFromString != null && ageFromString.isNotEmpty)
@@ -250,7 +253,8 @@ class SettingsController extends GetxController {
         ageFrom.value != parsedAgeFrom ||
         ageTo.value != parsedAgeTo ||
         this.sexFilter.value != sexFilter ||
-        !listEquals(groupUrls, currentGroupUrls);
+        !listEquals(groupUrls, currentGroupUrls) ||
+        this.skipClosedProfiles.value != (skipClosedProfiles ?? this.skipClosedProfiles.value);
 
     _vkToken.value = vkToken;
     _defaultMessage.value = defaultMessage;
@@ -267,6 +271,11 @@ class SettingsController extends GetxController {
     // Same for group URLs
     groupUrls.clear();
     groupUrls.addAll(currentGroupUrls);
+    
+    // Update skipClosedProfiles if provided
+    if (skipClosedProfiles != null) {
+      this.skipClosedProfiles.value = skipClosedProfiles;
+    }
 
     // Save to repository
     await _settingsRepository.saveSettings(
@@ -279,6 +288,7 @@ class SettingsController extends GetxController {
       ageTo: parsedAgeTo,
       sexFilter: sexFilter,
       groupUrls: currentGroupUrls, // Pass the parameter directly
+      skipClosedProfiles: this.skipClosedProfiles.value,
     );
 
     // Update theme immediately

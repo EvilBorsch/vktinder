@@ -30,6 +30,10 @@ class SettingsRepository {
   int getSexFilter() {
     return _storageProvider.getSexFilter();
   }
+  
+  bool getSkipClosedProfiles() {
+    return _storageProvider.getSkipClosedProfiles();
+  }
 
   List<String> getGroupUrls() {
     return _storageProvider.getGroupUrls();
@@ -46,6 +50,7 @@ class SettingsRepository {
     required int? ageTo,
     required int sexFilter,
     required List<String> groupUrls,
+    required bool skipClosedProfiles,
   }) async {
     await Future.wait([
       _storageProvider.saveVkToken(vkToken),
@@ -56,6 +61,7 @@ class SettingsRepository {
       _storageProvider.saveAgeRange(ageFrom, ageTo),
       _storageProvider.saveSexFilter(sexFilter),
       _storageProvider.saveGroupUrls(groupUrls),
+      _storageProvider.saveSkipClosedProfiles(skipClosedProfiles),
     ]);
   }
 }

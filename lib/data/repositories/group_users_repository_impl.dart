@@ -32,6 +32,7 @@ class GroupUsersRepository {
     final (ageFrom, ageTo) = _settingsRepository.getAgeRange();
     final sexFilter = _settingsRepository.getSexFilter();
     final groupUrls = _settingsRepository.getGroupUrls();
+    final skipClosedProfiles = _settingsRepository.getSkipClosedProfiles();
 
     // Check prerequisites
     if (vkToken.isEmpty) {
@@ -59,7 +60,7 @@ class GroupUsersRepository {
       return [];
     }
 
-    print("Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo");
+    print("Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo, SkipClosed=$skipClosedProfiles");
 
     // 3. Perform Search using users.search
     // We need to iterate through groups and potentially cities if the API requires it.
@@ -68,6 +69,7 @@ class GroupUsersRepository {
     // If multiple groups are selected, we *definitely* need multiple searches.
 
     final Set<VKGroupUser> foundUsers = {}; // Use a Set to automatically handle duplicates
+    final Set<String> closedProfileIds = {}; // Track closed profile IDs for logging
     const int searchLimitPerRequest = 100; // VK limit is 1000, but smaller batches might be safer/faster start
     bool reachedVkLimit = false; // Flag if VK stops returning results
 
@@ -105,12 +107,23 @@ class GroupUsersRepository {
 
             // Filter out users already found (Set handles this) and add new ones
             int addedCount = 0;
+            int closedCount = 0;
             for (var user in batch) {
+              // Check if we should skip closed profiles
+              bool isClosed = await _isProfileClosed(vkToken, user.userID);
+              if (isClosed) {
+                closedProfileIds.add(user.userID);
+                closedCount++;
+                if (skipClosedProfiles) {
+                  continue; // Skip this user
+                }
+              }
+              
               if (foundUsers.add(user)) { // add returns true if element was not already in the set
                 addedCount++;
               }
             }
-            print("Added $addedCount new users from group $groupId / city ${cityId ?? 'any'} (offset: $currentOffset). Total unique: ${foundUsers.length}");
+            print("Added $addedCount new users from group $groupId / city ${cityId ?? 'any'} (offset: $currentOffset). Skipped $closedCount closed profiles. Total unique: ${foundUsers.length}");
 
             totalFoundInCombo += batch.length; // Increment total for this specific combo
             currentOffset += searchLimitPerRequest; // Prepare for the next page
@@ -245,6 +258,19 @@ class GroupUsersRepository {
 
   // This method is no longer needed as we handle card removal directly in HomeController
   // and save the updated list to storage there
+
+  // Helper method to check if a profile is closed
+  Future<bool> _isProfileClosed(String vkToken, String userId) async {
+    try {
+      // Try to fetch photos - if we get an empty list, the profile is likely closed
+      final photos = await _apiProvider.getUserPhotos(vkToken, userId);
+      return photos.isEmpty;
+    } catch (e) {
+      // If there's an error fetching photos, assume the profile is closed
+      print("Error checking if profile $userId is closed: $e");
+      return true;
+    }
+  }
 
   // sendMessage (Remains the same)
   Future<bool> sendMessage(
