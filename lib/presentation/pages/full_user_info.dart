@@ -12,7 +12,7 @@ class UserDetailsPage extends GetView<UserDetailsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Подробнее"),
+        title: const Text("Подробнее"),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -65,13 +65,13 @@ class DetailedAbout extends StatelessWidget {
       const SizedBox(height: 16),
       if (controller.user.value?.groups != null)
         Text(
-          'Groups: ${controller.user.value?.groups?.join(', ') ?? ''}',
+          'Groups: ${controller.user.value?.groups.join(', ') ?? ''}',
           style: const TextStyle(color: Colors.grey),
         ),
       const SizedBox(height: 16),
       if (controller.user.value?.interests != null)
         Text(
-          'Interests: ${controller.user.value?.interests?.join(', ') ?? ''}',
+          'Interests: ${controller.user.value?.interests.join(', ') ?? ''}',
           style: const TextStyle(color: Colors.grey),
         ),
       const SizedBox(height: 16),
@@ -97,7 +97,7 @@ class PhotosGallery extends StatelessWidget {
       children: [
         const Text(
           'Photos',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -124,7 +124,7 @@ class PhotosGallery extends StatelessWidget {
                     BoxShadow(
                       color: Colors.grey.withOpacity(0.3),
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -141,7 +141,7 @@ class PhotosGallery extends StatelessWidget {
                     );
                   },
                   errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.error, color: Colors.red),
+                      const Icon(Icons.error, color: Colors.red),
                 ),
               );
             },

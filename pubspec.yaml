@@ -23,7 +23,7 @@ dependencies:
   cupertino_icons: ^1.0.5
   flutter_spinkit: ^5.2.0
 
-  dio: ^4.0.0
+  dio: ^5.4.3+1
   mockingjay: ^1.0.0
   image_cache: ^1.0.1
 
