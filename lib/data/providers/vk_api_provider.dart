@@ -353,10 +353,10 @@ class VkApiProvider extends getx.GetxService {
     // --- MOCK SWITCH ---
     if (_useMockData) {
       // MOCK: Needs to be modified in the repository to also call mock group methods
-      return _getMockFullProfile(userID); // <--- Corrected Call
+      return _getMockFullProfile(userID);
     }
     // --- END MOCK SWITCH ---
-    // ... (rest of the method remains the same)
+
     if (vkToken.isEmpty || userID.isEmpty) {
       throw ArgumentError("VK Token and User ID must be provided for getFullProfile.");
     }
@@ -373,6 +373,7 @@ class VkApiProvider extends getx.GetxService {
         print("Warning: users.get response data is null, not a list, or empty.");
         throw Exception('Профиль пользователя не найден или ошибка API.');
       }
+
       final user = VKGroupUser.fromJson(responseData[0] as Map<String, dynamic>);
       return user;
 
@@ -387,6 +388,7 @@ class VkApiProvider extends getx.GetxService {
       throw Exception('Не удалось обработать данные профиля.');
     }
   }
+
 
 
   Future<List<String>> getUserPhotos(String vkToken, String userID) async {

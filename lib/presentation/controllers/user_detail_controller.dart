@@ -9,7 +9,11 @@ import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
 import 'package:vktinder/routes/app_pages.dart';
 
 class UserDetailsController extends GetxController {
+  // Define individual observable fields for critical data
   final Rx<VKGroupUser?> user = Rx<VKGroupUser?>(null);
+  final RxString status = ''.obs;
+  final Rxn<int> relation = Rxn<int>();
+
   final RxBool isLoading = true.obs;
   final RxBool isSendingMessage = false.obs;
 
@@ -29,8 +33,23 @@ class UserDetailsController extends GetxController {
     // Check for arguments
     if (Get.arguments != null && Get.arguments is VKGroupUser) {
       final targetUser = Get.arguments as VKGroupUser;
+
+      // Set individual fields first
+      status.value = targetUser.status ?? '';
+      relation.value = targetUser.relation;
+
+      // Then set the full user object
       user.value = targetUser;
       _userID = targetUser.userID;
+
+      // Debug initial data
+      print("Initial User Data from arguments:");
+      print("  UserID: ${targetUser.userID}");
+      print("  Name: ${targetUser.name} ${targetUser.surname}");
+      print("  Status: ${targetUser.status}");
+      print("  Relation: ${targetUser.relation}");
+      print("  Individual status field: ${status.value}");
+      print("  Individual relation field: ${relation.value}");
 
       // Initialize photos and groups with existing data (ensure not null)
       photos.assignAll(targetUser.photos);
@@ -79,14 +98,28 @@ class UserDetailsController extends GetxController {
         userID,
       );
 
+      print("Controller received User Details for ${userDetails.userID}:");
+      print("  Status: '${userDetails.status}'");
+      print("  Relation: ${userDetails.relation}");
+
+      // Set individual observable fields first
+      status.value = userDetails.status ?? '';
+      relation.value = userDetails.relation;
+
       // Update separate observables
       photos.assignAll(userDetails.photos);
-      groups.assignAll(userDetails.groups); // This should be safe now
+      groups.assignAll(userDetails.groups);
 
-      // Update the user object itself
+      // Directly assign the new user object
       user.value = userDetails;
+
       _userID = userDetails.userID;
 
+      print("Controller updated observable values:");
+      print("  Status direct field: '${status.value}'");
+      print("  Relation direct field: ${relation.value}");
+      print("  User object status: '${user.value?.status}'");
+      print("  User object relation: ${user.value?.relation}");
       print("Loaded full profile - Photos: ${photos.length}, Groups: ${groups.length}");
 
     } catch (e) {
@@ -107,7 +140,7 @@ class UserDetailsController extends GetxController {
   }
 
 
-
+  // Rest of the controller methods remain the same
   void openVkProfile() async {
     if (user.value == null) return;
 
@@ -182,7 +215,7 @@ class UserDetailsController extends GetxController {
     if (user.value == null) return;
 
     final TextEditingController messageController =
-        TextEditingController(text: _settingsController.defaultMessage);
+    TextEditingController(text: _settingsController.defaultMessage);
 
     Get.dialog(
       AlertDialog(
@@ -224,52 +257,52 @@ class UserDetailsController extends GetxController {
             child: const Text('Отмена', style: TextStyle(fontSize: 16)),
           ),
           Obx(() => ElevatedButton.icon(
-                onPressed: isSendingMessage.value
-                    ? null
-                    : () async {
-                        isSendingMessage.value = true;
+            onPressed: isSendingMessage.value
+                ? null
+                : () async {
+              isSendingMessage.value = true;
 
-                        // Close dialog immediately
-                        Get.back();
+              // Close dialog immediately
+              Get.back();
 
-                        // Send message
-                        final success = await _groupUsersRepository.sendMessage(
-                          _settingsController.vkToken,
-                          user.value!.userID,
-                          messageController.text,
-                        );
+              // Send message
+              final success = await _groupUsersRepository.sendMessage(
+                _settingsController.vkToken,
+                user.value!.userID,
+                messageController.text,
+              );
 
-                        if (success) {
-                          Get.snackbar(
-                            'Успех',
-                            'Сообщение отправлено',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.green[100],
-                            colorText: Colors.green[900],
-                            margin: const EdgeInsets.all(8),
-                            borderRadius: 10,
-                            duration: const Duration(seconds: 2),
-                          );
-                        } else {
-                          Get.snackbar(
-                            'Ошибка',
-                            'Не удалось отправить сообщение',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.red[100],
-                            colorText: Colors.red[900],
-                            margin: const EdgeInsets.all(8),
-                            borderRadius: 10,
-                            duration: const Duration(seconds: 2),
-                          );
-                        }
+              if (success) {
+                Get.snackbar(
+                  'Успех',
+                  'Сообщение отправлено',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green[100],
+                  colorText: Colors.green[900],
+                  margin: const EdgeInsets.all(8),
+                  borderRadius: 10,
+                  duration: const Duration(seconds: 2),
+                );
+              } else {
+                Get.snackbar(
+                  'Ошибка',
+                  'Не удалось отправить сообщение',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red[100],
+                  colorText: Colors.red[900],
+                  margin: const EdgeInsets.all(8),
+                  borderRadius: 10,
+                  duration: const Duration(seconds: 2),
+                );
+              }
 
-                        isSendingMessage.value = false;
-                      },
-                icon: const Icon(Icons.send),
-                label: Text(
-                    isSendingMessage.value ? 'Отправка...' : 'Отправить',
-                    style: const TextStyle(fontSize: 16)),
-              )),
+              isSendingMessage.value = false;
+            },
+            icon: const Icon(Icons.send),
+            label: Text(
+                isSendingMessage.value ? 'Отправка...' : 'Отправить',
+                style: const TextStyle(fontSize: 16)),
+          )),
         ],
       ),
     );

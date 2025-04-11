@@ -256,28 +256,31 @@ class GroupUsersRepository {
       }
     }
 
-    // Return a new VKGroupUser instance with all data
-    return VKGroupUser(
+    // Create a new instance with all the data, making sure to properly pass the status and relation
+    final result = VKGroupUser(
       userID: baseProfileInfo.userID,
       name: baseProfileInfo.name,
       surname: baseProfileInfo.surname,
       avatar: baseProfileInfo.avatar,
       interests: baseProfileInfo.interests,
       about: baseProfileInfo.about,
-      status: baseProfileInfo.status,
+      status: baseProfileInfo.status, // Make sure this is passed correctly
       bdate: baseProfileInfo.bdate,
       city: baseProfileInfo.city,
       country: baseProfileInfo.country,
       sex: baseProfileInfo.sex,
-      relation: baseProfileInfo.relation,
+      relation: baseProfileInfo.relation, // Make sure this is passed correctly
       screenName: baseProfileInfo.screenName,
       online: baseProfileInfo.online,
       lastSeen: baseProfileInfo.lastSeen,
-      photos: photos, // Assign fetched photos
-      groups: groups.isNotEmpty ? groups : [], // Ensure groups is never null
+      photos: photos,
+      groups: groups.isNotEmpty ? groups : [],
       canWritePrivateMessage: baseProfileInfo.canWritePrivateMessage,
     );
+
+    return result;
   }
+
 
   // Helper function to fetch group info for a user
   Future<List<VKGroupInfo>> _fetchUserGroups(

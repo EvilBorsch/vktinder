@@ -43,16 +43,15 @@ class UserDetailsPage extends GetView<UserDetailsController> {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.message),
-                      label: const Text('Отправить сообщение'),
-                      onPressed: controller.user.value == null
-                          ? null
-                          : () => controller.sendMessage(),
+                        icon: const Icon(Icons.message),
+                        label: const Text('Отправить сообщение'),
+                        onPressed: controller.user.value == null
+                            ? null
+                            : () => controller.sendMessage(),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey[700],
                           foregroundColor: Colors.black,
-                        )
-                    ),
+                        )),
                   ],
                 )),
         ],
@@ -162,212 +161,239 @@ class DetailedProfile extends StatelessWidget {
     final user = controller.user.value;
     if (user == null) return const SizedBox.shrink();
 
+    // Debug user data
+    print("Building DetailedProfile UI with user data:");
+    print("  Status from user object: '${user.status}'");
+    print("  Relation from user object: ${user.relation}");
+    print("  Status from direct field: '${controller.status.value}'");
+    print("  Relation from direct field: ${controller.relation.value}");
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header with avatar and basic info
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar
-              Hero(
-                tag: 'user_avatar_${user.userID}',
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).primaryColor.withOpacity(0.3),
-                        blurRadius: 15, // Slightly reduced blur
-                        spreadRadius: 3, // Slightly reduced spread
-                      ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 55, // Slightly smaller
-                    backgroundImage: NetworkImage(user.avatar ?? ''),
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceVariant,
-                  ),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar
+            Hero(
+              tag: 'user_avatar_${user.userID}',
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).primaryColor.withOpacity(0.3),
+                      blurRadius: 15,
+                      spreadRadius: 3,
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 55,
+                  backgroundImage: NetworkImage(user.avatar ?? ''),
+                  backgroundColor:
+                  Theme.of(context).colorScheme.surfaceVariant,
                 ),
               ),
-              const SizedBox(width: 16),
+            ),
+            const SizedBox(width: 16),
 
-              // Basic info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${user.name} ${user.surname}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
+            // Basic info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${user.name} ${user.surname}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
 
-                    // Online status
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          size: 12,
-                          color:
-                              user.online == true ? Colors.green : Colors.grey,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(user.online == true ? 'В сети' : 'Не в сети',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: user.online == true
-                                      ? Colors.green
-                                      : Colors.grey,
-                                )),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                  // Online status
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        size: 12,
+                        color:
+                        user.online == true ? Colors.green : Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(user.online == true ? 'В сети' : 'Не в сети',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                            color: user.online == true
+                                ? Colors.green
+                                : Colors.grey,
+                          )),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
 
-                    // Location
-                    if (user.city != null || user.country != null)
-                      _buildInfoRow(
+                  // Location
+                  if (user.city != null || user.country != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: _buildInfoRow(
                           icon: Icons.location_on,
                           text: [
                             if (user.city != null) user.city,
                             if (user.country != null) user.country,
                           ].join(', '),
                           context: context),
+                    ),
 
-                    // Birthday if available
-                    if (user.bdate != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: _buildInfoRow(
-                            icon: Icons.cake,
-                            text: user.bdate!,
-                            context: context),
-                      ),
+                  // Birthday if available
+                  if (user.bdate != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: _buildInfoRow(
+                          icon: Icons.cake,
+                          text: user.bdate!,
+                          context: context),
+                    ),
 
-                    // Relationship status if available
-                    if (user.relation != null)
-                      Padding(
+                  // Relationship status - Use direct field instead of user object
+                  Obx(() {
+                    final relationValue = controller.relation.value;
+                    if (relationValue != null && relationValue != 0) {
+                      return Padding(
                         padding: const EdgeInsets.only(top: 4.0),
                         child: _buildInfoRow(
                             icon: Icons.favorite,
-                            text: _getRelationshipStatus(user.relation!),
-                            context: context),
-                      ),
-                  ],
-                ),
+                            text: _getRelationshipStatus(relationValue),
+                            context: context,
+                            primaryColor: true),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                ],
               ),
-            ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // Status - Use direct field instead of user object
+        Obx(() {
+      final statusValue = controller.status.value;
+      if (statusValue.isNotEmpty && statusValue != 'null') {
+        return Card(
+            elevation: 1,
+            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+            margin: EdgeInsets.zero, // remove default card margin
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                    color: Theme.of(context).dividerColor, width: 0.5)),
+            child: Padding(
+            padding: const EdgeInsets.all(12.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.format_quote,
+            color: Theme.of(context).colorScheme.primary,
+            size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            statusValue,
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context).colorScheme.primary
+            ),
           ),
-
-          const SizedBox(height: 24),
-
-          // Status if available
-          if (user.status != null && user.status!.isNotEmpty)
-            Card(
-              elevation: 1,
-              color:
-                  Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
-              margin: EdgeInsets.zero, // remove default card margin
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                      color: Theme.of(context).dividerColor, width: 0.5)),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.format_quote,
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                        size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        user.status!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        ),
+      ],
+    ),
             ),
+        );
+      }
+      return const SizedBox.shrink();
+        }),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // About section if available
-          if (user.about != null && user.about!.isNotEmpty)
-            _buildSection(
-              context: context,
-              title: 'О себе',
-              icon: Icons.person_outline,
-              contentWidget: Text(
-                user.about!,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-
-          // Interests section if available
-          if (user.interests.isNotEmpty)
-            Padding(
-              padding:
-                  const EdgeInsets.only(top: 20.0), // Add consistent spacing
-              child: _buildSection(
+            // About section if available
+            if (user.about != null && user.about!.isNotEmpty && user.about != 'null')
+              _buildSection(
                 context: context,
-                title: 'Интересы',
-                icon: Icons.interests_outlined,
-                contentWidget: Wrap(
-                  spacing: 8,
-                  runSpacing: 4, // Reduced run spacing
-                  children: user.interests
-                      .map((interest) => Chip(
-                            label: Text(interest),
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withOpacity(0.6),
-                            labelStyle: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(16), // Less round
-                              side: BorderSide.none,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4), // Adjust padding
-                            materialTapTargetSize: MaterialTapTargetSize
-                                .shrinkWrap, // Tighter tap area
-                          ))
-                      .toList(),
+                title: 'О себе',
+                icon: Icons.person_outline,
+                contentWidget: Text(
+                  user.about!,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
-            ),
-        ],
-      ),
+
+            // Interests section if available
+            if (user.interests.isNotEmpty)
+              Padding(
+                padding:
+                const EdgeInsets.only(top: 20.0), // Add consistent spacing
+                child: _buildSection(
+                  context: context,
+                  title: 'Интересы',
+                  icon: Icons.interests_outlined,
+                  contentWidget: Wrap(
+                    spacing: 8,
+                    runSpacing: 4, // Reduced run spacing
+                    children: user.interests
+                        .map((interest) => Chip(
+                      label: Text(interest),
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withOpacity(0.6),
+                      labelStyle: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                        BorderRadius.circular(16), // Less round
+                        side: BorderSide.none,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4), // Adjust padding
+                      materialTapTargetSize: MaterialTapTargetSize
+                          .shrinkWrap, // Tighter tap area
+                    ))
+                        .toList(),
+                  ),
+                ),
+              ),
+          ],
+        ),
     );
   }
 
-  // Helper for icon + text rows
+  // Helper for icon + text rows with an option to use primary color
   Widget _buildInfoRow(
       {required IconData icon,
-      required String text,
-      required BuildContext context}) {
+        required String text,
+        required BuildContext context,
+        bool primaryColor = false}) {
+    final textColor = primaryColor
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).textTheme.bodySmall?.color;
+
     return Row(
       children: [
-        Icon(icon,
-            size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
+        Icon(icon, size: 16, color: textColor),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -375,9 +401,10 @@ class DetailedProfile extends StatelessWidget {
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
-                ?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color),
+                ?.copyWith(color: textColor),
             overflow:
-                TextOverflow.ellipsis, // Handle potentially long location names
+            TextOverflow.ellipsis, // Handle potentially long location names
+            maxLines: 2, // Allow wrapping for longer texts
           ),
         ),
       ],
@@ -387,9 +414,9 @@ class DetailedProfile extends StatelessWidget {
   // Updated _buildSection to accept a widget for content
   Widget _buildSection(
       {required BuildContext context,
-      required String title,
-      required IconData icon,
-      required Widget contentWidget // Use a widget instead of string
+        required String title,
+        required IconData icon,
+        required Widget contentWidget // Use a widget instead of string
       }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,6 +459,8 @@ class DetailedProfile extends StatelessWidget {
         return 'Влюблён(а)';
       case 8:
         return 'В гражданском браке';
+      case 0:
+        return 'Не указано';
       default:
         return 'Не указано';
     }
@@ -451,7 +480,8 @@ class UserGroupsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("UserGroupsList build: ${groups.length} groups, isLoading: $isLoading"); // Debug log
+    print(
+        "UserGroupsList build: ${groups.length} groups, isLoading: $isLoading"); // Debug log
 
     // Don't show anything if loading is finished and groups are empty
     if (!isLoading && groups.isEmpty) {
@@ -517,21 +547,26 @@ class UserGroupsList extends StatelessWidget {
                 final group = groups[index];
                 String membersText = 'Участников: ?';
                 if (group.membersCount != null) {
-                  membersText = '${formatter.format(group.membersCount)} участ.';
+                  membersText =
+                      '${formatter.format(group.membersCount)} участ.';
                 }
 
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundImage: NetworkImage(group.avatarUrl),
-                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceVariant,
                   ),
-                  title: Text(group.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(membersText, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  title: Text(group.name,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(membersText,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 );
               },
-              separatorBuilder: (context, index) => Divider(height: 1, thickness: 0.5, indent: 60),
+              separatorBuilder: (context, index) =>
+                  Divider(height: 1, thickness: 0.5, indent: 60),
             ),
         ],
       ),
@@ -560,9 +595,10 @@ class PhotosGallery extends StatelessWidget {
       // Maybe a fixed height is better for consistency.
       height: size.height * 0.35, // Reduced height a bit
       child: GridView.builder(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 12), // Added vertical padding
-        shrinkWrap: false, // Allow internal scrolling
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        // Added vertical padding
+        shrinkWrap: false,
+        // Allow internal scrolling
         scrollDirection: Axis.horizontal,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2, // Keep 2 rows for horizontal scroll
@@ -663,8 +699,8 @@ class PhotosGallery extends StatelessWidget {
                           if (imageLoadingProgress == null) return widget;
                           return Center(
                             child: CircularProgressIndicator(
-                              color: Colors.white.withOpacity(
-                                  0.7), // Make indicator slightly transparent
+                              color: Colors.white.withOpacity(0.7),
+                              // Make indicator slightly transparent
                               value: imageLoadingProgress
                                       .cumulativeBytesLoaded /
                                   (imageLoadingProgress.expectedTotalBytes ??
