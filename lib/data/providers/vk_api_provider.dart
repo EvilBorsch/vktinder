@@ -1,328 +1,322 @@
 // lib/data/providers/vk_api_provider.dart
+import 'dart:convert'; // Needed for mock data if used
+import 'dart:math'; // For random numbers in mocks
+import 'dart:async'; // For Future.delayed
+
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' as getx;
+import 'package:flutter/material.dart'; // Needed for Colors in _handleResponse snackbar
+import 'package:get/get.dart' as getx; // Use alias to avoid conflict with Get package's Get class
 import 'package:vktinder/data/models/vk_group_user.dart';
-import 'package:vktinder/data/models/vk_group_info.dart'; // Import the new model
-import 'dart:math'; // For random_id
-import 'dart:async'; // Required for Future.delayed
+import 'package:vktinder/data/models/vk_group_info.dart';
 
 class VkApiProvider extends getx.GetxService {
   // --- START: MOCK DATA SWITCH ---
   /// Set to true to use local mock data instead of real VK API calls.
-  /// Ideal for development, testing UI, or offline work.
-  static const bool _useMockData = false; // <-- CHANGE THIS FLAG (true/false) TO SWITCH MODES
+  static const bool _useMockData = false; // <-- CHANGE THIS FLAG
   // --- END: MOCK DATA SWITCH ---
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://api.vk.com/method/',
-    connectTimeout: const Duration(seconds: 15), // Increased timeout
-    receiveTimeout: const Duration(seconds: 15), // Increased timeout
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
     queryParameters: {
-      'v': '5.199', // Specify a recent API version
+      'v': '5.199',
     },
   ));
   final String _apiVersion = '5.199';
 
-  // Helper to handle VK API errors (remains the same)
+  // Helper to handle VK API errors (keep existing)
   dynamic _handleResponse(Response response) {
     if (response.statusCode == 200 && response.data != null) {
       if (response.data['error'] != null) {
         final error = response.data['error'];
-        // Specific error handling for privacy
-        if (error['error_code'] == 15) { // Access denied (e.g., private profile)
-          print('VK API Privacy Error [15]: ${error['error_msg']}');
-          // You might want to throw a specific exception type here
-          // or return a specific value indicating privacy restrictions.
-          // For now, we'll let it throw a general DioException below.
-        }
         final errorMessage = error['error_msg'] ?? 'Unknown VK API error';
         final errorCode = error['error_code'] ?? -1;
-        print('VK API Error Response: ${response.data}');
+
+        // Specific error handling can be added here (e.g., privacy, invalid params)
+        print('VK API Error Response [$errorCode]: $errorMessage');
+        // Handle common errors users might encounter
+        if (errorCode == 5) { // Authorization failed (bad token)
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            error: 'Ошибка авторизации [5]: Неверный VK токен. Проверьте токен в настройках.',
+            type: DioExceptionType.unknown,
+          );
+        } else if (errorCode == 15 || errorCode == 30) { // Access denied / Private profile
+          // Often okay for individual calls like getSubscriptions, but might indicate issues for search
+          print('VK API Privacy Error [$errorCode]: ${error['error_msg']}');
+          // Re-throw as a custom exception or specific DioException if needed
+          // For now, just let the generic handler below catch it if not handled upstream
+        } else if (errorCode == 100) { // One of the parameters specified was missing or invalid
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            error: 'Ошибка параметров [100]: $errorMessage. Возможно, указан неверный ID группы или города.',
+            type: DioExceptionType.unknown,
+          );
+        } else if (errorCode == 6) { // Too many requests per second
+          print('VK API Rate Limit Error [6]: $errorMessage');
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            error: 'Слишком много запросов [6]. Пожалуйста, подождите и попробуйте снова.',
+            type: DioExceptionType.unknown,
+          );
+        }
+
+
         throw DioException(
           requestOptions: response.requestOptions,
           response: response,
-          error: 'VK API Error [$errorCode]: $errorMessage',
-          type: DioExceptionType.unknown, // Or specific type if applicable
+          error: 'Ошибка VK API [$errorCode]: $errorMessage',
+          type: DioExceptionType.unknown,
         );
       }
       if (response.data is Map && response.data.containsKey('response')) {
         return response.data['response'];
       } else {
-        print('VK API Success Response (no "response" key): ${response.data}');
-        return response.data;
+        print('VK API Success Response (no "response" key or not a map): ${response.data}');
+        return response.data; // Return data even if 'response' key is missing (e.g., for boolean results)
       }
     } else {
       throw DioException(
         requestOptions: response.requestOptions,
         response: response,
-        error: 'Failed to communicate with VK API (Status: ${response.statusCode})',
+        error: 'Ошибка сети при запросе к VK API (Статус: ${response.statusCode})',
         type: DioExceptionType.badResponse,
       );
     }
   }
 
+  // --- Mock Data Section ---
 
-  // --- Updated Mock Data Definitions ---
-
-  // Mock data for getGroupUsers (remains the same)
+  // Mock for getGroupUsers (used by old logic, maybe keep for testing)
   Future<List<VKGroupUser>> _getMockGroupUsers() async {
-    // ... existing mock code ...
-    print("[MOCK] Returning mock data for getGroupUsers");
-    await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
-
-    final mockResponse = {
-      "response": {
-        "count": 5,
-        "items": [
-          {
-            "id": 101,
-            "first_name": "Ольга",
-            "last_name": "Тестовая",
-            "photo_100": "https://via.placeholder.com/100/FF0000/FFFFFF?text=Mock1",
-            "photo_200": "https://via.placeholder.com/200/FF0000/FFFFFF?text=Mock1-200",
-            "sex": 1, // 1=female
-            "online": 1 // 1=online, 0=offline
-          },
-          {
-            "id": 102,
-            "first_name": "Елена",
-            "last_name": "Пример",
-            "photo_100": "https://via.placeholder.com/100/00FF00/FFFFFF?text=Mock2",
-            "photo_200": "https://via.placeholder.com/200/00FF00/FFFFFF?text=Mock2-200",
-            "sex": 1,
-            "online": 0
-          },
-          {
-            "id": 103,
-            "first_name": "Мария",
-            "last_name": "Разработкова",
-            "photo_100": "https://via.placeholder.com/100/0000FF/FFFFFF?text=Mock3",
-            "photo_200": "https://via.placeholder.com/200/0000FF/FFFFFF?text=Mock3-200",
-            "sex": 1,
-            "online": 1
-          },
-          {
-            "id": 104,
-            "first_name": "Александр",
-            "last_name": "Тестов",
-            "photo_100": "https://via.placeholder.com/100/FF00FF/FFFFFF?text=Mock4",
-            "photo_200": "https://via.placeholder.com/200/FF00FF/FFFFFF?text=Mock4-200",
-            "sex": 2, // 2=male
-            "online": 0
-          },
-          {
-            "id": 105,
-            "first_name": "Иван",
-            "last_name": "Примеров",
-            "photo_100": "https://via.placeholder.com/100/FFFF00/000000?text=Mock5",
-            "photo_200": "https://via.placeholder.com/200/FFFF00/000000?text=Mock5-200",
-            "sex": 2,
-            "online": 1
-          }
-        ]
-      }
-    };
-
-    final List userList = mockResponse['response']?['items'] as List<dynamic>;
-    return userList
-        .map((userData) => VKGroupUser.fromJson(userData as Map<String, dynamic>))
-        .toList();
-  }
-
-  // Mock data for getFullProfile (remains mostly the same, just ensure groups is handled)
-  Future<VKGroupUser> _getMockFullProfile(String userID) async {
-    // ... existing mock profile generation code ...
-    print("[MOCK] Returning mock data for getFullProfile (userID: $userID)");
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    // Base profile data template
-    final mockProfileBase = {
-      "id": int.tryParse(userID) ?? 101,
-      "first_name": "Ольга",
-      "last_name": "Тестовая",
-      "photo_max_orig": "https://via.placeholder.com/800x600/FF0000/FFFFFF?text=MockFull+$userID",
-      "photo_400_orig": "https://via.placeholder.com/400x300/FF0000/FFFFFF?text=MockFull+$userID",
-      "photo_200": "https://via.placeholder.com/200/FF0000/FFFFFF?text=MockFull+$userID",
-      "photo_100": "https://via.placeholder.com/100/FF0000/FFFFFF?text=MockFull+$userID",
+    print("[MOCK] Getting mock group users");
+    await Future.delayed(const Duration(milliseconds: 500));
+    return List.generate(15, (index) => VKGroupUser.fromJson({
+      "id": 1000 + index,
+      "first_name": "MockGroup",
+      "last_name": "User$index",
+      "photo_100": "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000+index}",
+      "photo_200": "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000+index}",
       "sex": 1,
-      "bdate": "15.5.1995",
-      "city": {"id": 1, "title": "Москва"},
-      "country": {"id": 1, "title": "Россия"},
-      "interests": "flutter, разработка, котики, путешествия",
-      "about": "Это тестовое описание профиля. Люблю программировать и гулять.",
-      "status": "Тестирую приложение \uD83D\uDE80",
-      "relation": 1, // 1=single
-      "screen_name": "mock_user_$userID",
-      "online": 1,
-      "last_seen": {
-        "time": DateTime.now().millisecondsSinceEpoch ~/ 1000 - 3600, // 1 hour ago
-        "platform": 7 // Mobile app
-      },
-      // Add empty groups list, it will be populated by mock group calls later
-      "groups": [],
-      "photos": [],
-    };
-
-    // Customize based on userID for variety
-    if (userID == "101") {
-      // Keep default Olga
-    } else if (userID == "102") {
-      mockProfileBase["first_name"] = "Елена";
-      mockProfileBase["last_name"] = "Пример";
-      // ... other customizations ...
-      mockProfileBase["online"] = 0;
-    } else if (userID == "103") {
-      mockProfileBase["first_name"] = "Мария";
-      mockProfileBase["last_name"] = "Разработкова";
-      // ... other customizations ...
-    } else if (userID == "104") {
-      mockProfileBase["first_name"] = "Александр";
-      mockProfileBase["last_name"] = "Тестов";
-      mockProfileBase["sex"] = 2; // male
-      // ... other customizations ...
-      mockProfileBase["online"] = 0;
-    } else if (userID == "105") {
-      mockProfileBase["first_name"] = "Иван";
-      mockProfileBase["last_name"] = "Примеров";
-      mockProfileBase["sex"] = 2; // male
-      // ... other customizations ...
-    }
-    // Update image URLs based on sex to have different placeholders
-    final colorCode = mockProfileBase["sex"] == 1 ? "FF0000" : "0000FF"; // Red for female, Blue for male
-    final baseUrl = "https://via.placeholder.com";
-
-    mockProfileBase["photo_max_orig"] = "$baseUrl/800x600/$colorCode/FFFFFF?text=${mockProfileBase["first_name"]}_$userID";
-    mockProfileBase["photo_400_orig"] = "$baseUrl/400x300/$colorCode/FFFFFF?text=${mockProfileBase["first_name"]}_$userID";
-    mockProfileBase["photo_200"] = "$baseUrl/200/$colorCode/FFFFFF?text=${mockProfileBase["first_name"]}_$userID";
-    mockProfileBase["photo_100"] = "$baseUrl/100/$colorCode/FFFFFF?text=${mockProfileBase["first_name"]}_$userID";
-
-    // MOCK: Assign some mock photos directly for simplicity in mock mode
-    final mockPhotos = await _getMockUserPhotos(userID);
-    mockProfileBase["photos"] = mockPhotos;
-
-    return VKGroupUser.fromJson(mockProfileBase as Map<String, dynamic>);
+      "online": Random().nextInt(2),
+      "city": {"id": 1, "title": "MockCity"},
+    }));
   }
 
-
-  // Mock data for getUserPhotos (remains the same)
-  Future<List<String>> _getMockUserPhotos(String userID) async {
-    // ... existing mock code ...
-    print("[MOCK] Returning mock data for getUserPhotos (userID: $userID)");
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    // Get mock user sex to use appropriate color scheme (if available)
-    int defaultSex = 0; // 0=not specified, 1=female, 2=male
-    if (userID == "101" || userID == "102" || userID == "103") defaultSex = 1;
-    if (userID == "104" || userID == "105") defaultSex = 2;
-
-    // Color scheme based on sex
-    final String baseColor = defaultSex == 1 ? "FF0088" : defaultSex == 2 ? "0088FF" : "888888";
-
-    // Base URL with different sizes and slight color variations
-    final baseUrl = "https://via.placeholder.com";
-
-    // Generate a more realistic photo collection (5-8 photos)
-    final int photoCount = 5 + (int.tryParse(userID.substring(userID.length - 1)) ?? 0) % 4;
-
-    List<String> photos = [];
-    for (int i = 1; i <= photoCount; i++) {
-      // Vary dimensions to simulate real photos
-      final int width = 600 + (i * 40);
-      final int height = 400 + ((i * 30) % 200);
-
-      // Slight color variations
-      final String colorHex = baseColor.substring(0, 2) +
-          ((int.parse(baseColor.substring(2, 4), radix: 16) + (i * 10)) % 256).toRadixString(16).padLeft(2, '0') +
-          baseColor.substring(4);
-
-      photos.add("$baseUrl/${width}x$height/$colorHex/FFFFFF?text=Photo_${userID}_$i");
-    }
-
-    return photos;
-  }
-
-  // Mock data for sendMessage (remains the same)
-  Future<bool> _sendMockMessage(String userId, String message) async {
-    // ... existing mock code ...
-    print("[MOCK] Simulating sending message to $userId: '$message'");
+  // Mock for getFullProfile (returns base info, repo adds photos/groups)
+  Future<VKGroupUser> _getMockFullProfile(String userID) async {
+    print("[MOCK] Getting mock full profile for user ID: $userID");
     await Future.delayed(const Duration(milliseconds: 300));
-
-    // Randomly fail 10% of the time to simulate network issues
-    final shouldSucceed = Random().nextDouble() > 0.1;
-
-    if (!shouldSucceed) {
-      print("[MOCK] Simulated message failure");
-    } else {
-      print("[MOCK] Message sent successfully");
-    }
-
-    return shouldSucceed;
+    final id = int.tryParse(userID) ?? Random().nextInt(50000);
+    return VKGroupUser.fromJson({
+      "id": id,
+      "first_name": "MockFull",
+      "last_name": "Profile$id",
+      "photo_100": "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
+      "photo_200": "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
+      "photo_max_orig":"https://via.placeholder.com/600/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
+      "sex": 1,
+      "online": Random().nextInt(2),
+      "screen_name": "mock_user_$id",
+      "bdate": "15.5.1995",
+      "city": {"id": 147, "title": "Севастополь"},
+      "country": {"id": 1, "title": "Россия"},
+      "interests": "Flutter, Dart, Mock Data, Cats",
+      "about": "Это моковый профиль пользователя для тестирования.",
+      "status": "Тестирую приложение \u{1F680}", // Rocket emoji
+      "relation": 1, // single
+      "last_seen": { "time": DateTime.now().millisecondsSinceEpoch ~/ 1000 - Random().nextInt(3600), "platform": 7 },
+    });
   }
 
-  // --- START: NEW MOCK METHODS ---
-  // Mock data for getUserSubscriptions
-  Future<List<int>> _getMockUserSubscriptionIds(String userID) async {
-    print("[MOCK] Returning mock subscription IDs for userID: $userID");
+  // Mock for getUserPhotos
+  Future<List<String>> _getMockUserPhotos(String userID) async {
+    print("[MOCK] Getting mock photos for user ID: $userID");
+    await Future.delayed(const Duration(milliseconds: 400));
+    final id = int.tryParse(userID) ?? Random().nextInt(50000);
+    return List.generate(Random().nextInt(5) + 1, // 1 to 5 photos
+            (index) => "https://via.placeholder.com/600/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=Photo${index}_User$id"
+    );
+  }
+
+  // Mock for sendMessage
+  Future<bool> _sendMockMessage(String userId, String message) async {
+    print("[MOCK] Sending message to user ID: $userId | Message: '$message'");
+    await Future.delayed(const Duration(milliseconds: 600));
+    // Simulate potential failure randomly
+    final success = Random().nextDouble() > 0.1; // 90% success rate
+    print("[MOCK] Send message result: $success");
+    if (!success) {
+      // Simulate a privacy error snackbar like the real implementation might do
+      getx.Get.snackbar(
+        'Mock Send Error',
+        'Mock user $userId has privacy settings blocking messages.',
+        snackPosition: getx.SnackPosition.BOTTOM, backgroundColor: Colors.orange[100], colorText: Colors.orange[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 4),
+      );
+    }
+    return success;
+  }
+
+  // Mock for getUserSubscriptionIds
+  Future<List<int>> _getMockUserSubscriptionIds(String userId) async {
+    print("[MOCK] Getting mock subscription IDs for user ID: $userId");
     await Future.delayed(const Duration(milliseconds: 350));
-    // Return different sets of IDs for different test users
-    switch (userID) {
-      case "101": return [1, 2, 3, 456, 789]; // Groups and Pages
-      case "102": return [1, 5, 10, 12345];
-      case "103": return []; // User with no public groups/pages
-      case "104": return [2, 6, 7];
-      case "105": return [1, 3, 7, 999];
-      default: return [1, 2, 99]; // Default
+    return List.generate(Random().nextInt(15) + 5, // 5 to 19 groups
+            (index) => Random().nextInt(1000000) + 1 // Random group IDs
+    );
+  }
+
+
+  // Mock for getGroupsById
+  Future<List<VKGroupInfo>> _getMockGroupsById(List<String> groupIds) async {
+    print("[MOCK] Getting mock group info for IDs: ${groupIds.join(',')}");
+    await Future.delayed(const Duration(milliseconds: 450));
+    List<VKGroupInfo> mockGroups = [];
+    for (String idStr in groupIds) {
+      final id = int.tryParse(idStr) ?? Random().nextInt(100000);
+      mockGroups.add(VKGroupInfo.fromJson({
+        "id": id,
+        "name": "Mock Group $id",
+        "screen_name": "mock_group_$id",
+        "photo_50": "https://via.placeholder.com/50/AAA/FFF?text=G$id",
+        "photo_100": "https://via.placeholder.com/100/AAA/FFF?text=G$id",
+        "photo_200": "https://via.placeholder.com/200/AAA/FFF?text=G$id",
+        "members_count": Random().nextInt(50000) + 100,
+        "type": Random().nextBool() ? "group" : "page",
+      }));
+    }
+    return mockGroups;
+  }
+
+
+  // Example Mock data for getGroupIdByScreenName
+  Future<int?> _getMockGroupIdByScreenName(String screenName) async {
+    print("[MOCK] Resolving screen name: $screenName");
+    await Future.delayed(const Duration(milliseconds: 100));
+    switch (screenName.toLowerCase()) { // case-insensitive mock
+      case "flutterdev": return 1;
+      case "facts": return 2;
+      case "travel_club": return 3;
+      case "cat_lovers": return 5;
+      case "it_news": return 6;
+      case "kino": return 7;
+      case "recipes_vk": return 10;
+      case "team": return 25504844; // Example: VK Team group
+      case "durov": return 1; // Pavel Durov (as group/page)
+      case "designhunters": return Random().nextInt(100000) + 10000;
+      case "invalid_name": return null; // Simulate not found
+      default:
+      // Simulate finding some others, but not all
+        if(screenName.hashCode % 3 != 0) {
+          return Random().nextInt(100000) + 10000; // Random ID for others
+        } else {
+          return null; // Simulate not found for some inputs
+        }
     }
   }
 
-  // Mock data for getGroupsById
-  Future<List<VKGroupInfo>> _getMockGroupsById(List<String> groupIds) async {
-    print("[MOCK] Returning mock group details for IDs: ${groupIds.join(',')}");
-    if (groupIds.isEmpty) return [];
-    await Future.delayed(const Duration(milliseconds: 550));
-
-    final List<Map<String, dynamic>> mockGroupsData = [
-      {"id": 1, "name": "Flutter Developers", "screen_name": "flutterdev", "photo_100": "https://via.placeholder.com/100/AAAAAA/FFFFFF?text=Flutter", "members_count": 150000, "type": "page"},
-      {"id": 2, "name": "Интересные Факты", "screen_name": "facts", "photo_100": "https://via.placeholder.com/100/00AAAA/FFFFFF?text=Facts", "members_count": 2500000, "type": "page"},
-      {"id": 3, "name": "Клуб Путешественников", "screen_name": "travel_club", "photo_100": "https://via.placeholder.com/100/AA00AA/FFFFFF?text=Travel", "members_count": 50000, "type": "group"},
-      {"id": 5, "name": "Любители Котиков", "screen_name": "cat_lovers", "photo_100": "https://via.placeholder.com/100/FFAA00/000000?text=Cats", "members_count": 1234567, "type": "group"},
-      {"id": 6, "name": "Новости IT", "screen_name": "it_news", "photo_100": "https://via.placeholder.com/100/00FFAA/000000?text=IT", "members_count": 300000, "type": "page"},
-      {"id": 7, "name": "Кино и Сериалы", "screen_name": "kino", "photo_100": "https://via.placeholder.com/100/AA0000/FFFFFF?text=Kino", "members_count": 800000, "type": "page"},
-      {"id": 10, "name": "Рецепты", "screen_name": "recipes_vk", "photo_100": "https://via.placeholder.com/100/00AA00/FFFFFF?text=Food", "members_count": 950000, "type": "page"},
-      {"id": 99, "name": "Тестовая Группа 99", "screen_name": "test99", "photo_100": "https://via.placeholder.com/100/CCCCCC/000000?text=Test99", "members_count": 10, "type": "group"},
-      {"id": 456, "name": "Очень Длинное Название Группы", "screen_name": "long_name", "photo_100": "https://via.placeholder.com/100/999999/FFFFFF?text=Long", "members_count": 5, "type": "group"},
-      {"id": 789, "name": "Музыка", "screen_name": "music", "photo_100": "https://via.placeholder.com/100/FF00FF/FFFFFF?text=Music", "members_count": 4200000, "type": "page"},
-      {"id": 999, "name": "Игры Онлайн", "screen_name": "games", "photo_100": "https://via.placeholder.com/100/00FFFF/000000?text=Games", "members_count": 765432, "type": "page"},
-      {"id": 12345, "name": "Закрытая Группа", "screen_name": "private_test", "photo_100": "https://vk.com/images/community_100.png", "members_count": 15, "type": "group"},
-    ];
-
-    // Filter mock data to only return groups matching the requested IDs
-    final List<int> requestedIdsInt = groupIds.map((id) => int.tryParse(id) ?? -1).where((id) => id != -1).toList();
-    final results = mockGroupsData
-        .where((groupData) => requestedIdsInt.contains(groupData['id'] as int))
-        .map((groupData) => VKGroupInfo.fromJson(groupData))
-        .toList();
-
-    // Simulate missing some groups (if more than 3 are requested, return only 3)
-    return results.take(8).toList();
+  // Example Mock data for getCitiesByName
+  Future<List<Map<String, dynamic>>> _getMockCitiesByName(List<String> cityNames) async {
+    print("[MOCK] Resolving city names: ${cityNames.join(', ')}");
+    await Future.delayed(Duration(milliseconds: 150));
+    final results = <Map<String, dynamic>>[];
+    final predefinedCities = {
+      "москва": {"id": 1, "title": "Москва"},
+      "севастополь": {"id": 147, "title": "Севастополь"},
+      "ялта": {"id": 1000, "title": "Ялта"}, // Made up ID
+      "санкт-петербург": {"id": 2, "title": "Санкт-Петербург"},
+      "питер": {"id": 2, "title": "Санкт-Петербург"}, // Alias
+      "новгород": {"id": 95, "title": "Великий Новгород"}, // Example where input might be ambiguous
+      "нижний новгород": {"id": 99, "title": "Нижний Новгород"},
+    };
+    for (var name in cityNames) {
+      final lowerName = name.toLowerCase().trim();
+      if (predefinedCities.containsKey(lowerName)) {
+        results.add({"id": predefinedCities[lowerName]!['id'], "title": predefinedCities[lowerName]!['title']});
+        // To simulate finding multiple, we could add more logic here,
+        // but for simplicity, we return the first match.
+      } else if (lowerName.isNotEmpty && lowerName.hashCode % 4 != 0) {
+        // Simulate finding some other cities
+        final mockId = Random().nextInt(5000) + 200;
+        results.add({"id": mockId, "title": name.trim()}); // Use original casing for display?
+      } else {
+        print("[MOCK] City not found: $name");
+      }
+    }
+    return results;
   }
-  // --- END: NEW MOCK METHODS ---
 
-  // --- API Methods with Mock Switch ---
+
+  // Example Mock data for searchUsers
+  Future<List<VKGroupUser>> _getMockSearchUsers({
+    int? groupId,
+    int? cityId,
+    int? ageFrom,
+    int? ageTo,
+    int sex = 1, // Respect sex parameter
+    int count = 20,
+    int offset = 0
+  }) async {
+    print("[MOCK] Searching users: groupId=$groupId, cityId=$cityId, ageFrom=$ageFrom, ageTo=$ageTo, sex=$sex, count=$count, offset=$offset");
+    await Future.delayed(const Duration(milliseconds: 700));
+
+    if (offset >= 100) { // Simulate reaching the end of mock results
+      print("[MOCK] Search yields no more results at offset $offset");
+      return [];
+    }
+
+    // Generate some mock users based on filters
+    List<VKGroupUser> mockUsers = [];
+    final random = Random(groupId ?? 0 + cityId! ?? 0 + offset); // Seeded random for consistency per page
+    for (int i = 0; i < count; i++) {
+      final uniqueIdBase = (groupId ?? 0) * 10000 + (cityId ?? 0) * 100 + offset + i;
+      final uniqueId = random.nextInt(900000) + uniqueIdBase; // Add randomness
+
+      // Simulate filter matching (loosely)
+      bool matchesCity = cityId == null || (uniqueId % 5 == cityId % 5); // Simulate city match rate
+      int mockAge = 18 + random.nextInt(30); // Age 18-47
+      bool matchesAge = (ageFrom == null || mockAge >= ageFrom) && (ageTo == null || mockAge <= ageTo);
+      bool matchesSex = sex == (uniqueId % 3 == 1 ? 1 : 2); // Simulate ~1/3 female, 2/3 male if sex=0
+
+      if (matchesCity && matchesAge && matchesSex) {
+        mockUsers.add(VKGroupUser.fromJson({ // Using simplified structure for mock
+          "id": uniqueId,
+          "first_name": "Поиск${groupId ?? 'G'}${cityId ?? 'C'}",
+          "last_name": "Юзер${offset + i}",
+          "photo_100": "https://via.placeholder.com/100/${uniqueId % 2 == 0 ? '00F' : 'F00'}/FFF?text=S$uniqueId",
+          "photo_200": "https://via.placeholder.com/200/${uniqueId % 2 == 0 ? '00F' : 'F00'}/FFF?text=S$uniqueId",
+          "sex": sex, // Return the requested sex
+          "online": random.nextInt(2),
+          "bdate": "1.1.${DateTime.now().year - mockAge}", // Approximate bdate
+          "city": cityId != null ? {"id": cityId, "title": "Город $cityId"} : null,
+          "last_seen": { "time": DateTime.now().millisecondsSinceEpoch ~/ 1000 - random.nextInt(3600*24), "platform": 7 },
+          "screen_name": "search_user_$uniqueId",
+        }));
+      }
+    }
+    print("[MOCK] Found ${mockUsers.length} mock users for search.");
+    return mockUsers;
+  }
+
+  // --- End Mock Data Section ---
+
+
+  // --- Existing API Methods (Implementations using _handleResponse, etc.) ---
 
   Future<List<VKGroupUser>> getGroupUsers(String vkToken, String groupId) async {
     // --- MOCK SWITCH ---
-    if (_useMockData) {
-      return _getMockGroupUsers();
-    }
+    if (_useMockData) return _getMockGroupUsers(); // <--- Corrected Call
     // --- END MOCK SWITCH ---
 
-    // Real API Call Logic (updated fields)
-    // ... (existing code remains the same) ...
     if (vkToken.isEmpty || groupId.isEmpty) {
       print("Error: VK Token or Group ID is missing for getGroupUsers.");
       throw ArgumentError('VK Token and Group ID must be provided.');
     }
+    // ... (rest of the method remains the same)
     try {
       print("VK API Call: groups.getMembers (groupId: $groupId)");
       final response = await _dio.get(
@@ -330,8 +324,9 @@ class VkApiProvider extends getx.GetxService {
         queryParameters: {
           'group_id': groupId,
           'access_token': vkToken,
-          'fields': 'id,first_name,last_name,photo_100,photo_200,sex,online', // Added photo_200
+          'fields': 'id,first_name,last_name,photo_100,photo_200,sex,online,city,country,bdate',
           'v': _apiVersion,
+          'count': 1000,
         },
       );
       final responseData = _handleResponse(response);
@@ -341,28 +336,27 @@ class VkApiProvider extends getx.GetxService {
       }
       final List usersList = responseData['items'] ?? [];
       return usersList
+          .where((userData) => (userData['sex'] ?? 0) == 1)
           .map((userData) => VKGroupUser.fromJson(userData as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       print("DioError fetching group users: ${e.message}");
-      if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
-      throw Exception('Failed to load group users: ${e.message}');
+      throw Exception('Не удалось загрузить участников группы: ${e.message?.split(':').last.trim() ?? 'Ошибка сети'}');
     } catch (e, stackTrace) {
       print("Error parsing group users: $e\n$stackTrace");
-      throw Exception('Failed to parse group users data.');
+      throw Exception('Не удалось обработать данные участников группы.');
     }
   }
+
 
   Future<VKGroupUser> getFullProfile(String vkToken, String userID) async {
     // --- MOCK SWITCH ---
     if (_useMockData) {
       // MOCK: Needs to be modified in the repository to also call mock group methods
-      return _getMockFullProfile(userID);
+      return _getMockFullProfile(userID); // <--- Corrected Call
     }
     // --- END MOCK SWITCH ---
-
-    // Real API Call Logic (updated fields)
-    // ... (existing code remains the same) ...
+    // ... (rest of the method remains the same)
     if (vkToken.isEmpty || userID.isEmpty) {
       throw ArgumentError("VK Token and User ID must be provided for getFullProfile.");
     }
@@ -370,42 +364,41 @@ class VkApiProvider extends getx.GetxService {
       print("VK API Call: users.get (userId: $userID)");
       final response = await _dio.get('users.get', queryParameters: {
         'user_ids': userID,
-        'fields': 'id,first_name,last_name,photo_max_orig,sex,bdate,city,country,interests,about,status,relation,screen_name,online,last_seen,photo_200,photo_400_orig', // Removed groups, as it's fetched separately
+        'fields': 'id,first_name,last_name,photo_max_orig,sex,bdate,city,country,interests,about,status,relation,screen_name,online,last_seen,photo_50,photo_100,photo_200,photo_400_orig',
         'access_token': vkToken,
         'v': _apiVersion,
       });
       final responseData = _handleResponse(response);
       if (responseData == null || responseData is! List || responseData.isEmpty) {
         print("Warning: users.get response data is null, not a list, or empty.");
-        throw Exception('User profile not found or API error.');
+        throw Exception('Профиль пользователя не найден или ошибка API.');
       }
-      // Create the base user object
       final user = VKGroupUser.fromJson(responseData[0] as Map<String, dynamic>);
-
-      // Photos and Groups will be fetched and added in the repository
       return user;
 
     } on DioException catch (e) {
       print("DioError fetching full profile: ${e.message}");
-      if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
-      throw Exception('Failed to load user profile: ${e.message}');
+      if (e.response?.data?['error']?['error_code'] == 15 || e.response?.data?['error']?['error_code'] == 30) {
+        throw Exception('Не удалось загрузить профиль: Доступ к профилю ограничен.');
+      }
+      throw Exception('Не удалось загрузить профиль: ${e.message?.split(':').last.trim() ?? 'Ошибка сети'}');
     } catch (e, stackTrace) {
       print("Error parsing profile: $e\n$stackTrace");
-      throw Exception('Failed to parse user profile data.');
+      throw Exception('Не удалось обработать данные профиля.');
     }
   }
+
 
   Future<List<String>> getUserPhotos(String vkToken, String userID) async {
     // --- MOCK SWITCH ---
     if (_useMockData) {
-      return _getMockUserPhotos(userID);
+      return _getMockUserPhotos(userID); // <--- Corrected Call
     }
     // --- END MOCK SWITCH ---
-
-    // Real API Call Logic (remains the same)
-    // ... (existing code remains the same) ...
+    // ... (rest of the method remains the same)
     if (vkToken.isEmpty || userID.isEmpty) {
-      throw ArgumentError("VK Token and User ID must be provided for getUserPhotos.");
+      print("Warning: VK Token or User ID missing for getUserPhotos. Returning empty list.");
+      return []; // Don't throw, just return empty
     }
     try {
       print("VK API Call: photos.get (ownerId: $userID)");
@@ -415,58 +408,55 @@ class VkApiProvider extends getx.GetxService {
         'access_token': vkToken,
         'extended': 1,
         'photo_sizes': 1,
-        'count': 20,
+        'count': 30,
         'v': _apiVersion,
       });
       final responseData = _handleResponse(response);
       if (responseData == null || responseData['items'] == null) {
-        print("Warning: photos.get response data or items list is null.");
+        print("Warning: photos.get response data or items list is null for user $userID.");
         return [];
       }
       final List photosList = responseData['items'] ?? [];
+      photosList.sort((a, b) => (b['likes']?['count'] ?? 0).compareTo(a['likes']?['count'] ?? 0));
+
       return photosList.map((photoData) {
-        if (photoData == null || photoData['sizes'] == null) return 'https://vk.com/images/camera_200.png';
+        if (photoData == null || photoData['sizes'] == null) return null;
         final sizes = (photoData['sizes'] as List?) ?? [];
         if (sizes.isNotEmpty) {
           final priority = ['w', 'z', 'y', 'x', 'r', 'q', 'p', 'o', 'm', 's'];
-          for(String type in priority) {
+          for (String type in priority) {
             try {
-              final size = sizes.firstWhere((s) => s != null && s['type'] == type, orElse: () => null);
+              final size = sizes.lastWhere((s) => s != null && s['type'] == type, orElse: () => null);
               if (size != null && size['url'] is String) return size['url'] as String;
-            } catch (e) { print("Error accessing photo size: $e"); }
+            } catch (e) { print("Error finding photo size '$type': $e"); }
           }
           try {
             if (sizes.last != null && sizes.last['url'] is String) return sizes.last['url'] as String;
           } catch (e) { print("Error accessing last photo size: $e"); }
         }
-        return 'https://vk.com/images/camera_200.png';
-      }).toList();
+        return null;
+      }).whereType<String>().toList();
 
     } on DioException catch (e) {
-      print("DioError fetching user photos: ${e.message}");
-      if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
-      // Don't throw an exception here, just return empty list or log it
-      // throw Exception('Failed to load user photos: ${e.message}');
-      print('Failed to load user photos: ${e.message}. Returning empty list.');
+      if (e.response?.data?['error']?['error_code'] == 15 || e.response?.data?['error']?['error_code'] == 200 || e.response?.data?['error']?['error_code'] == 30) {
+        print("Could not fetch photos for user $userID due to privacy settings or access error.");
+      } else {
+        print("DioError fetching user photos for $userID: ${e.message}");
+        if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
+      }
       return [];
     } catch (e, stackTrace) {
-      print("Error parsing photos: $e\n$stackTrace");
-      // Don't throw an exception here, just return empty list or log it
-      // throw Exception('Failed to parse user photos data.');
-      print('Failed to parse user photos data. Returning empty list.');
+      print("Error parsing photos for user $userID: $e\n$stackTrace");
       return [];
     }
   }
 
+
   Future<bool> sendMessage(String vkToken, String userId, String message) async {
     // --- MOCK SWITCH ---
-    if (_useMockData) {
-      return _sendMockMessage(userId, message);
-    }
+    if (_useMockData) return _sendMockMessage(userId, message); // <--- Corrected Call
     // --- END MOCK SWITCH ---
-
-    // Real API Call Logic (remains the same)
-    // ... (existing code remains the same) ...
+    // ... (rest of the method remains the same)
     if (vkToken.isEmpty || userId.isEmpty || message.isEmpty) {
       print("Error: VK Token, User ID, or Message is missing for sendMessage.");
       return false;
@@ -480,47 +470,67 @@ class VkApiProvider extends getx.GetxService {
         'random_id': Random().nextInt(2147483647),
         'v': _apiVersion,
       });
+      if (response.data != null && response.data['error'] != null) {
+        final error = response.data['error'];
+        final errorCode = error['error_code'] ?? -1;
+        final errorMessage = error['error_msg'] ?? 'Unknown VK send message error';
+        print('VK API Send Error Response [$errorCode]: $errorMessage');
+
+        if (errorCode == 900 || errorCode == 901 || errorCode == 902) {
+          getx.Get.snackbar( // Use alias here
+            'Ошибка отправки',
+            'Невозможно отправить сообщение этому пользователю из-за настроек приватности.',
+            snackPosition: getx.SnackPosition.BOTTOM, backgroundColor: Colors.orange[100], colorText: Colors.orange[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 4),
+          );
+          return false;
+        }
+        if (errorCode == 7) {
+          getx.Get.snackbar( // Use alias here
+            'Ошибка прав доступа',
+            'У вашего токена нет прав на отправку сообщений.',
+            snackPosition: getx.SnackPosition.BOTTOM, backgroundColor: Colors.red[100], colorText: Colors.red[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 4),
+          );
+          return false;
+        }
+      }
       final responseData = _handleResponse(response);
       if (responseData != null && responseData is int) {
         print("Message sent successfully, message ID: $responseData");
         return true;
       } else {
-        // Handle error code 901: Can't send messages for users without permission
-        if (response.data?['error']?['error_code'] == 901) {
-          print("Message send failed (Error 901): Can't send messages for users without permission.");
-        } else {
-          print("Message send call succeeded, but response was not the expected message ID: $responseData");
-        }
+        print("Message send call succeeded, but response was not the expected message ID: $responseData");
+        getx.Get.snackbar( // Use alias here
+          'Ошибка',
+          'Не удалось отправить сообщение (неожиданный ответ).',
+          snackPosition: getx.SnackPosition.BOTTOM, backgroundColor: Colors.red[100], colorText: Colors.red[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 3),
+        );
         return false;
       }
     } on DioException catch (e) {
-      // Specifically handle privacy-related send errors (though 901 might be caught above)
-      if (e.response?.data?['error']?['error_code'] == 900 || e.response?.data?['error']?['error_code'] == 902) {
-        print("DioError sending message (Privacy restriction): ${e.message}");
-      } else {
-        print("DioError sending message: ${e.message}");
-      }
-      if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
+      print("DioError sending message: ${e.error}");
+      getx.Get.snackbar( // Use alias here
+        'Ошибка сети',
+        'Не удалось отправить сообщение: ${e.error ?? 'Проверьте соединение.'}',
+        snackPosition: getx.SnackPosition.BOTTOM, backgroundColor: Colors.red[100], colorText: Colors.red[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 3),
+      );
       return false;
     } catch (e, stackTrace) {
-      print("Error sending message: $e\n$stackTrace");
+      print("Generic error sending message: $e\n$stackTrace");
+      getx.Get.snackbar( // Use alias here
+        'Неизвестная ошибка',
+        'Произошла ошибка при отправке сообщения.',
+        snackPosition: getx.SnackPosition.BOTTOM, backgroundColor: Colors.red[100], colorText: Colors.red[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 3),
+      );
       return false;
     }
   }
 
-  // --- START: NEW API METHODS ---
 
-  /// Fetches IDs of groups and public pages the user is subscribed to.
-  /// Returns a list of positive integers (group IDs).
-  /// Note: Requires 'groups' permission in the VK Token.
-  /// May fail due to user privacy settings. Returns empty list on failure.
   Future<List<int>> getUserSubscriptionIds(String vkToken, String userId) async {
     // --- MOCK SWITCH ---
-    if (_useMockData) {
-      return _getMockUserSubscriptionIds(userId);
-    }
+    if (_useMockData) return _getMockUserSubscriptionIds(userId); // <--- Corrected Call
     // --- END MOCK SWITCH ---
-
+    // ... (rest of the method remains the same)
     if (vkToken.isEmpty || userId.isEmpty) {
       print("Error: VK Token or User ID is missing for getUserSubscriptions.");
       return [];
@@ -529,95 +539,331 @@ class VkApiProvider extends getx.GetxService {
       print("VK API Call: users.getSubscriptions (userId: $userId)");
       final response = await _dio.get('users.getSubscriptions', queryParameters: {
         'user_id': userId,
-        'extended': 0, // We only need the IDs here
+        'extended': 0,
         'access_token': vkToken,
         'v': _apiVersion,
-        // 'count': 200 // Limit the number if needed, VK default is 20
+        'count': 200
       });
       final responseData = _handleResponse(response);
-      // Response structure: { "users": { "count": N, "items": [...] }, "groups": { "count": M, "items": [...] } }
       if (responseData?['groups']?['items'] is List) {
-        // Extract only group IDs (positive numbers)
         final List groupIdsRaw = responseData['groups']['items'];
         final List<int> groupIds = groupIdsRaw.map((id) => id as int).where((id) => id > 0).toList();
         print("Fetched ${groupIds.length} group subscription IDs for user $userId.");
         return groupIds;
       } else {
-        print("Warning: users.getSubscriptions response did not contain a valid groups list.");
+        print("Warning: users.getSubscriptions response did not contain a valid groups list for user $userId.");
         return [];
       }
     } on DioException catch (e) {
-      // Handle specific privacy error (15: Access denied) gracefully
       if (e.response?.data?['error']?['error_code'] == 15 || e.response?.data?['error']?['error_code'] == 30) {
         print("Could not fetch subscriptions for user $userId due to privacy settings.");
-        return []; // Return empty list for privacy errors
+      } else {
+        print("DioError fetching user subscriptions for $userId: ${e.message}");
+        if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
       }
-      print("DioError fetching user subscriptions: ${e.message}");
-      if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
-      return []; // Return empty list on other errors
+      return [];
     } catch (e, stackTrace) {
-      print("Error parsing user subscriptions: $e\n$stackTrace");
-      return []; // Return empty list on parsing errors
+      print("Error parsing user subscriptions for $userId: $e\n$stackTrace");
+      return [];
     }
   }
 
 
-  /// Fetches detailed information for a list of group IDs.
   Future<List<VKGroupInfo>> getGroupsById(String vkToken, List<String> groupIds) async {
     // --- MOCK SWITCH ---
-    if (_useMockData) {
-      return _getMockGroupsById(groupIds);
-    }
+    if (_useMockData) return _getMockGroupsById(groupIds); // <--- Corrected Call
     // --- END MOCK SWITCH ---
-
+    // ... (rest of the method remains the same)
     if (vkToken.isEmpty || groupIds.isEmpty) {
       return [];
     }
+    List<VKGroupInfo> allGroups = [];
+    const chunkSize = 450;
 
-    // VK API limit for groups.getById is typically 500 IDs per call.
-    // We might need chunking for very large lists, but let's assume <= 500 for now.
-    final idsString = groupIds.join(',');
+    for (var i = 0; i < groupIds.length; i += chunkSize) {
+      final chunk = groupIds.sublist(i, min(i + chunkSize, groupIds.length));
+      final idsString = chunk.join(',');
+
+      try {
+        print("VK API Call: groups.getById (chunk ${i ~/ chunkSize + 1}, ${chunk.length} IDs)");
+        final response = await _dio.get('groups.getById', queryParameters: {
+          'group_ids': idsString,
+          'access_token': vkToken,
+          'fields': 'members_count,photo_50,photo_100,photo_200,screen_name,type',
+          'v': _apiVersion,
+        });
+        final responseData = _handleResponse(response);
+
+        List<dynamic> groupsList = [];
+        if (responseData is List) {
+          groupsList = responseData;
+        } else if (responseData is Map && responseData.containsKey('groups') && responseData['groups'] is List) {
+          groupsList = responseData['groups'];
+        } else {
+          print("Warning: groups.getById response data is not a list or expected map structure for chunk ${i ~/ chunkSize + 1}. Response: $responseData");
+          continue;
+        }
+
+        allGroups.addAll(groupsList
+            .map((groupData) => VKGroupInfo.fromJson(groupData as Map<String, dynamic>))
+            .toList());
+
+      } on DioException catch (e) {
+        print("DioError fetching group details chunk ${i ~/ chunkSize + 1}: ${e.message}");
+        if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
+      } catch (e, stackTrace) {
+        print("Error parsing group details chunk ${i ~/ chunkSize + 1}: $e\n$stackTrace");
+      }
+      if (groupIds.length > chunkSize && i + chunkSize < groupIds.length) {
+        await Future.delayed(const Duration(milliseconds: 350));
+      }
+    }
+    print("Fetched details for ${allGroups.length} groups out of ${groupIds.length} requested.");
+    return allGroups;
+  }
+
+
+  // --- START: NEW API METHODS FOR SEARCH ---
+
+  Future<VKGroupInfo?> getGroupInfoByScreenName(String vkToken, String screenNameOrUrl) async {
+    // --- MOCK SWITCH ---
+    if (_useMockData) {
+      final mockId = await _getMockGroupIdByScreenName(_extractScreenName(screenNameOrUrl));
+      if (mockId != null) {
+        // Return a basic mock VKGroupInfo
+        return VKGroupInfo(
+            id: mockId,
+            name: "Mock Group $mockId",
+            screenName: _extractScreenName(screenNameOrUrl),
+            type: 'group', // default type
+            sourceUrl: screenNameOrUrl,
+            photo100: "https://via.placeholder.com/100/888/FFF?text=G$mockId"
+        );
+      }
+      return null;
+    }
+    // --- END MOCK SWITCH ---
+    // ... (rest of the method remains the same)
+    if (vkToken.isEmpty || screenNameOrUrl.isEmpty) {
+      print("Error: VK Token or screenName/URL is missing for getGroupInfoByScreenName.");
+      return null;
+    }
+
+    final screenName = _extractScreenName(screenNameOrUrl);
+    if (screenName.isEmpty) {
+      print("Error: Could not extract valid screen name from '$screenNameOrUrl'.");
+      return null;
+    }
 
     try {
-      print("VK API Call: groups.getById (ids: ${idsString.substring(0, min(idsString.length, 100))}...)"); // Log truncated IDs
+      print("VK API Call: groups.getById (resolving screen_name: $screenName)");
       final response = await _dio.get('groups.getById', queryParameters: {
-        'group_ids': idsString,
+        'group_id': screenName,
         'access_token': vkToken,
         'fields': 'members_count,photo_50,photo_100,photo_200,screen_name,type',
         'v': _apiVersion,
       });
       final responseData = _handleResponse(response);
 
-      // Handle potential difference in response structure (might be just 'response' or have 'groups' key)
-      List<dynamic> groupsList = [];
-      if (responseData is List) {
-        // Direct list response
-        groupsList = responseData;
-      } else if (responseData is Map && responseData['groups'] is List) {
-        // Nested under 'groups' key (seen in some API versions/contexts)
-        groupsList = responseData['groups'];
-      } else if (responseData is Map && responseData['response'] is List) {
-        // Sometimes nested under 'response' ? (Less common for this method)
-        groupsList = responseData['response'];
+      if (responseData is List && responseData.isNotEmpty) {
+        final groupData = responseData[0] as Map<String, dynamic>;
+        return VKGroupInfo.fromJson(groupData, sourceUrl: screenNameOrUrl);
+      } else if (responseData is Map && responseData.containsKey('groups') && responseData['groups'] is List && responseData['groups'].isNotEmpty) {
+        final groupData = responseData['groups'][0] as Map<String, dynamic>;
+        return VKGroupInfo.fromJson(groupData, sourceUrl: screenNameOrUrl);
       }
       else {
-        print("Warning: groups.getById response data is not a list or expected map structure.");
+        print("Group with screen_name '$screenName' not found or API response format unexpected.");
+        return null;
+      }
+    } on DioException catch (e) {
+      print("DioError resolving group screen name '$screenName': ${e.message}");
+      if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
+      return null;
+    } catch (e, stackTrace) {
+      print("Error parsing group info for screen name '$screenName': $e\n$stackTrace");
+      return null;
+    }
+  }
+
+
+  String _extractScreenName(String input) {
+    input = input.trim();
+    if (input.isEmpty) return '';
+    Uri? uri = Uri.tryParse(input);
+    if (uri != null && (uri.host.contains('vk.com') || uri.host.contains('vkontakte.ru'))) {
+      if (uri.pathSegments.isNotEmpty) {
+        return uri.pathSegments.last;
+      }
+    }
+    if (input.startsWith('@')) input = input.substring(1);
+    if (input.startsWith('/')) input = input.substring(1);
+    if (RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(input)) {
+      return input;
+    }
+    print("Warning: Input '$input' doesn't look like a valid VK URL or screen name.");
+    return '';
+  }
+
+
+  Future<Map<String, int>> getCityIdsByNames(String vkToken, List<String> cityNames) async {
+    // --- MOCK SWITCH ---
+    if (_useMockData) {
+      final mockCities = await _getMockCitiesByName(cityNames);
+      // Return map key as lowercase input name, value as found ID
+      final Map<String, int> resultMap = {};
+      final mockMap = { for (var city in mockCities) city['title'].toString().toLowerCase(): city['id'] as int }; // Map found titles to IDs
+      for (var inputName in cityNames) {
+        final lowerInput = inputName.toLowerCase().trim();
+        // Find if any mock result matches the input name (handling aliases)
+        for (var mockEntry in mockCities) {
+          // Basic check: if mock title contains input name (simplistic) or if predefined maps it
+          final lowerMockTitle = mockEntry['title'].toString().toLowerCase();
+          if (lowerMockTitle.contains(lowerInput) ||
+              (lowerInput == "питер" && mockEntry['id'] == 2) || // Handle specific aliases used in mock
+              (predefinedCities[lowerInput]?['id'] == mockEntry['id'] ) //Check pre-defined map as well
+          ){
+            resultMap[inputName.toLowerCase().trim()] = mockEntry['id'] as int;
+            break; // Take first match for this input name
+          }
+        }
+      }
+      print("[MOCK] Resolved city names to IDs: $resultMap");
+      return resultMap;
+    }
+    // --- END MOCK SWITCH ---
+    // ... (rest of the method remains the same)
+    if (vkToken.isEmpty || cityNames.isEmpty) {
+      return {};
+    }
+
+    Map<String, int> cityIdMap = {};
+    final uniqueLowerTrimmedNames = cityNames.map((n) => n.toLowerCase().trim()).where((n) => n.isNotEmpty).toSet(); // Process unique non-empty names
+
+    for (String lowerTrimmedCityName in uniqueLowerTrimmedNames) {
+      if (cityIdMap.containsKey(lowerTrimmedCityName)) continue;
+
+      try {
+        print("VK API Call: database.getCities (query: $lowerTrimmedCityName)");
+        final response = await _dio.get('database.getCities', queryParameters: {
+          'country_id': 1,
+          'q': lowerTrimmedCityName,
+          'need_all': 0,
+          'count': 1,
+          'access_token': vkToken,
+          'v': _apiVersion,
+        });
+        final responseData = _handleResponse(response);
+
+        if (responseData != null && responseData['items'] is List && responseData['items'].isNotEmpty) {
+          final cityInfo = responseData['items'][0] as Map<String, dynamic>;
+          final cityId = cityInfo['id'] as int?;
+          final foundTitle = cityInfo['title'] as String?;
+          if (cityId != null && foundTitle != null) {
+            print("Resolved city '$lowerTrimmedCityName' (found as '$foundTitle') to ID: $cityId");
+            cityIdMap[lowerTrimmedCityName] = cityId;
+          } else {
+            print("Warning: City '$lowerTrimmedCityName' found but has null ID or title.");
+          }
+        } else {
+          print("Warning: City '$lowerTrimmedCityName' not found via VK API.");
+        }
+      } on DioException catch (e) {
+        print("DioError getting city ID for '$lowerTrimmedCityName': ${e.message}");
+      } catch (e, stackTrace) {
+        print("Error parsing city response for '$lowerTrimmedCityName': $e\n$stackTrace");
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    // Now map the results back to the original input names (case-insensitive)
+    Map<String, int> finalResultMap = {};
+    for (String originalName in cityNames) {
+      final key = originalName.toLowerCase().trim();
+      if (cityIdMap.containsKey(key)) {
+        finalResultMap[key] = cityIdMap[key]!; // Use lowercase key for consistency downstream
+      }
+    }
+    print("Resolved ${finalResultMap.length} cities out of ${cityNames.length} requested names.");
+    return finalResultMap;
+  }
+
+
+
+  Future<List<VKGroupUser>> searchUsers({
+    required String vkToken,
+    int? groupId,
+    int? cityId,
+    int? ageFrom,
+    int? ageTo,
+    int sex = 1,
+    int count = 100,
+    int offset = 0,
+  }) async {
+    // --- MOCK SWITCH ---
+    if (_useMockData) {
+      return _getMockSearchUsers(groupId: groupId, cityId: cityId, ageFrom: ageFrom, ageTo: ageTo, sex: sex, count: count, offset: offset); // <--- Pass sex=sex
+    }
+    // --- END MOCK SWITCH ---
+    // ... (rest of the method remains the same)
+    if (vkToken.isEmpty) {
+      throw ArgumentError("VK Token must be provided for searchUsers.");
+    }
+
+    final Map<String, dynamic> queryParams = {
+      'access_token': vkToken,
+      'v': _apiVersion,
+      'count': count.clamp(1, 1000),
+      'offset': offset,
+      'sex': sex,
+      'fields': 'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen',
+    };
+
+    if (groupId != null) queryParams['group_id'] = groupId;
+    if (cityId != null) queryParams['city'] = cityId;
+    if (ageFrom != null) queryParams['age_from'] = ageFrom;
+    if (ageTo != null) queryParams['age_to'] = ageTo;
+
+    try {
+      print("VK API Call: users.search (params: ${queryParams.keys.where((k) => k!='access_token').join(',')}) Offset: $offset");
+      final response = await _dio.get('users.search', queryParameters: queryParams);
+      final responseData = _handleResponse(response);
+
+      if (responseData == null || responseData['items'] == null) {
+        print("Warning: users.search response data or items list is null.");
         return [];
       }
+      final List usersList = responseData['items'] ?? [];
+      print("users.search returned ${usersList.length} users (offset: $offset).");
 
-      return groupsList
-          .map((groupData) => VKGroupInfo.fromJson(groupData as Map<String, dynamic>))
+      return usersList
+          .where((userData) => userData['deactivated'] == null)
+          .map((userData) => VKGroupUser.fromJson(userData as Map<String, dynamic>))
           .toList();
 
     } on DioException catch (e) {
-      print("DioError fetching group details: ${e.message}");
+      print("DioError searching users: ${e.message}");
       if (e.response != null) { print("DioError Response Data: ${e.response?.data}"); }
-      return []; // Return empty list on error
+      if (e.response?.data?['error']?['error_code'] == 15 || e.response?.data?['error']?['error_code'] == 30) {
+        throw Exception('Ошибка поиска: Доступ к некоторым данным ограничен приватностью.');
+      }
+      throw Exception('Ошибка поиска пользователей: ${e.message?.split(':').last.trim() ?? 'Ошибка сети'}');
     } catch (e, stackTrace) {
-      print("Error parsing group details: $e\n$stackTrace");
-      return []; // Return empty list on error
+      print("Error parsing search results: $e\n$stackTrace");
+      throw Exception('Не удалось обработать результаты поиска.');
     }
   }
-// --- END: NEW API METHODS ---
 
+  // Helper to get predefined cities for mock lookup
+  Map<String, Map<String, dynamic>> get predefinedCities => {
+    "москва": {"id": 1, "title": "Москва"},
+    "севастополь": {"id": 147, "title": "Севастополь"},
+    "ялта": {"id": 1000, "title": "Ялта"},
+    "санкт-петербург": {"id": 2, "title": "Санкт-Петербург"},
+    "питер": {"id": 2, "title": "Санкт-Петербург"},
+    "новгород": {"id": 95, "title": "Великий Новгород"},
+    "нижний новгород": {"id": 99, "title": "Нижний Новгород"},
+  };
+
+
+// --- END: NEW API METHODS ---
 }

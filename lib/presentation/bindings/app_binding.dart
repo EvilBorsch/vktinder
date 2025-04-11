@@ -21,12 +21,13 @@ class AppBinding extends Bindings {
     Get.put(VkApiProvider());
 
     // Repositories
-    Get.put<GroupUsersRepository>(
-      GroupUsersRepository(),
-    );
     Get.put<SettingsRepository>(
       SettingsRepository(), permanent: true,
     );
+    Get.put<GroupUsersRepository>(
+      GroupUsersRepository(),
+    );
+
 
     // Controllers
     Get.put(NavController(), permanent: true);

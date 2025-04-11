@@ -3,8 +3,9 @@ import 'package:vktinder/data/providers/local_storage_provider.dart';
 
 class SettingsRepository {
   final LocalStorageProvider _storageProvider =
-      Get.find<LocalStorageProvider>();
+  Get.find<LocalStorageProvider>();
 
+  // Existing Getters
   String getVkToken() {
     return _storageProvider.getVkToken();
   }
@@ -17,13 +18,38 @@ class SettingsRepository {
     return _storageProvider.getTheme();
   }
 
+  // --- NEW Getters ---
+  List<String> getCities() {
+    return _storageProvider.getCities();
+  }
+
+  (int?, int?) getAgeRange() {
+    return _storageProvider.getAgeRange();
+  }
+
+  List<String> getGroupUrls() {
+    return _storageProvider.getGroupUrls();
+  }
+
+  // Updated Save Method
   Future<void> saveSettings({
     required String vkToken,
     required String defaultMessage,
     required String theme,
+    // --- NEW Parameters ---
+    required List<String> cities,
+    required int? ageFrom,
+    required int? ageTo,
+    required List<String> groupUrls,
   }) async {
-    await _storageProvider.saveVkToken(vkToken);
-    await _storageProvider.saveDefaultMessage(defaultMessage);
-    await _storageProvider.saveTheme(theme);
+    await Future.wait([
+      _storageProvider.saveVkToken(vkToken),
+      _storageProvider.saveDefaultMessage(defaultMessage),
+      _storageProvider.saveTheme(theme),
+      // --- NEW Saves ---
+      _storageProvider.saveCities(cities),
+      _storageProvider.saveAgeRange(ageFrom, ageTo),
+      _storageProvider.saveGroupUrls(groupUrls),
+    ]);
   }
 }

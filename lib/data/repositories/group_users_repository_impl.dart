@@ -1,99 +1,203 @@
 // lib/data/repositories/group_users_repository_impl.dart
+import 'dart:async';
+
+import 'package:collection/collection.dart'; // For firstWhereOrNull
 import 'package:get/get.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
-import 'package:vktinder/data/models/vk_group_info.dart'; // Import VKGroupInfo
+import 'package:vktinder/data/models/vk_group_info.dart';
 import 'package:vktinder/data/providers/local_storage_provider.dart';
 import 'package:vktinder/data/providers/vk_api_provider.dart';
-// Potentially import SettingsController if groupId comes from there
-// import 'package:vktinder/presentation/controllers/settings_controller.dart';
+import 'package:vktinder/data/repositories/settings_repository_impl.dart'; // Import SettingsRepository
 
 class GroupUsersRepository {
   final LocalStorageProvider _storageProvider = Get.find<LocalStorageProvider>();
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
-  // Example: Assuming groupId is somehow configured or static for now
-  // In a real app, this should come from settings or a dynamic source
-  final String _targetGroupId = "25504844"; // <<< --- !!! SET YOUR TARGET GROUP ID HERE !!!
+  // Get SettingsRepository to access all settings easily
+  final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
 
-  // getUsers (remains the same)
+  // --- MODIFIED getUsers ---
   Future<List<VKGroupUser>> getUsers(String vkToken) async {
-    // ... existing code ...
-    // Try to load from cache first
-    var cachedUsers = await _storageProvider.getStoredCards();
+    // 1. Get settings
+    final cityNames = _settingsRepository.getCities();
+    final (ageFrom, ageTo) = _settingsRepository.getAgeRange();
+    final groupUrls = _settingsRepository.getGroupUrls();
 
-    // If cache has few users left (e.g., <=1) OR token changed, fetch from network
-    // Always check if token and groupId are valid before making API call
-    if (cachedUsers.length <= 1 && vkToken.isNotEmpty && _targetGroupId.isNotEmpty) {
-      try {
-        print("Fetching users from VK API for group: $_targetGroupId");
-        // Pass the required groupId
-        final fetchedUsers = await _apiProvider.getGroupUsers(vkToken, _targetGroupId);
-        // Filter out users already seen (if necessary, depends on product reqs)
-        // For simplicity, we just replace the cache now
-        cachedUsers = fetchedUsers;
-
-        if (cachedUsers.isNotEmpty) {
-          await _storageProvider.saveCards(cachedUsers);
-        } else {
-          // Clear cache if API returns empty to avoid showing stale users
-          await _storageProvider.saveCards([]);
-        }
-      } catch (e) {
-        print("Error in repository getUsers: $e");
-        // Return empty list on API error to prevent showing old data after failure
-        return [];
-      }
-    } else if (vkToken.isEmpty || _targetGroupId.isEmpty) {
-      print("VK Token or Group ID missing, cannot fetch new users.");
-      // Clear cache if token is invalid or missing
+    // Check prerequisites
+    if (vkToken.isEmpty) {
+      print("VK Token missing, cannot fetch users.");
+      await _storageProvider.saveCards([]); // Clear cache if token removed
+      return [];
+    }
+    if (groupUrls.isEmpty) {
+      print("No target groups configured in settings.");
       await _storageProvider.saveCards([]);
       return [];
     }
 
+    // 2. Resolve City Names and Group URLs to IDs concurrently
+    final Map<String, int> cityIdMap = await _resolveCityNames(vkToken, cityNames);
+    final List<VKGroupInfo?> groupInfos = await _resolveGroupUrls(vkToken, groupUrls);
 
-    return cachedUsers;
+    final List<int> targetGroupIds = groupInfos.whereType<VKGroupInfo>().map((g) => g.id).where((id) => id > 0).toSet().toList(); // Unique, valid IDs
+    final List<int> targetCityIds = cityIdMap.values.toSet().toList(); // Unique, valid IDs
+
+    if (targetGroupIds.isEmpty) {
+      print("Could not resolve any valid group IDs from the provided URLs.");
+      // Optionally show a message to the user via controller/snackbar
+      await _storageProvider.saveCards([]);
+      return [];
+    }
+
+    print("Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo");
+
+    // 3. Perform Search using users.search
+    // We need to iterate through groups and potentially cities if the API requires it.
+    // users.search *can* take a single group_id and a single city_id.
+    // If multiple cities are selected, we might need multiple searches.
+    // If multiple groups are selected, we *definitely* need multiple searches.
+
+    final Set<VKGroupUser> foundUsers = {}; // Use a Set to automatically handle duplicates
+    const int searchLimitPerRequest = 100; // VK limit is 1000, but smaller batches might be safer/faster start
+    bool reachedVkLimit = false; // Flag if VK stops returning results
+
+    // Prioritize searching within specified cities if any are given
+    final searchCityIds = targetCityIds.isNotEmpty ? targetCityIds : [null]; // Use null if no cities specified
+
+    for (final groupId in targetGroupIds) {
+      for (final cityId in searchCityIds) {
+        int currentOffset = 0;
+        int totalFoundInCombo = 0; // Track total for this specific group/city combo
+        const maxOffset = 900; // VK search offset limit seems to be around 1000 total results
+
+        while (currentOffset <= maxOffset && !reachedVkLimit) {
+          try {
+            final List<VKGroupUser> batch = await _apiProvider.searchUsers(
+              vkToken: vkToken,
+              groupId: groupId,
+              cityId: cityId, // Can be null
+              ageFrom: ageFrom,
+              ageTo: ageTo,
+              sex: 1, // Hardcoded female for now
+              count: searchLimitPerRequest,
+              offset: currentOffset,
+            );
+
+            if (batch.isEmpty) {
+              // If we get an empty batch, assume we've got all users for this combo or hit a VK limit
+              if (currentOffset > 0) {
+                print("Finished searching group $groupId / city ${cityId ?? 'any'} at offset $currentOffset.");
+              } else {
+                print("No users found for group $groupId / city ${cityId ?? 'any'} with current filters.");
+              }
+              break; // Move to the next city/group combination
+            }
+
+            // Filter out users already found (Set handles this) and add new ones
+            int addedCount = 0;
+            for (var user in batch) {
+              if (foundUsers.add(user)) { // add returns true if element was not already in the set
+                addedCount++;
+              }
+            }
+            print("Added $addedCount new users from group $groupId / city ${cityId ?? 'any'} (offset: $currentOffset). Total unique: ${foundUsers.length}");
+
+            totalFoundInCombo += batch.length; // Increment total for this specific combo
+            currentOffset += searchLimitPerRequest; // Prepare for the next page
+
+            // Optional: Add a small delay between paginated requests
+            if(batch.length == searchLimitPerRequest) { // Only delay if we likely hit the count limit
+              await Future.delayed(const Duration(milliseconds: 350));
+            }
+
+
+          } catch (e) {
+            print("Error during users.search (group $groupId, city ${cityId ?? 'any'}, offset $currentOffset): $e");
+            // Decide whether to stop all searches or just skip this combo/group
+            // For now, let's break this inner loop and try the next combo
+            reachedVkLimit = true; // Assume a potentially blocking error (like rate limit/auth)
+            break; // Stop searching this city/group combo on error
+          }
+        } // End while loop (pagination)
+        if (reachedVkLimit) break; // Stop searching cities if a major error occurred
+      } // End city loop
+      if (reachedVkLimit) break; // Stop searching groups if a major error occurred
+    } // End group loop
+
+    // 4. Convert Set to List and Return
+    final usersList = foundUsers.toList();
+    print("Total unique users found across all groups/cities: ${usersList.length}");
+
+    // 5. Persist fetched users (optional, maybe only persist if filters are off?)
+    // Let's skip caching search results for now as they depend on filters.
+    // If filters are complex, caching might show inconsistent results if filters change.
+    // await _storageProvider.saveCards(usersList);
+
+    // Clear the old cache if we performed a search
+    await _storageProvider.saveCards([]);
+
+
+    return usersList;
+  }
+
+  // Helper to resolve city names
+  Future<Map<String, int>> _resolveCityNames(String vkToken, List<String> cityNames) async {
+    if (cityNames.isEmpty) return {};
+    try {
+      return await _apiProvider.getCityIdsByNames(vkToken, cityNames);
+    } catch (e) {
+      print("Error resolving city names: $e");
+      return {}; // Return empty on error
+    }
+  }
+
+  // Helper to resolve group URLs/screen names
+  Future<List<VKGroupInfo?>> _resolveGroupUrls(String vkToken, List<String> groupUrls) async {
+    List<Future<VKGroupInfo?>> futures = [];
+    for (final url in groupUrls) {
+      futures.add(_apiProvider.getGroupInfoByScreenName(vkToken, url));
+      // Add delay between resolution requests if needed
+      // await Future.delayed(const Duration(milliseconds: 100));
+    }
+    try {
+      final results = await Future.wait(futures);
+      // Filter out nulls (failed resolutions) and potentially log them
+      final failedUrls = groupUrls.whereIndexed((index, url) => results[index] == null).toList();
+      if (failedUrls.isNotEmpty) {
+        print("Could not resolve the following group URLs/names: ${failedUrls.join(', ')}");
+        // Consider notifying the user via the controller
+      }
+      return results; // Keep nulls for now, filter later
+    } catch (e) {
+      print("Error resolving group URLs: $e");
+      return List.filled(groupUrls.length, null); // Return list of nulls on major error
+    }
   }
 
 
-  // MODIFIED getFullProfile
+  // --- getFullProfile (Important Fix: Ensure Groups are fetched) ---
   Future<VKGroupUser> getFullProfile(String vkToken, String userID) async {
     List<String> photos = [];
     List<VKGroupInfo> groups = [];
 
     // Fetch base profile info first
-    // This can throw, let the controller handle it
     final baseProfileInfo = await _apiProvider.getFullProfile(vkToken, userID);
 
-    // Fetch photos and groups concurrently (if possible and desired)
-    // Or sequentially with error handling for each part
+    // Fetch photos and groups concurrently
     try {
-      photos = await _apiProvider.getUserPhotos(vkToken, userID);
+      final results = await Future.wait([
+        _apiProvider.getUserPhotos(vkToken, userID),
+        _fetchUserGroups(vkToken, userID), // Use helper for group fetching
+      ]);
+      photos = results[0] as List<String>;
+      groups = results[1] as List<VKGroupInfo>;
     } catch (e) {
-      print("Error fetching photos for profile $userID: $e");
-      // Continue without photos, assign empty list
-      photos = [];
+      print("Error fetching photos or groups concurrently for profile $userID: $e");
+      // Try fetching sequentially if concurrent fails (optional, adds complexity)
+      try { photos = await _apiProvider.getUserPhotos(vkToken, userID); } catch (e) { print("Sequential photo fetch failed: $e"); photos = []; }
+      try { groups = await _fetchUserGroups(vkToken, userID); } catch (e) { print("Sequential group fetch failed: $e"); groups = []; }
     }
 
-    try {
-      // First get subscription IDs
-      final groupIdsInt = await _apiProvider.getUserSubscriptionIds(vkToken, userID);
-      if (groupIdsInt.isNotEmpty) {
-        // Convert IDs to strings for the next API call
-        final groupIdsStr = groupIdsInt.map((id) => id.toString()).toList();
-        // Fetch detailed group info
-        groups = await _apiProvider.getGroupsById(vkToken, groupIdsStr);
-      } else {
-        print("No group subscription IDs found or accessible for user $userID.");
-        groups = [];
-      }
-    } catch (e) {
-      print("Error fetching or processing groups for profile $userID: $e");
-      // Continue without groups, assign empty list
-      groups = [];
-    }
-
-    // Return a new VKGroupUser instance containing all fetched data
-    // Create a new instance instead of modifying the one from _apiProvider.getFullProfile
-    // if VKGroupUser's fields (like photos, groups) are final.
+    // Return a new VKGroupUser instance with all data
     return VKGroupUser(
       userID: baseProfileInfo.userID,
       name: baseProfileInfo.name,
@@ -115,31 +219,51 @@ class GroupUsersRepository {
     );
   }
 
+  // Helper function to fetch group info for a user
+  Future<List<VKGroupInfo>> _fetchUserGroups(String vkToken, String userID) async {
+    try {
+      final groupIdsInt = await _apiProvider.getUserSubscriptionIds(vkToken, userID);
+      if (groupIdsInt.isNotEmpty) {
+        final groupIdsStr = groupIdsInt.map((id) => id.toString()).toList();
+        // Fetch detailed group info
+        return await _apiProvider.getGroupsById(vkToken, groupIdsStr);
+      } else {
+        print("No group subscription IDs found or accessible for user $userID.");
+        return [];
+      }
+    } catch (e) {
+      print("Error fetching user groups for profile $userID: $e");
+      return [];
+    }
+  }
 
+
+  // removeFirstUser (might need adjustment depending on caching strategy)
+  // If we don't cache search results, this method might become irrelevant or needs rework.
+  // For now, assume it operates on the list currently held by HomeController.
   Future<List<VKGroupUser>> removeFirstUser(
-      String vkToken, List<VKGroupUser> users) async {
-    // ... existing code ...
-    if (users.isEmpty) {
-      return await getUsers(vkToken);
+      String vkToken, List<VKGroupUser> currentUsers) async {
+    if (currentUsers.isEmpty) {
+      return []; // Cannot remove from empty list
     }
 
-    final updatedUsers = List<VKGroupUser>.from(users);
+    final updatedUsers = List<VKGroupUser>.from(currentUsers);
     updatedUsers.removeAt(0);
 
-    await _storageProvider.saveCards(updatedUsers);
+    // We decided not to cache search results for now.
+    // So, saving back to storage is commented out.
+    // await _storageProvider.saveCards(updatedUsers);
 
-    if (updatedUsers.length <= 1) {
-      print("User list short after removal, will fetch on next card request.");
-      // Consider triggering background fetch here:
-      // Future.microtask(() => getUsers(vkToken)); // Fire-and-forget background fetch
-    }
+    // Reload logic might still be needed in HomeController depending on UX desired.
+    // If the list becomes small, HomeController might trigger a new search.
+    print("Removed first user. Remaining count: ${updatedUsers.length}");
 
     return updatedUsers;
   }
 
+  // sendMessage (Remains the same)
   Future<bool> sendMessage(
       String vkToken, String userId, String message) async {
     return await _apiProvider.sendMessage(vkToken, userId, message);
   }
 }
-
