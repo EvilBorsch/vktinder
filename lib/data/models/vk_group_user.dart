@@ -1,18 +1,21 @@
 class VKGroupUser {
   final String name;
   final String surname;
-  final String userID; // VK User ID is integer, but API often accepts string. Keep String for flexibility.
-  final String? avatar; // URL
-  final List<String> groups; // Names of groups (populated in full profile)
-  List<String> photos; // URLs (populated separately)
-  final List<String> interests; // Parsed from comma-separated string
-  // Add other fields you fetch in getFullProfile (e.g., bdate, city, about)
+  final String userID;
+  final String? avatar;
+  final List<String> groups;
+  List<String> photos;
+  final List<String> interests;
   final String? about;
   final String? status;
   final String? bdate;
   final String? city;
   final String? country;
-  // ... add more fields as needed
+  final int? sex;
+  final int? relation;
+  final String? screenName;
+  final bool? online;
+  final Map<String, dynamic>? lastSeen;
 
   VKGroupUser({
     required this.name,
@@ -27,26 +30,31 @@ class VKGroupUser {
     this.bdate,
     this.city,
     this.country,
+    this.sex,
+    this.relation,
+    this.screenName,
+    this.online,
+    this.lastSeen,
   });
 
-  // Note: toJson might not be needed unless you're saving the full fetched profile locally.
-  // The current local storage saves the list fetched from getGroupUsers initially.
   Map<String, dynamic> toJson() => {
-    'id': userID, // Use 'id' to match VK field name if saving
+    'id': int.tryParse(userID) ?? userID, // Convert back to int if possible
     'first_name': name,
     'last_name': surname,
-    'photo_100': avatar, // Match the field requested in getGroupUsers if saving that list
-    // For full profile save:
     'photo_max_orig': avatar,
-    'interests': interests.join(', '), // Save back as string if needed
+    'interests': interests.join(', '),
     'about': about,
     'status': status,
     'bdate': bdate,
-    'city': city != null ? {'title': city} : null, // Reconstruct structure if needed
-    'country': country != null ? {'title': country}: null, // Reconstruct structure if needed
-    // Groups are more complex, might be list of objects or IDs
-    'groups': groups, // This might need adjustment based on how you store/use it
-    'photos': photos, // Usually not saved directly in user JSON
+    'city': city != null ? {'title': city} : null,
+    'country': country != null ? {'title': country}: null,
+    'sex': sex,
+    'relation': relation,
+    'screen_name': screenName,
+    'online': online,
+    'last_seen': lastSeen,
+    'groups': groups,
+    'photos': photos,
   };
 
   factory VKGroupUser.fromJson(Map<String, dynamic> json) {
@@ -59,34 +67,62 @@ class VKGroupUser {
     }
 
     return VKGroupUser(
-      // VK User ID is an integer, convert to String for consistency in the model
-      userID: (json['id'] as int).toString(),
+      // Handle possible ID formats (int from API, string from storage)
+      userID: json['id'] is int
+          ? (json['id'] as int).toString()
+          : json['id']?.toString() ?? '0',
+
       name: json['first_name'] as String? ?? 'Имя',
       surname: json['last_name'] as String? ?? 'Фамилия',
-      // Choose the appropriate photo field based on what you requested
-      avatar: json['photo_max_orig'] as String? // For full profile
-          ?? json['photo_100'] as String? // For group list
-          ?? 'https://vk.com/images/camera_200.png', // Placeholder
-      // Parse interests string only if available (from users.get)
-      interests: parseCommaSeparatedString(json['interests'] as String?),
-      // Groups might be complex. users.get might not return group names directly
-      // You might need a separate call or handle IDs if 'groups' field is requested.
-      // For simplicity here, assume it's not directly parsed or comes from another source later.
-      groups: const [], // Placeholder, populate later if needed
-      photos: const [], // Photos are fetched separately
+
+      // Handle all possible photo fields with priority
+      avatar: json['photo_max_orig'] as String? ??
+          json['photo_max'] as String? ??
+          json['photo_400_orig'] as String? ??
+          json['photo_200_orig'] as String? ??
+          json['photo_200'] as String? ??
+          json['photo_100'] as String? ??
+          json['photo_50'] as String? ??
+          'https://vk.com/images/camera_200.png',
+
+      // Parse interests safely
+      interests: json['interests'] != null
+          ? parseCommaSeparatedString(json['interests'] as String?)
+          : const [],
+
+      // Initialize other fields
+      groups: const [],  // Populated separately
+      photos: const [],  // Populated separately
+
+      // Parse simple string fields
       about: json['about'] as String?,
       status: json['status'] as String?,
       bdate: json['bdate'] as String?,
+      screenName: json['screen_name'] as String?,
+
+      // Parse nested objects
       city: (json['city'] as Map<String, dynamic>?)?['title'] as String?,
       country: (json['country'] as Map<String, dynamic>?)?['title'] as String?,
-      // Add parsing for other fields...
+
+      // Parse numeric fields
+      sex: json['sex'] as int?,
+      relation: json['relation'] as int?,
+
+      // Parse boolean fields
+      online: json['online'] != null
+          ? (json['online'] is bool
+          ? json['online'] as bool
+          : (json['online'] as int) == 1)
+          : null,
+
+      // Parse complex/nested fields
+      lastSeen: json['last_seen'] as Map<String, dynamic>?,
     );
   }
 
   @override
   String toString() => '{userID: $userID, name: $name, surname: $surname}';
 
-  // Override equality operator and hashCode if using these objects in Sets or as Map keys
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

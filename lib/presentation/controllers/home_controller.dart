@@ -7,7 +7,7 @@ import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
 class HomeController extends GetxController {
   final SettingsController _settingsController = Get.find<SettingsController>();
   final GroupUsersRepository _groupUsersRepository =
-      Get.find<GroupUsersRepository>();
+  Get.find<GroupUsersRepository>();
 
   // Reactive variables
   final RxList<VKGroupUser> users = <VKGroupUser>[].obs;
@@ -16,9 +16,7 @@ class HomeController extends GetxController {
 
   // Getters
   String get vkToken => _settingsController.vkToken;
-
   String get defaultMessage => _settingsController.defaultMessage;
-
   bool get hasVkToken => vkToken.isNotEmpty;
 
   @override
@@ -45,8 +43,8 @@ class HomeController extends GetxController {
     } catch (e) {
       Get.snackbar(
         'Ошибка',
-        'Failed to load users: ${e.toString()}',
-        snackPosition: SnackPosition.TOP,
+        'Не удалось загрузить пользователей: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red[100],
         colorText: Colors.red[900],
         margin: const EdgeInsets.all(8),
@@ -59,23 +57,21 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<bool> sendVKMessage(String message) async {
-    if (users.isEmpty || !hasVkToken) return false;
+  Future<bool> sendVKMessage(String userId, String message) async {
+    if (userId.isEmpty || !hasVkToken) return false;
 
-    // In a real app, you'd send the message to the specific user
-    final userId = users.first.name;
     return await _groupUsersRepository.sendMessage(vkToken, userId, message);
   }
 
   void showMessageDialog() {
-    final TextEditingController messageController =
-        TextEditingController(text: defaultMessage);
+    if (users.isEmpty) return;
 
-    // Using simpler dialog pattern to avoid issues
-    showDialog(
-      context: Get.context!,
-      barrierDismissible: true,
-      builder: (context) => AlertDialog(
+    final currentUser = users.first;
+    final TextEditingController messageController =
+    TextEditingController(text: defaultMessage);
+
+    Get.dialog(
+      AlertDialog(
         title: const Text(
           'Отправить сообщение',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -83,9 +79,17 @@ class HomeController extends GetxController {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Напишите сообщение пользователю:',
-              style: TextStyle(color: Colors.grey),
+            RichText(
+              text: TextSpan(
+                style: TextStyle(color: Get.theme.textTheme.bodyMedium?.color),
+                children: [
+                  const TextSpan(text: 'Сообщение для '),
+                  TextSpan(
+                    text: '${currentUser.name} ${currentUser.surname}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -102,42 +106,53 @@ class HomeController extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Get.back(),
             child: const Text('Отмена', style: TextStyle(fontSize: 16)),
           ),
           Obx(() => ElevatedButton.icon(
-                onPressed: isSendingMessage.value
-                    ? null
-                    : () async {
-                        isSendingMessage.value = true;
+            onPressed: isSendingMessage.value
+                ? null
+                : () async {
+              isSendingMessage.value = true;
 
-                        // Close dialog immediately
-                        Navigator.of(context).pop();
+              // Close dialog immediately
+              Get.back();
 
-                        // Send message after dialog is closed
-                        final success =
-                            await sendVKMessage(messageController.text);
+              // Send message after dialog is closed
+              final success = await sendVKMessage(
+                  currentUser.userID, messageController.text);
 
-                        if (success) {
-                          Get.snackbar(
-                            'Успех',
-                            'Сообщение отправлено',
-                            snackPosition: SnackPosition.TOP,
-                            backgroundColor: Colors.green[100],
-                            colorText: Colors.green[900],
-                            margin: const EdgeInsets.all(8),
-                            borderRadius: 10,
-                            duration: const Duration(seconds: 1),
-                          );
-                        }
+              if (success) {
+                Get.snackbar(
+                  'Успех',
+                  'Сообщение отправлено',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green[100],
+                  colorText: Colors.green[900],
+                  margin: const EdgeInsets.all(8),
+                  borderRadius: 10,
+                  duration: const Duration(seconds: 2),
+                );
+              } else {
+                Get.snackbar(
+                  'Ошибка',
+                  'Не удалось отправить сообщение',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red[100],
+                  colorText: Colors.red[900],
+                  margin: const EdgeInsets.all(8),
+                  borderRadius: 10,
+                  duration: const Duration(seconds: 2),
+                );
+              }
 
-                        isSendingMessage.value = false;
-                      },
-                icon: const Icon(Icons.send),
-                label: Text(
-                    isSendingMessage.value ? 'Отправка...' : 'Отправить',
-                    style: const TextStyle(fontSize: 16)),
-              )),
+              isSendingMessage.value = false;
+            },
+            icon: const Icon(Icons.send),
+            label: Text(
+                isSendingMessage.value ? 'Отправка...' : 'Отправить',
+                style: const TextStyle(fontSize: 16)),
+          )),
         ],
       ),
     );
@@ -154,7 +169,7 @@ class HomeController extends GetxController {
     // Remove card and load new users
     isLoading.value = true;
     users.value =
-        await _groupUsersRepository.removeFirstUser(vkToken, users.toList());
+    await _groupUsersRepository.removeFirstUser(vkToken, users.toList());
     isLoading.value = false;
   }
 }

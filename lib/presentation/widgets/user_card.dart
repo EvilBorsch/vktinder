@@ -13,6 +13,7 @@ class UserCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use the full width available
     return SizedBox(
+      width: double.infinity, // Ensure full width
       child: Card(
         margin: EdgeInsets.zero, // No margin
         shape: RoundedRectangleBorder(
@@ -26,6 +27,7 @@ class UserCard extends StatelessWidget {
 
   Widget cardContent(BuildContext context) {
     return Container(
+      width: double.infinity, // Ensure container takes full width
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
@@ -46,16 +48,63 @@ class UserCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             userAvatar(context),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             userName(),
-            const SizedBox(height: 12),
             userSurname(),
+            const SizedBox(height: 16),
+
+            // City and country
+            if (user.city != null || user.country != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      [
+                        if (user.city != null) user.city,
+                        if (user.country != null) user.country,
+                      ].join(', '),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Online status
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: user.online == true ? Colors.green : Colors.grey,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  user.online == true ? 'В сети' : 'Не в сети',
+                  style: TextStyle(
+                    color: user.online == true ? Colors.green : Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 40),
             swipeInstructions(context),
           ],
@@ -89,25 +138,26 @@ class UserCard extends StatelessWidget {
 
   Widget swipeInstructions(BuildContext context) {
     return Container(
+      width: double.infinity, // Make instructions take full width
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center, // Center the row contents
         children: [
           Icon(Icons.swipe, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
-          Expanded(
+          Flexible(
             child: Text(
-            "Свайпните влево или вправо\nКликните чтобы узнать больше",
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w500,
+              "Свайпните влево или вправо\nКликните чтобы узнать больше",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            )
           ),
         ],
       ),
@@ -115,18 +165,25 @@ class UserCard extends StatelessWidget {
   }
 
   Widget userAvatar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.4),
-            blurRadius: 20,
-            spreadRadius: 5,
-          ),
-        ],
+    return Hero(
+      tag: 'user_avatar_${user.userID}',
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).primaryColor.withOpacity(0.4),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: CircleAvatar(
+          radius: 80,
+          backgroundImage: NetworkImage(user.avatar!),
+          backgroundColor: Colors.grey[200],
+        ),
       ),
-      child: Image.network(user.avatar!),
     );
   }
 }
