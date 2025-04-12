@@ -23,6 +23,7 @@ class SettingsController extends GetxController {
   final RxString _vkToken = ''.obs;
   final RxString _defaultMessage = ''.obs;
   final RxString _theme = 'system'.obs;
+
   // --- NEW Observables ---
   final RxList<String> cities = <String>[].obs;
   final RxnInt ageFrom = RxnInt(); // Use RxnInt for nullable int
@@ -30,7 +31,8 @@ class SettingsController extends GetxController {
   final RxInt sexFilter = 0.obs; // 0 = any, 1 = female, 2 = male
   final RxList<String> groupUrls =
       <String>[].obs; // Store URLs as entered by user
-  final RxBool skipClosedProfiles = false.obs; // Skip users with closed profiles
+  final RxBool skipClosedProfiles =
+      false.obs; // Skip users with closed profiles
 
   // UI State
   final RxBool isGroupUrlValidating = false.obs;
@@ -41,7 +43,9 @@ class SettingsController extends GetxController {
 
   // Getters for settings
   String get vkToken => _vkToken.value;
+
   String get defaultMessage => _defaultMessage.value;
+
   String get theme => _theme.value;
 
   @override
@@ -254,7 +258,8 @@ class SettingsController extends GetxController {
         ageTo.value != parsedAgeTo ||
         this.sexFilter.value != sexFilter ||
         !listEquals(groupUrls, currentGroupUrls) ||
-        this.skipClosedProfiles.value != (skipClosedProfiles ?? this.skipClosedProfiles.value);
+        this.skipClosedProfiles.value !=
+            (skipClosedProfiles ?? this.skipClosedProfiles.value);
 
     _vkToken.value = vkToken;
     _defaultMessage.value = defaultMessage;
@@ -271,7 +276,7 @@ class SettingsController extends GetxController {
     // Same for group URLs
     groupUrls.clear();
     groupUrls.addAll(currentGroupUrls);
-    
+
     // Update skipClosedProfiles if provided
     if (skipClosedProfiles != null) {
       this.skipClosedProfiles.value = skipClosedProfiles;
@@ -282,12 +287,13 @@ class SettingsController extends GetxController {
       vkToken: vkToken,
       defaultMessage: defaultMessage,
       theme: theme,
-      cities:
-          currentCities, // Pass the parameter directly to ensure correct values
+      cities: currentCities,
+      // Pass the parameter directly to ensure correct values
       ageFrom: parsedAgeFrom,
       ageTo: parsedAgeTo,
       sexFilter: sexFilter,
-      groupUrls: currentGroupUrls, // Pass the parameter directly
+      groupUrls: currentGroupUrls,
+      // Pass the parameter directly
       skipClosedProfiles: this.skipClosedProfiles.value,
     );
 

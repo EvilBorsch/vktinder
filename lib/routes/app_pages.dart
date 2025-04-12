@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:vktinder/data/repositories/statistics_repository.dart';
+import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 import 'package:vktinder/presentation/pages/full_user_info.dart';
 import 'package:vktinder/presentation/pages/main_screen.dart';
 
@@ -29,11 +31,14 @@ class AppBinding extends Bindings {
     // Repositories - permanent singletons
     Get.put<SettingsRepository>(SettingsRepository(), permanent: true);
     Get.put<GroupUsersRepository>(GroupUsersRepository(), permanent: true);
+    Get.put<StatisticsRepository>(StatisticsRepository(), permanent: true);
 
     // Controllers for main navigation - permanent
     Get.put(NavController(), permanent: true);
+    Get.put(StatisticsController(), permanent: true);
     Get.put(SettingsController(), permanent: true);
     Get.put(HomeController(), permanent: true);
+
 
     // Page-specific controller - recreated for each visit
     // Using fenix: true means it will be recreated if needed

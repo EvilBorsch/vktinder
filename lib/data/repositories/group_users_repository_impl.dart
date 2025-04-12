@@ -27,7 +27,7 @@ class GroupUsersRepository {
   }
 
   // --- MODIFIED getUsers ---
-  Future<List<VKGroupUser>> getUsers(String vkToken) async {
+  Future<List<VKGroupUser>> getUsers(String vkToken, List<String> skippedIDs) async {
     // 1. Get settings
     final cityNames = _settingsRepository.getCities();
     final (ageFrom, ageTo) = _settingsRepository.getAgeRange();
@@ -137,6 +137,10 @@ class GroupUsersRepository {
                 if (skipClosedProfiles) {
                   continue; // Skip this user
                 }
+              }
+              if (skippedIDs.contains(user.userID)){
+                print("skipping ${user.userID} because its already swiped");
+                continue;
               }
 
               if (foundUsers.add(user)) {

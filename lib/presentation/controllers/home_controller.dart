@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
+import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 
 class HomeController extends GetxController {
   final SettingsController _settingsController = Get.find<SettingsController>();
   final GroupUsersRepository _groupUsersRepository =
       Get.find<GroupUsersRepository>();
+  final StatisticsController _statisticsController =
+      Get.find<StatisticsController>();
 
   // Reactive variables
   final RxList<VKGroupUser> users = <VKGroupUser>[].obs;
@@ -20,8 +23,11 @@ class HomeController extends GetxController {
 
   // Getters
   String get vkToken => _settingsController.vkToken;
+
   String get defaultMessage => _settingsController.defaultMessage;
+
   bool get hasVkToken => vkToken.isNotEmpty;
+
   // Check if group URLs are configured
   bool get hasGroupsConfigured => _settingsController.groupUrls.isNotEmpty;
 
@@ -112,7 +118,8 @@ class HomeController extends GetxController {
     }
     try {
       // getUsers now uses the settings implicitly via the repository
-      final fetchedUsers = await _groupUsersRepository.getUsers(vkToken);
+      final fetchedUsers = await _groupUsersRepository.getUsers(
+          vkToken, _statisticsController.skippedUserIDs);
       // Shuffle the results for a Tinder-like random order
       fetchedUsers.shuffle();
 
@@ -209,94 +216,6 @@ class HomeController extends GetxController {
     return success; // Return the result
   }
 
-  // showMessageDialog remains largely the same, just uses the updated sendVKMessage
-  void showMessageDialog() {
-    if (users.isEmpty) return;
-
-    final currentUser = users.first;
-    final TextEditingController messageController = TextEditingController(
-        text: defaultMessage); // Use getter for default message
-
-    Get.dialog(
-      AlertDialog(
-        title: const Text(
-          'Отправить сообщение',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: TextStyle(color: Get.theme.textTheme.bodyMedium?.color),
-                children: [
-                  const TextSpan(text: 'Кому: '),
-                  TextSpan(
-                    text: '${currentUser.name} ${currentUser.surname}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              // Use helper for consistency
-              controller: messageController,
-              labelText: 'Сообщение',
-              hintText: 'Введите ваше сообщение...',
-              icon: Icons.message_outlined,
-              maxLines: 4,
-            ),
-          ],
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Отмена'), // Simplified style
-          ),
-          // Use a separate Obx for the button state only
-          Obx(() => ElevatedButton.icon(
-                onPressed: isSendingMessage.value
-                    ? null // Disable button while sending
-                    : () async {
-                        final message = messageController.text.trim();
-                        if (message.isEmpty) {
-                          Get.snackbar(
-                            'Ошибка',
-                            'Сообщение не может быть пустым.',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.orange[100],
-                            colorText: Colors.orange[900],
-                            margin: const EdgeInsets.all(8),
-                            borderRadius: 10,
-                          );
-                          return;
-                        }
-                        // Close dialog *before* sending async operation
-                        Get.back();
-                        // Asynchronously send message
-                        await sendVKMessage(currentUser.userID, message);
-                        // Snackbar feedback is now handled within sendVKMessage
-                      },
-                icon: isSendingMessage.value
-                    ? Container(
-                        // Show spinner inside button
-                        width: 18,
-                        height: 18,
-                        padding: const EdgeInsets.all(2.0),
-                        child: const CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.send_outlined, size: 18),
-                label:
-                    Text(isSendingMessage.value ? 'Отправка...' : 'Отправить'),
-              )),
-        ],
-      ),
-    );
-  }
-
   // Helper (similar to settings page) for dialog text field
   Widget _buildTextField({
     required TextEditingController controller,
@@ -346,6 +265,7 @@ class HomeController extends GetxController {
     if (direction == DismissDirection.startToEnd) {
       // Message action - Show dialog (which now handles sending)
       showMessageDialogForUser(dismissedUser); // Pass dismissed user
+      _statisticsController.addStatForLikedUser("123", dismissedUser);
     } else {
       // Dislike action - currently does nothing backend-wise
       print("Disliked user: ${dismissedUser.userID}");
