@@ -12,7 +12,7 @@ import 'package:vktinder/data/models/vk_group_info.dart';
 class VkApiProvider extends getx.GetxService {
   // --- START: MOCK DATA SWITCH ---
   /// Set to true to use local mock data instead of real VK API calls.
-  static const bool _useMockData = false; // <-- CHANGE THIS FLAG
+  static const bool _useMockData = true; // <-- CHANGE THIS FLAG
   // --- END: MOCK DATA SWITCH ---
 
   final Dio _dio = Dio(BaseOptions(

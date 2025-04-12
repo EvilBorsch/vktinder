@@ -6,7 +6,6 @@ class VKGroupUser {
   final String surname;
   final String userID;
   final String? avatar;
-  // final List<String> groups; // Remove or comment out this line
   final List<VKGroupInfo> groups; // Change to use VKGroupInfo
   List<String> photos;
   final List<String> interests;

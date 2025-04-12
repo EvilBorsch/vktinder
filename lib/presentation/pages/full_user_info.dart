@@ -15,7 +15,6 @@ class UserDetailsPage extends GetView<UserDetailsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Подробная информация"),
         actions: [
           Obx(() => controller.isLoading.value
               ? const Padding(
@@ -44,7 +43,7 @@ class UserDetailsPage extends GetView<UserDetailsController> {
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                         icon: const Icon(Icons.message),
-                        label: const Text('Отправить сообщение'),
+                        label: const Text('Написать'),
                         onPressed: controller.user.value == null
                             ? null
                             : () => controller.sendMessage(),
@@ -566,7 +565,7 @@ class UserGroupsList extends StatelessWidget {
                 );
               },
               separatorBuilder: (context, index) =>
-                  Divider(height: 1, thickness: 0.5, indent: 60),
+                  const Divider(height: 1, thickness: 0.5, indent: 60),
             ),
         ],
       ),

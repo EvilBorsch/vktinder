@@ -144,8 +144,10 @@ class SettingsPage extends GetView<SettingsController> {
               children: [
                 Icon(Icons.lock_outline, size: 20),
                 const SizedBox(width: 12),
-                Text('Пропускать закрытые профили', 
-                  style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
+                Expanded(
+                  child: Text('Пропускать закрытые профили',
+                    style: Get.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
+                ),
               ],
             ),
             subtitle: Text('Не показывать пользователей с закрытыми профилями', 
@@ -163,7 +165,7 @@ class SettingsPage extends GetView<SettingsController> {
         const SizedBox(height: 24),
 
         // --- Group Bank ---
-        _buildSectionHeader('Банк групп для поиска', Icons.groups_2_outlined),
+        _buildSectionHeader('В каких группах ищем?', Icons.groups_2_outlined),
         const SizedBox(height: 12),
         _buildGroupManagementSection(context, newGroupUrlController), // Extracted for clarity
         const SizedBox(height: 24),
