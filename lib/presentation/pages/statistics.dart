@@ -1,9 +1,10 @@
+// lib/presentation/pages/statistics.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vktinder/data/models/statistics.dart';
-import 'package:vktinder/presentation/controllers/settings_controller.dart';
+import 'package:vktinder/presentation/controllers/settings_controller.dart'; // Check if needed
 import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 
 class StatisticsPage extends GetView<StatisticsController> {
@@ -11,14 +12,19 @@ class StatisticsPage extends GetView<StatisticsController> {
 
   @override
   Widget build(BuildContext context) {
-    // Get settings controller to access group URLs
-    final settingsController = Get.find<SettingsController>();
+    // Get settings controller if needed for group URLs (maybe for display names if not in action)
+    // final settingsController = Get.find<SettingsController>();
 
-    // Load statistics data when page is shown
-    controller.getUserActions();
+    // Request a refresh of the view data (which is now in memory)
+    // This ensures the latest data is shown if the page was backgrounded
+    // and data changed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.refreshStatisticsView();
+    });
+
 
     // State variables for filtering and sorting
-    final selectedGroup = RxString('all_groups'); // Changed default value
+    final selectedGroup = RxString('all_groups');
     final sortByLatestLikes = RxBool(true);
 
     return Scaffold(
@@ -44,27 +50,26 @@ class StatisticsPage extends GetView<StatisticsController> {
 
                 // Group selection dropdown
                 Obx(() {
-                  // Build the dropdown items from available groups
-                  final availableGroups = <String>{'all_groups'}; // Use Set to avoid duplicates
-
-                  // Add groups from statistics data
+                  // Build the dropdown items from available groups in stats
+                  final availableGroups = <String>{'all_groups'};
                   controller.userActions.keys.forEach((group) {
                     if (group.isNotEmpty) {
                       availableGroups.add(group);
                     }
                   });
 
-                  // Add groups from settings (if not already in the list)
-                  settingsController.groupUrls.forEach((url) {
-                    if (url.isNotEmpty) {
-                      availableGroups.add(url);
-                    }
-                  });
-
-                  // Make sure selectedGroup value is valid and present in the items
+                  // Make sure selectedGroup value is valid
                   if (!availableGroups.contains(selectedGroup.value)) {
                     selectedGroup.value = 'all_groups';
                   }
+
+                  // Sort group names for better usability
+                  final sortedGroupList = availableGroups.toList()
+                    ..sort((a, b) {
+                      if (a == 'all_groups') return -1;
+                      if (b == 'all_groups') return 1;
+                      return a.compareTo(b);
+                    });
 
                   return DropdownButtonFormField<String>(
                     decoration: InputDecoration(
@@ -73,10 +78,12 @@ class StatisticsPage extends GetView<StatisticsController> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     ),
                     value: selectedGroup.value,
-                    items: availableGroups.map((group) => DropdownMenuItem(
+                    isExpanded: true, // Allow long names to fit
+                    items: sortedGroupList.map((group) => DropdownMenuItem(
                       value: group,
                       child: Text(
                         group == 'all_groups' ? 'Все группы' : group,
@@ -122,40 +129,10 @@ class StatisticsPage extends GetView<StatisticsController> {
           // Statistics content
           Expanded(
             child: Obx(() {
-              // Process data based on filters
-              final Map<String, List<StatisticsUserAction>> filteredActions = {};
-
-              if (selectedGroup.value == 'all_groups') {
-                // Show all groups
-                controller.userActions.forEach((group, actions) {
-                  filteredActions[group] = actions.toList();
-                });
-              } else if (controller.userActions.containsKey(selectedGroup.value)) {
-                // Show specific group
-                filteredActions[selectedGroup.value] = controller.userActions[selectedGroup.value]!.toList();
+              if (controller.isLoading.value) {
+                return const Center(child: CircularProgressIndicator());
               }
 
-              // Apply sorting if needed
-              if (sortByLatestLikes.value) {
-                filteredActions.forEach((group, actions) {
-                  actions.sort((a, b) {
-                    if (a.action == ActionLike && b.action != ActionLike) {
-                      return -1;
-                    } else if (a.action != ActionLike && b.action == ActionLike) {
-                      return 1;
-                    } else {
-                      return b.actionDate.compareTo(a.actionDate);
-                    }
-                  });
-                });
-              } else {
-                // Default sort by date (newest first)
-                filteredActions.forEach((group, actions) {
-                  actions.sort((a, b) => b.actionDate.compareTo(a.actionDate));
-                });
-              }
-
-              // Build the UI based on filtered & sorted data
               if (controller.userActions.isEmpty) {
                 return const Center(
                   child: Column(
@@ -173,15 +150,40 @@ class StatisticsPage extends GetView<StatisticsController> {
                 );
               }
 
-              if (filteredActions.isEmpty) {
+              // --- Filtering and Sorting Logic ---
+              var allActionsFlat = <StatisticsUserAction>[];
+              if (selectedGroup.value == 'all_groups') {
+                controller.userActions.values.forEach((rxList) {
+                  allActionsFlat.addAll(rxList);
+                });
+              } else if (controller.userActions.containsKey(selectedGroup.value)) {
+                allActionsFlat.addAll(controller.userActions[selectedGroup.value]!);
+              }
+
+              // Apply sorting
+              allActionsFlat.sort((a, b) {
+                if (sortByLatestLikes.value) {
+                  // Likes first, then by date descending
+                  final isALike = a.action == ActionLike;
+                  final isBLike = b.action == ActionLike;
+                  if (isALike && !isBLike) return -1;
+                  if (!isALike && isBLike) return 1;
+                }
+                // Default/fallback: sort by date descending
+                return b.actionDate.compareTo(a.actionDate);
+              });
+              // --- End Filtering and Sorting ---
+
+
+              if (allActionsFlat.isEmpty && selectedGroup.value != 'all_groups') {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.filter_alt_outlined, size: 64, color: Colors.grey),
+                      Icon(Icons.filter_alt_off_outlined, size: 64, color: Colors.grey),
                       const SizedBox(height: 16),
                       Text(
-                        'Нет данных для группы\n${selectedGroup.value == 'all_groups' ? 'Все группы' : selectedGroup.value}',
+                        'Нет действий для группы\n"${selectedGroup.value}"',
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey),
                       ),
@@ -190,40 +192,10 @@ class StatisticsPage extends GetView<StatisticsController> {
                 );
               }
 
-              // Count totals for display
-              int totalLikes = 0;
-              int totalDislikes = 0;
 
-              filteredActions.forEach((group, actions) {
-                actions.forEach((action) {
-                  if (action.action == ActionLike) {
-                    totalLikes++;
-                  } else if (action.action == ActionDislike) {
-                    totalDislikes++;
-                  }
-                });
-              });
-
-              // Flatten all actions for the ListView
-              final allActions = <StatisticsUserAction>[];
-              filteredActions.forEach((group, actions) {
-                allActions.addAll(actions);
-              });
-
-              // Apply final sort to the flattened list
-              if (sortByLatestLikes.value) {
-                allActions.sort((a, b) {
-                  if (a.action == ActionLike && b.action != ActionLike) {
-                    return -1;
-                  } else if (a.action != ActionLike && b.action == ActionLike) {
-                    return 1;
-                  } else {
-                    return b.actionDate.compareTo(a.actionDate);
-                  }
-                });
-              } else {
-                allActions.sort((a, b) => b.actionDate.compareTo(a.actionDate));
-              }
+              // Calculate totals from the flat list
+              int totalLikes = allActionsFlat.where((a) => a.action == ActionLike).length;
+              int totalDislikes = allActionsFlat.where((a) => a.action == ActionDislike).length;
 
               return Column(
                 children: [
@@ -238,22 +210,11 @@ class StatisticsPage extends GetView<StatisticsController> {
                             'Всего',
                             '${totalLikes + totalDislikes}',
                             Icons.people,
-                            Colors.blue
-                        ),
-                        _buildStatCard(
-                            context,
-                            'Лайки',
-                            '$totalLikes',
-                            Icons.favorite,
-                            Colors.red
-                        ),
-                        _buildStatCard(
-                            context,
-                            'Пропущено',
-                            '$totalDislikes',
-                            Icons.close,
-                            Colors.grey
-                        ),
+                            Colors.blue),
+                        _buildStatCard(context, 'Лайки', '$totalLikes',
+                            Icons.favorite, Colors.red),
+                        _buildStatCard(context, 'Пропущено', '$totalDislikes',
+                            Icons.close, Colors.grey),
                       ],
                     ),
                   ),
@@ -262,9 +223,10 @@ class StatisticsPage extends GetView<StatisticsController> {
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.only(bottom: 16),
-                      itemCount: allActions.length,
+                      itemCount: allActionsFlat.length,
                       itemBuilder: (context, index) {
-                        final action = allActions[index];
+                        final action = allActionsFlat[index];
+                        // *** Use fields directly from action, not action.user ***
                         return _buildUserActionCard(context, action);
                       },
                     ),
@@ -278,7 +240,8 @@ class StatisticsPage extends GetView<StatisticsController> {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(BuildContext context, String title, String value,
+      IconData icon, Color color) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -290,11 +253,14 @@ class StatisticsPage extends GetView<StatisticsController> {
             const SizedBox(height: 4),
             Text(
               title,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.labelSmall, // Use labelSmall
             ),
             Text(
               value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium // Use titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -302,11 +268,10 @@ class StatisticsPage extends GetView<StatisticsController> {
     );
   }
 
+  // *** Updated to use fields directly from StatisticsUserAction ***
   Widget _buildUserActionCard(BuildContext context, StatisticsUserAction action) {
-    final user = action.user;
     final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
     final formattedDate = dateFormat.format(action.actionDate);
-
     final isLike = action.action == ActionLike;
 
     return Card(
@@ -322,15 +287,16 @@ class StatisticsPage extends GetView<StatisticsController> {
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: Image.network(
-                user.avatar ?? 'https://vk.com/images/camera_200.png',
+                action.avatar ?? 'https://vk.com/images/camera_100.png', // Smaller default
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: 48,
                   height: 48,
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.person, color: Colors.grey),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade300, shape: BoxShape.circle),
+                  child: const Icon(Icons.person_outline, color: Colors.grey),
                 ),
               ),
             ),
@@ -346,13 +312,15 @@ class StatisticsPage extends GetView<StatisticsController> {
                     children: [
                       Expanded(
                         child: Text(
-                          '${user.name} ${user.surname}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          '${action.name} ${action.surname}', // Use fields directly
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Icon(
                         isLike ? Icons.favorite : Icons.close,
-                        color: isLike ? Colors.red : Colors.grey,
+                        color: isLike ? Colors.redAccent : Colors.grey,
                         size: 20,
                       ),
                     ],
@@ -371,9 +339,9 @@ class StatisticsPage extends GetView<StatisticsController> {
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
 
-                  if (user.groupURL != null && user.groupURL!.isNotEmpty)
+                  if (action.groupURL != null && action.groupURL!.isNotEmpty)
                     Text(
-                      'Группа: ${user.groupURL}',
+                      'Группа: ${action.groupURL}', // Use field directly
                       style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -384,12 +352,16 @@ class StatisticsPage extends GetView<StatisticsController> {
                   SizedBox(
                     height: 32,
                     child: ElevatedButton.icon(
-                      onPressed: () => _openVkProfile(user.userID),
+                      onPressed: () => _openVkProfile(action.userId), // Use field directly
                       icon: const Icon(Icons.open_in_new, size: 16),
                       label: const Text('Открыть в VK'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         textStyle: const TextStyle(fontSize: 12),
+                        // Optional: More subtle button style
+                        elevation: 0,
+                        backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -402,6 +374,7 @@ class StatisticsPage extends GetView<StatisticsController> {
     );
   }
 
+  // _openVkProfile remains the same
   void _openVkProfile(String userId) async {
     final url = 'https://vk.com/id$userId';
 
@@ -453,3 +426,4 @@ class StatisticsPage extends GetView<StatisticsController> {
     }
   }
 }
+
