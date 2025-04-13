@@ -249,6 +249,7 @@ class HomeController extends GetxController {
 
   // dismissCard with persistence
   Future<void> dismissCard(DismissDirection direction) async {
+    print("dismiss start");
     if (users.isEmpty) return;
 
     // Get user *before* removing
@@ -259,17 +260,19 @@ class HomeController extends GetxController {
 
     // 2. Save the updated list to storage
     await _groupUsersRepository.saveCards(users.toList());
+    print("save card ended");
 
     // 3. Perform action based on swipe direction (after UI update)
     if (direction == DismissDirection.startToEnd) {
       // Message action - Show dialog (which now handles sending)
-      showMessageDialogForUser(dismissedUser); // Pass dismissed user
+      //showMessageDialogForUser(dismissedUser); // Pass dismissed user
       _statisticsController.addUserAction(dismissedUser.groupURL.toString(), StatisticsUserAction(dismissedUser, ActionLike, DateTime.now()));
     } else {
       // Dislike action - currently does nothing backend-wise
       print("Disliked user: ${dismissedUser.userID}");
       _statisticsController.addUserAction(dismissedUser.groupURL.toString(), StatisticsUserAction(dismissedUser, ActionDislike, DateTime.now()));
     }
+    print("save user action ended ended");
 
     // 4. Check if need to load more users
     if (users.length < 3 && !isLoading.value && !isLoadingMore.value) {
@@ -286,6 +289,7 @@ class HomeController extends GetxController {
         });
       });
     }
+    print("dismiss ended");
   }
 
   // Modified message dialog to accept user explicitly
