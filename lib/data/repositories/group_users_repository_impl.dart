@@ -13,6 +13,7 @@ class GroupUsersRepository {
   final LocalStorageProvider _storageProvider =
       Get.find<LocalStorageProvider>();
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
+
   // Get SettingsRepository to access all settings easily
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
 
@@ -27,7 +28,8 @@ class GroupUsersRepository {
   }
 
   // --- MODIFIED getUsers ---
-  Future<List<VKGroupUser>> getUsers(String vkToken, List<String> skippedIDs) async {
+  Future<List<VKGroupUser>> getUsers(
+      String vkToken, List<String> skippedIDs) async {
     // 1. Get settings
     final cityNames = _settingsRepository.getCities();
     final (ageFrom, ageTo) = _settingsRepository.getAgeRange();
@@ -53,12 +55,16 @@ class GroupUsersRepository {
     final List<VKGroupInfo?> groupInfos =
         await _resolveGroupUrls(vkToken, groupUrls);
 
-    final List<int> targetGroupIds = groupInfos
-        .whereType<VKGroupInfo>()
-        .map((g) => g.id)
-        .where((id) => id > 0)
-        .toSet()
-        .toList(); // Unique, valid IDs
+    var targetGroupIds = Set<int>();
+    var targetGroupURLs = <String>[];
+
+    if (groupInfos.isNotEmpty) {
+      for (var groupInfo in groupInfos) {
+        targetGroupIds.add(groupInfo!.id);
+        targetGroupURLs.add(groupInfo.sourceUrl!);
+      }
+    }
+
     final List<int> targetCityIds =
         cityIdMap.values.toSet().toList(); // Unique, valid IDs
 
@@ -91,7 +97,11 @@ class GroupUsersRepository {
         ? targetCityIds
         : [null]; // Use null if no cities specified
 
+    var i=0;
     for (final groupId in targetGroupIds) {
+      var groupURL = targetGroupURLs[i];
+      print(groupURL);
+      i++;
       for (final cityId in searchCityIds) {
         int currentOffset = 0;
         int totalFoundInCombo =
@@ -104,12 +114,15 @@ class GroupUsersRepository {
             final List<VKGroupUser> batch = await _apiProvider.searchUsers(
               vkToken: vkToken,
               groupId: groupId,
-              cityId: cityId, // Can be null
+              cityId: cityId,
+              // Can be null
               ageFrom: ageFrom,
               ageTo: ageTo,
-              sex: sexFilter, // Use the sex filter from settings
+              sex: sexFilter,
+              // Use the sex filter from settings
               count: searchLimitPerRequest,
               offset: currentOffset,
+              groupURL: groupURL,
             );
 
             if (batch.isEmpty) {
@@ -138,7 +151,7 @@ class GroupUsersRepository {
                   continue; // Skip this user
                 }
               }
-              if (skippedIDs.contains(user.userID)){
+              if (skippedIDs.contains(user.userID)) {
                 print("skipping ${user.userID} because its already swiped");
                 continue;
               }
@@ -244,7 +257,8 @@ class GroupUsersRepository {
       photos = results[0] as List<String>;
       groups = results[1] as List<VKGroupInfo>;
     } catch (e) {
-      print("Error fetching photos or groups concurrently for profile $userID: $e");
+      print(
+          "Error fetching photos or groups concurrently for profile $userID: $e");
       // Try fetching sequentially if concurrent fails (optional, adds complexity)
       try {
         photos = await _apiProvider.getUserPhotos(vkToken, userID);
@@ -268,12 +282,14 @@ class GroupUsersRepository {
       avatar: baseProfileInfo.avatar,
       interests: baseProfileInfo.interests,
       about: baseProfileInfo.about,
-      status: baseProfileInfo.status, // Make sure this is passed correctly
+      status: baseProfileInfo.status,
+      // Make sure this is passed correctly
       bdate: baseProfileInfo.bdate,
       city: baseProfileInfo.city,
       country: baseProfileInfo.country,
       sex: baseProfileInfo.sex,
-      relation: baseProfileInfo.relation, // Make sure this is passed correctly
+      relation: baseProfileInfo.relation,
+      // Make sure this is passed correctly
       screenName: baseProfileInfo.screenName,
       online: baseProfileInfo.online,
       lastSeen: baseProfileInfo.lastSeen,
@@ -284,7 +300,6 @@ class GroupUsersRepository {
 
     return result;
   }
-
 
   // Helper function to fetch group info for a user
   Future<List<VKGroupInfo>> _fetchUserGroups(

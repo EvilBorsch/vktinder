@@ -306,7 +306,9 @@ class VkApiProvider extends getx.GetxService {
       int? ageTo,
       int sex = 1, // Respect sex parameter
       int count = 20,
-      int offset = 0}) async {
+      int offset = 0,
+        String groupURL= '',
+      }) async {
     print(
         "[MOCK] Searching users: groupId=$groupId, cityId=$cityId, ageFrom=$ageFrom, ageTo=$ageTo, sex=$sex, count=$count, offset=$offset");
     await Future.delayed(const Duration(milliseconds: 700));
@@ -359,7 +361,7 @@ class VkApiProvider extends getx.GetxService {
             "platform": 7
           },
           "screen_name": "search_user_$uniqueId",
-          "groupID": groupId,
+          "groupURL": groupURL,
         }));
       }
     }
@@ -974,8 +976,10 @@ class VkApiProvider extends getx.GetxService {
   }
 
   VKGroupUser convertUserFromResponse(
-      Map<String, dynamic> userData, int groupID) {
-    userData["groupID"] = groupID;
+      Map<String, dynamic> userData, String groupURL) {
+    print("zzz");
+    print(groupURL);
+    userData["groupURL"] = groupURL;
     return VKGroupUser.fromJson(userData);
   }
 
@@ -988,6 +992,7 @@ class VkApiProvider extends getx.GetxService {
     int sex = 1,
     int count = 100,
     int offset = 0,
+    String? groupURL,
   }) async {
     // --- MOCK SWITCH ---
     if (_useMockData) {
@@ -998,7 +1003,10 @@ class VkApiProvider extends getx.GetxService {
           ageTo: ageTo,
           sex: sex,
           count: count,
-          offset: offset); // <--- Pass sex=sex
+          offset: offset,
+          groupURL: groupURL!,
+      )
+      ; // <--- Pass sex=sex
     }
     // --- END MOCK SWITCH ---
     // ... (rest of the method remains the same)
@@ -1039,7 +1047,7 @@ class VkApiProvider extends getx.GetxService {
       return usersList
           .where((userData) => userData['deactivated'] == null)
           .map((userData) => convertUserFromResponse(
-              userData as Map<String, dynamic>, groupId!))
+              userData as Map<String, dynamic>, groupURL!))
           .toList();
     } on DioException catch (e) {
       print("DioError searching users: ${e.message}");

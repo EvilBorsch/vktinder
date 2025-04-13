@@ -12,12 +12,12 @@ class StatisticsRepository {
   final _groupUserKey = "statistics_liked_users";
   final _skippedUsersKey = "statistics_skipped_users";
 
-  Future<void> saveUserAction(String groupID, StatisticsUserAction user) async {
+  Future<void> saveUserAction(String groupURL, StatisticsUserAction user) async {
     var dbGroupUsers = await getUserActions();
-    if (!dbGroupUsers.containsKey(groupID)) {
-      dbGroupUsers[groupID] = [];
+    if (!dbGroupUsers.containsKey(groupURL)) {
+      dbGroupUsers[groupURL] = [];
     }
-    dbGroupUsers[groupID]!.add(user);
+    dbGroupUsers[groupURL]!.add(user);
 
     await _storage.write(_groupUserKey, jsonEncode(dbGroupUsers));
   }
@@ -33,12 +33,12 @@ class StatisticsRepository {
     final Map<String, dynamic> rawDBGroupUsers = jsonDecode(rawValue);
     final Map<String, List<StatisticsUserAction>> dbGroupUsers = {};
 
-    rawDBGroupUsers.forEach((groupID, rawGroupUsersList) {
-      if (!dbGroupUsers.containsKey(groupID)) {
-        dbGroupUsers[groupID] = [];
+    rawDBGroupUsers.forEach((groupURL, rawGroupUsersList) {
+      if (!dbGroupUsers.containsKey(groupURL)) {
+        dbGroupUsers[groupURL] = [];
       }
       rawGroupUsersList.forEach((rawUser) {
-        dbGroupUsers[groupID]!.add(StatisticsUserAction.fromJson(rawUser));
+        dbGroupUsers[groupURL]!.add(StatisticsUserAction.fromJson(rawUser));
       });
     });
 

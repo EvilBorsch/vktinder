@@ -23,12 +23,12 @@ class StatisticsController extends GetxController {
     super.onClose();
   }
 
-  Future<void> addUserAction(String groupID, StatisticsUserAction action) async {
-    await _statisticsRepository.saveUserAction(groupID, action);
-    if (!userActions.containsKey(groupID)) {
-      userActions[groupID] = <StatisticsUserAction>[].obs;
+  Future<void> addUserAction(String groupURL, StatisticsUserAction action) async {
+    await _statisticsRepository.saveUserAction(groupURL, action);
+    if (!userActions.containsKey(groupURL)) {
+      userActions[groupURL] = <StatisticsUserAction>[].obs;
     }
-    userActions[groupID]!.add(action);
+    userActions[groupURL]!.add(action);
     await _statisticsRepository.saveSkippedUser(action.user.userID);
     skippedUserIDs.add(action.user.userID);
   }
