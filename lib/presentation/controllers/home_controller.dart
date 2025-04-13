@@ -264,10 +264,11 @@ class HomeController extends GetxController {
     if (direction == DismissDirection.startToEnd) {
       // Message action - Show dialog (which now handles sending)
       showMessageDialogForUser(dismissedUser); // Pass dismissed user
-      _statisticsController.addUserAction("123", StatisticsUserAction(dismissedUser, ActionLike, DateTime.now()));
+      _statisticsController.addUserAction(dismissedUser.groupID.toString(), StatisticsUserAction(dismissedUser, ActionLike, DateTime.now()));
     } else {
       // Dislike action - currently does nothing backend-wise
       print("Disliked user: ${dismissedUser.userID}");
+      _statisticsController.addUserAction(dismissedUser.groupID.toString(), StatisticsUserAction(dismissedUser, ActionDislike, DateTime.now()));
     }
 
     // 4. Check if need to load more users

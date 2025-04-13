@@ -62,7 +62,7 @@ class HomePage extends GetView<HomeController> {
                 if (controller.hasVkToken) {
                   controller.loadCardsFromAPI(forceReload: true);
                 } else {
-                  Get.find<NavController>().changePage(1);
+                  Get.find<NavController>().changePage(2);
                 }
               },
               buttonIcon: controller.hasVkToken ? Icons.refresh : Icons.settings);

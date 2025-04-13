@@ -20,6 +20,7 @@ class VKGroupUser {
   final bool? online;
   final Map<String, dynamic>? lastSeen;
   final bool? canWritePrivateMessage;
+  final int? groupID;
 
   VKGroupUser({
     required this.name,
@@ -40,6 +41,7 @@ class VKGroupUser {
     this.online,
     this.lastSeen,
     this.canWritePrivateMessage,
+    this.groupID,
   });
 
   Map<String, dynamic> toJson() => {
@@ -62,6 +64,7 @@ class VKGroupUser {
     // Serialize groups correctly
     'groups': groups.map((g) => g.toJson()).toList(),
     'photos': photos,
+    'groupID': groupID,
   };
 
   factory VKGroupUser.fromJson(Map<String, dynamic> json) {
@@ -153,6 +156,7 @@ class VKGroupUser {
 
       // We expect photos to be populated separately later
       photos: (json['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? const [],
+      groupID: json['groupID'] as int?,
     );
   }
 
@@ -161,7 +165,7 @@ class VKGroupUser {
   // List<VKGroupInfo> groups;
 
   @override
-  String toString() => '{userID: $userID, name: $name, surname: $surname}';
+  String toString() => '{userID: $userID, name: $name, surname: $surname}, groupID: $groupID';
 
   @override
   bool operator ==(Object other) =>
