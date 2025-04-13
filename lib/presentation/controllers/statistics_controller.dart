@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:vktinder/data/models/vk_group_user.dart';
+import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/repositories/statistics_repository.dart';
 
 
@@ -7,8 +7,8 @@ class StatisticsController extends GetxController {
   final StatisticsRepository _statisticsRepository =
       Get.find<StatisticsRepository>();
 
-  final RxMap<String, RxList<VKGroupUser>> likedUsers =
-      <String, RxList<VKGroupUser>>{}.obs;
+  final RxMap<String, RxList<StatisticsUserAction>> userActions =
+      <String, RxList<StatisticsUserAction>>{}.obs;
   final RxList<String> skippedUserIDs = <String>[].obs;
 
   @override
@@ -23,23 +23,23 @@ class StatisticsController extends GetxController {
     super.onClose();
   }
 
-  Future<void> addStatForLikedUser(String groupID, VKGroupUser user) async {
-    await _statisticsRepository.saveLikedUser(groupID, user);
-    if (!likedUsers.containsKey(groupID)) {
-      likedUsers[groupID] = <VKGroupUser>[].obs;
+  Future<void> addUserAction(String groupID, StatisticsUserAction action) async {
+    await _statisticsRepository.saveUserAction(groupID, action);
+    if (!userActions.containsKey(groupID)) {
+      userActions[groupID] = <StatisticsUserAction>[].obs;
     }
-    likedUsers[groupID]!.add(user);
-    await _statisticsRepository.saveSkippedUser(user.userID);
-    skippedUserIDs.add(user.userID);
+    userActions[groupID]!.add(action);
+    await _statisticsRepository.saveSkippedUser(action.user.userID);
+    skippedUserIDs.add(action.user.userID);
   }
 
-  Future<void> getLikedUsers() async {
-    var dbLikedUsers = await _statisticsRepository.getLikedUsers();
-    Map<String, RxList<VKGroupUser>> observableDbUsers = {};
-    dbLikedUsers.forEach((k, v){
+  Future<void> getUserActions() async {
+    var dbActions = await _statisticsRepository.getUserActions();
+    Map<String, RxList<StatisticsUserAction>> observableDbUsers = {};
+    dbActions.forEach((k, v){
       observableDbUsers[k] = v.obs;
     });
-    likedUsers.value = observableDbUsers;
+    userActions.value = observableDbUsers;
   }
 
   Future<void> getSkippedIDs() async {

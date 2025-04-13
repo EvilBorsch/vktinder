@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 import 'package:vktinder/data/repositories/group_users_repository_impl.dart';
@@ -120,8 +121,6 @@ class HomeController extends GetxController {
       // getUsers now uses the settings implicitly via the repository
       final fetchedUsers = await _groupUsersRepository.getUsers(
           vkToken, _statisticsController.skippedUserIDs);
-      // Shuffle the results for a Tinder-like random order
-      fetchedUsers.shuffle();
 
       if (forceReload) {
         // Replace all cards if forcing reload
@@ -265,7 +264,7 @@ class HomeController extends GetxController {
     if (direction == DismissDirection.startToEnd) {
       // Message action - Show dialog (which now handles sending)
       showMessageDialogForUser(dismissedUser); // Pass dismissed user
-      _statisticsController.addStatForLikedUser("123", dismissedUser);
+      _statisticsController.addUserAction("123", StatisticsUserAction(dismissedUser, ActionLike, DateTime.now()));
     } else {
       // Dislike action - currently does nothing backend-wise
       print("Disliked user: ${dismissedUser.userID}");

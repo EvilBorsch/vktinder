@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:vktinder/data/models/vk_group_user.dart';
+import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 
 class StatisticsPage extends GetView<StatisticsController> {
@@ -8,7 +8,7 @@ class StatisticsPage extends GetView<StatisticsController> {
 
   @override
   Widget build(BuildContext context) {
-    controller.getLikedUsers();
+    controller.getUserActions();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Статистика'),
@@ -19,8 +19,8 @@ class StatisticsPage extends GetView<StatisticsController> {
           Text("Я страничка\n"),
           Obx(() {
             var text = "";
-            var currentUsers = controller.likedUsers;
-            currentUsers.forEach((String groupID, List<VKGroupUser> groupUsers){
+            var currentActions = controller.userActions;
+            currentActions.forEach((String groupID, List<StatisticsUserAction> groupUsers){
               text+="Группа: " + groupID;
               for (var user in groupUsers) {
                 text += user.toString() + " ";

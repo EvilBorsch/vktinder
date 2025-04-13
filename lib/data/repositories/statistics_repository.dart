@@ -1,11 +1,10 @@
 import 'dart:async';
 
-
 import 'package:get_storage/get_storage.dart';
+import 'package:vktinder/data/models/statistics.dart';
 
 import 'dart:convert';
 
-import 'package:vktinder/data/models/vk_group_user.dart';
 
 class StatisticsRepository {
   final _storage = GetStorage();
@@ -13,9 +12,9 @@ class StatisticsRepository {
   final _groupUserKey = "statistics_liked_users";
   final _skippedUsersKey = "statistics_skipped_users";
 
-  Future<void> saveLikedUser(String groupID, VKGroupUser user) async {
-    var dbGroupUsers = await getLikedUsers();
-    if (!dbGroupUsers.containsKey(groupID)){
+  Future<void> saveUserAction(String groupID, StatisticsUserAction user) async {
+    var dbGroupUsers = await getUserActions();
+    if (!dbGroupUsers.containsKey(groupID)) {
       dbGroupUsers[groupID] = [];
     }
     dbGroupUsers[groupID]!.add(user);
@@ -29,17 +28,17 @@ class StatisticsRepository {
     await _storage.write(_skippedUsersKey, jsonEncode(dbSkippedUsers));
   }
 
-  Future<Map<String, List<VKGroupUser>>> getLikedUsers() async {
+  Future<Map<String, List<StatisticsUserAction>>> getUserActions() async {
     var rawValue = await _storage.read(_groupUserKey) ?? "{}";
     final Map<String, dynamic> rawDBGroupUsers = jsonDecode(rawValue);
-    final Map<String, List<VKGroupUser>> dbGroupUsers = {};
+    final Map<String, List<StatisticsUserAction>> dbGroupUsers = {};
 
-    rawDBGroupUsers.forEach((groupID, rawGroupUsersList){
-      if (!dbGroupUsers.containsKey(groupID)){
+    rawDBGroupUsers.forEach((groupID, rawGroupUsersList) {
+      if (!dbGroupUsers.containsKey(groupID)) {
         dbGroupUsers[groupID] = [];
       }
-      rawGroupUsersList.forEach((rawUser){
-        dbGroupUsers[groupID]!.add(VKGroupUser.fromJson(rawUser));
+      rawGroupUsersList.forEach((rawUser) {
+        dbGroupUsers[groupID]!.add(StatisticsUserAction.fromJson(rawUser));
       });
     });
 
@@ -55,8 +54,4 @@ class StatisticsRepository {
     }
     return resSkippedUsers;
   }
-
-
-
-
 }

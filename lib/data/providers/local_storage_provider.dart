@@ -7,19 +7,25 @@ class LocalStorageProvider extends GetxService {
   final _storage = GetStorage();
 
   // User cards storage
-  static const String _cardsKey = 'persisted_cards'; // Keep this if still needed for some caching
+  static const String _cardsKey =
+      'persisted_cards'; // Keep this if still needed for some caching
 
   // Settings storage keys
   static const String _vkTokenKey = 'vk_token';
   static const String _defaultMessageKey = 'default_message';
   static const String _themeKey = 'theme_mode';
+
   // --- NEW KEYS ---
-  static const String _citiesKey = 'search_cities'; // Stores List<String> as JSON
+  static const String _citiesKey =
+      'search_cities'; // Stores List<String> as JSON
   static const String _ageFromKey = 'search_age_from'; // Stores int?
   static const String _ageToKey = 'search_age_to'; // Stores int?
-  static const String _groupUrlsKey = 'search_group_urls'; // Stores List<String> as JSON
-  static const String _sexFilterKey = 'search_sex_filter'; // Stores int (0, 1, 2)
-  static const String _skipClosedProfilesKey = 'skip_closed_profiles'; // Stores bool
+  static const String _groupUrlsKey =
+      'search_group_urls'; // Stores List<String> as JSON
+  static const String _sexFilterKey =
+      'search_sex_filter'; // Stores int (0, 1, 2)
+  static const String _skipClosedProfilesKey =
+      'skip_closed_profiles'; // Stores bool
   // --- END NEW KEYS ---
 
   // Cards methods (keep if still needed, but maybe less relevant with search)
@@ -42,7 +48,8 @@ class LocalStorageProvider extends GetxService {
 
   Future<void> saveCards(List<VKGroupUser> cards) async {
     try {
-      await _storage.write(_cardsKey, jsonEncode(cards.map((e) => e.toJson()).toList()));
+      await _storage.write(
+          _cardsKey, jsonEncode(cards.map((e) => e.toJson()).toList()));
     } catch (e) {
       print("Error encoding cards for storage: $e");
     }
@@ -58,7 +65,8 @@ class LocalStorageProvider extends GetxService {
   }
 
   String getDefaultMessage() {
-    return _storage.read(_defaultMessageKey) ?? 'Привет! Как дела?'; // Provide a default
+    return _storage.read(_defaultMessageKey) ??
+        'Привет! Как дела?'; // Provide a default
   }
 
   Future<void> saveDefaultMessage(String message) async {
@@ -81,7 +89,8 @@ class LocalStorageProvider extends GetxService {
     if (storedCities != null && storedCities.isNotEmpty) {
       try {
         final List<dynamic> decoded = jsonDecode(storedCities);
-        final List<String> cities = decoded.map((item) => item.toString()).toList();
+        final List<String> cities =
+            decoded.map((item) => item.toString()).toList();
         print("Decoded cities: $cities");
         return cities;
       } catch (e) {
@@ -104,19 +113,18 @@ class LocalStorageProvider extends GetxService {
     print("Verified raw cities in storage: $saved");
   }
 
-
   (int?, int?) getAgeRange() {
     final ageFrom = _storage.read<int?>(_ageFromKey);
     final ageTo = _storage.read<int?>(_ageToKey);
     return (ageFrom, ageTo);
   }
-  
+
   int getSexFilter() {
     return _storage.read<int>(_sexFilterKey) ?? 0; // Default to 0 (any)
   }
-  
+
   bool getSkipClosedProfiles() {
-    return _storage.read<bool>(_skipClosedProfilesKey) ?? false; // Default to false
+    return _storage.read<bool>(_skipClosedProfilesKey) ?? true;
   }
 
   Future<void> saveAgeRange(int? ageFrom, int? ageTo) async {
@@ -131,11 +139,11 @@ class LocalStorageProvider extends GetxService {
       await _storage.write(_ageToKey, ageTo);
     }
   }
-  
+
   Future<void> saveSexFilter(int sex) async {
     await _storage.write(_sexFilterKey, sex);
   }
-  
+
   Future<void> saveSkipClosedProfiles(bool skip) async {
     await _storage.write(_skipClosedProfilesKey, skip);
   }
