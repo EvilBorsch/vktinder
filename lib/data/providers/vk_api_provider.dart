@@ -977,8 +977,6 @@ class VkApiProvider extends getx.GetxService {
 
   VKGroupUser convertUserFromResponse(
       Map<String, dynamic> userData, String groupURL) {
-    print("zzz");
-    print(groupURL);
     userData["groupURL"] = groupURL;
     return VKGroupUser.fromJson(userData);
   }
