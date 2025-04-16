@@ -143,7 +143,6 @@ class SettingsPage extends GetView<SettingsController> {
             ],
           ),
         )),
-        _buildHelpText('Выберите пол пользователей для поиска.'),
         const SizedBox(height: 16),
 
         // Skip Closed Profiles Option
@@ -153,7 +152,7 @@ class SettingsPage extends GetView<SettingsController> {
               Icon(Icons.visibility_off_outlined, size: 20),
               SizedBox(width: 12),
               Expanded(
-                child: Text('Пропускать профили с ограниченным доступом',
+                child: Text('Пропускать закрытые профили',
                     style: TextStyle(fontWeight: FontWeight.w500)), // Simplified style
               ),
             ],
@@ -168,7 +167,6 @@ class SettingsPage extends GetView<SettingsController> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           dense: true,
         )),
-        _buildHelpText('Такие профили часто бесполезны, т.к. нельзя посмотреть фото или инфо.'),
         const SizedBox(height: 16), // Spacing after switch
 
         // --- NEW: Skip Relation Filter ---
@@ -205,7 +203,7 @@ class SettingsPage extends GetView<SettingsController> {
           icon: Icons.edit_note,
           maxLines: 3,
         ),
-        _buildHelpText('Используйте как основу для вашего первого сообщения при свайпе вправо.'),
+        _buildHelpText('Используйте как основу для сообщений при свайпе вправо'),
         const SizedBox(height: 24),
 
         // --- Theme Selection ---

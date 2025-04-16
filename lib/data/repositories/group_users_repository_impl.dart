@@ -296,7 +296,7 @@ class GroupUsersRepository {
 
   // Helper method to check if a profile has limited access based on is_closed and canWritePrivateMessage
   bool _isProfileAccessLimited(VKGroupUser user) {
-    return user.isClosed == true && user.canWritePrivateMessage != true;
+    return user.isClosed == true || user.canWritePrivateMessage == false;
   }
 
   // sendMessage (Remains the same)
