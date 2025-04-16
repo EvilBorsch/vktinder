@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For TextInputFormatters
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
 import '../../data/providers/vk_api_provider.dart';
@@ -54,8 +55,20 @@ class SettingsPage extends GetView<SettingsController> {
           icon: Icons.vpn_key_outlined,
           obscureText: true, // Hide token
         ),
-        const SizedBox(height: 4),
-        _buildHelpText('Токен необходим для доступа к API ВКонтакте. Получите его, например, через vkhost.github.io (выберите VK Admin). Права: messages, groups, offline.'),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.open_in_new, size: 18),
+          // Keep icon small
+          label: const Text('Получить VK Token (выберите vk.com)'),
+          // Concise label
+          onPressed: () async => await launchUrl(Uri.parse('https://vkhost.github.io/'), mode: LaunchMode.externalApplication),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            // Adjust horizontal padding
+            visualDensity: VisualDensity.standard,
+            elevation: 2, // Slight elevation
+          ),
+        ),
         const SizedBox(height: 24),
 
         // --- Search Filters ---
@@ -130,7 +143,7 @@ class SettingsPage extends GetView<SettingsController> {
             ],
           ),
         )),
-        _buildHelpText('Выберите пол пользователей для поиска. Рекомендуется "Женский".'),
+        _buildHelpText('Выберите пол пользователей для поиска.'),
         const SizedBox(height: 16),
 
         // Skip Closed Profiles Option
@@ -145,8 +158,6 @@ class SettingsPage extends GetView<SettingsController> {
               ),
             ],
           ),
-          subtitle: Text('Не показывать пользователей, если нельзя посмотреть стену (can_see_all_posts = false)',
-              style: Get.textTheme.bodySmall),
           value: controller.skipClosedProfiles.value,
           onChanged: (value) {
             controller.skipClosedProfiles.value = value;
@@ -172,8 +183,6 @@ class SettingsPage extends GetView<SettingsController> {
               ),
             ],
           ),
-          subtitle: Text('Показывать только тех, у кого статус не указан или в активном поиске/не замужем (женат))',
-              style: Get.textTheme.bodySmall),
           value: controller.skipRelationFilter.value,
           onChanged: (value) {
             controller.skipRelationFilter.value = value;

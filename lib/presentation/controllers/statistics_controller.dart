@@ -21,7 +21,7 @@ class StatisticsController extends GetxController {
 
   // Debouncer for saving data
   Timer? _saveDebounceTimer;
-  final Duration _saveDebounceDuration = const Duration(seconds: 2); // Save 2 seconds after last action
+  final Duration _saveDebounceDuration = const Duration(seconds: 1); // Save 2 seconds after last action
 
 
   @override

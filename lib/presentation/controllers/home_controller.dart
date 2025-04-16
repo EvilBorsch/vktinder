@@ -24,7 +24,7 @@ class HomeController extends GetxController {
   final int _loadMoreThreshold = 5;
 
   Timer? _saveStackDebounceTimer;
-  final Duration _saveStackDebounceDuration = const Duration(milliseconds: 800);
+  final Duration _saveStackDebounceDuration = const Duration(milliseconds: 600);
 
   Timer? _fetchDebounceTimer;
   final Duration _fetchDebounceDuration = const Duration(milliseconds: 500);
