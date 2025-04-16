@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:vktinder/presentation/controllers/nav_controller.dart';
 import 'package:vktinder/presentation/pages/home_page.dart';
 import 'package:vktinder/presentation/pages/settings_page.dart';
+import 'package:vktinder/presentation/pages/statistics.dart';
 
 class MainScreen extends GetView<NavController> {
   const MainScreen({Key? key}) : super(key: key);
@@ -14,6 +15,7 @@ class MainScreen extends GetView<NavController> {
             index: controller.selectedIndex.value,
             children: const [
               HomePage(),
+              StatisticsPage(),
               SettingsPage(),
             ],
           )),
@@ -26,6 +28,11 @@ class MainScreen extends GetView<NavController> {
                 icon: Icon(Icons.home_outlined, size: 28),
                 activeIcon: Icon(Icons.home, size: 28),
                 label: 'Главная',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.auto_graph_outlined, size: 28),
+                activeIcon: Icon(Icons.auto_graph, size: 28),
+                label: 'Статистика',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.settings_outlined, size: 28),
