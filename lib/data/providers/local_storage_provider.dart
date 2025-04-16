@@ -30,46 +30,7 @@ class LocalStorageProvider extends GetxService {
       'skip_relation_filter'; // Stores bool (skip if relation != 0 and != 6)
   // --- END NEW KEYS ---
 
-  // Cards methods (keep if still needed, but maybe less relevant with search)
-  // Note: Storing large lists of users here might become inefficient.
-  // Consider if this caching strategy is still required long-term.
-  // Future<List<VKGroupUser>> getStoredCards() async {
-  //   final storedCardsRaw = _storage.read(_cardsKey);
-  //   if (storedCardsRaw != null) {
-  //     try {
-  //       final List decoded = jsonDecode(storedCardsRaw);
-  //       return decoded
-  //           .map((item) => VKGroupUser.fromJson(item as Map<String, dynamic>))
-  //           .toList();
-  //     } catch (e) {
-  //       print("Error decoding stored cards: $e");
-  //       await _storage.remove(_cardsKey); // Clear corrupted cache
-  //       return [];
-  //     }
-  //   }
-  //   return [];
-  // }
 
-  // Future<void> saveCards(List<VKGroupUser> cards) async {
-  //   try {
-  //     await _storage.write(
-  //         _cardsKey, jsonEncode(cards.map((e) => e.toJson()).toList()));
-  //   } catch (e) {
-  //     print("Error encoding cards for storage: $e");
-  //   }
-  // }
-
-  // --- Cleaned up Cards Methods (Assume we don't store cards anymore) ---
-  Future<List<VKGroupUser>> getStoredCards() async {
-    // Clear old key just in case
-    //await _storage.remove('persisted_cards');
-    return []; // Not using card storage anymore
-  }
-
-  Future<void> saveCards(List<VKGroupUser> cards) async {
-    // No-op - not saving cards this way anymore
-    return;
-  }
 
 
   // --- EXISTING Settings methods ---
@@ -151,7 +112,7 @@ class LocalStorageProvider extends GetxService {
 
   bool getSkipRelationFilter() {
     // Defaults to false - don't skip based on relation initially
-    return _storage.read<bool>(_skipRelationFilterKey) ?? false;
+    return _storage.read<bool>(_skipRelationFilterKey) ?? true;
   }
 
 

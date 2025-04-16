@@ -19,8 +19,8 @@ class VkApiProvider extends getx.GetxService {
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://api.vk.com/method/',
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
     queryParameters: {
       'v': '5.199',
     },
@@ -511,6 +511,7 @@ class VkApiProvider extends getx.GetxService {
         'extended': 1,
         'photo_sizes': 1,
         'count': 30,
+        'rev': 1,
         'v': _apiVersion,
       });
       final responseData = _handleResponse(response);
@@ -520,8 +521,6 @@ class VkApiProvider extends getx.GetxService {
         return [];
       }
       final List photosList = responseData['items'] ?? [];
-      photosList.sort((a, b) =>
-          (b['likes']?['count'] ?? 0).compareTo(a['likes']?['count'] ?? 0));
 
       return photosList
           .map((photoData) {

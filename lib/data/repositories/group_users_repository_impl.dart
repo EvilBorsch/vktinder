@@ -6,27 +6,16 @@ import 'package:collection/collection.dart'; // For firstWhereOrNull
 import 'package:get/get.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/data/models/vk_group_info.dart';
-import 'package:vktinder/data/providers/local_storage_provider.dart';
 import 'package:vktinder/data/providers/vk_api_provider.dart';
 import 'package:vktinder/data/repositories/settings_repository_impl.dart'; // Import SettingsRepository
 
 class GroupUsersRepository {
-  final LocalStorageProvider _storageProvider =
-  Get.find<LocalStorageProvider>(); // Not used for cards anymore
   final VkApiProvider _apiProvider = Get.find<VkApiProvider>();
 
   // Get SettingsRepository to access all settings easily
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
 
-  // Get stored cards from local storage - DEPRECATED
-  Future<List<VKGroupUser>> getStoredCards() async {
-    return await _storageProvider.getStoredCards(); // Will return []
-  }
 
-  // Save cards to local storage - DEPRECATED
-  Future<void> saveCards(List<VKGroupUser> cards) async {
-    await _storageProvider.saveCards(cards); // Will do nothing
-  }
 
   // --- MODIFIED getUsers ---
   Future<List<VKGroupUser>> getUsers(
@@ -192,8 +181,7 @@ class GroupUsersRepository {
     print("Total profiles skipped due to relation filter: ${relationFilteredIds.length}");
     print("Total profiles skipped due to limited access filter: ${profileAccessLimitedIds.length}");
 
-    // No longer save to storage here
-    // await _groupUsersRepository.saveCards(usersList);
+
 
     return usersList;
   }
@@ -306,14 +294,9 @@ class GroupUsersRepository {
     }
   }
 
-  // Helper method to check if a profile has limited access based on can_see_all_posts
-  // No API call needed here as the data comes from searchUsers
+  // Helper method to check if a profile has limited access based on can_see_all_posts and canWritePrivateMessage
   bool _isProfileAccessLimited(VKGroupUser user) {
-    // If canSeeAllPosts is false, access is limited.
-    // If canSeeAllPosts is null (e.g., older API versions or error),
-    // we might assume it's NOT limited for broader results, or assume it IS limited
-    // for stricter filtering. Let's assume null means NOT limited.
-    return user.canSeeAllPosts == false;
+    return user.canSeeAllPosts == false || user.canWritePrivateMessage == false;
   }
 
   // sendMessage (Remains the same)
