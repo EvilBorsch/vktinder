@@ -1,3 +1,4 @@
+// --- File: lib/data/models/vk_group_user.dart ---
 // lib/data/models/vk_group_user.dart
 import 'vk_group_info.dart'; // Import the new model
 
@@ -15,11 +16,12 @@ class VKGroupUser {
   final String? city;
   final String? country;
   final int? sex;
-  final int? relation;
+  final int? relation; // 0-not set, 1-single.. 6-in active search..
   final String? screenName;
   final bool? online;
   final Map<String, dynamic>? lastSeen;
-  final bool? canWritePrivateMessage;
+  final bool? canWritePrivateMessage; // Keep for reference, might be useful
+  final bool? canSeeAllPosts;         // New field to check profile access
   final String? groupURL;
 
   VKGroupUser({
@@ -41,6 +43,7 @@ class VKGroupUser {
     this.online,
     this.lastSeen,
     this.canWritePrivateMessage,
+    this.canSeeAllPosts, // Add to constructor
     this.groupURL,
   });
 
@@ -61,6 +64,7 @@ class VKGroupUser {
     'online': online,
     'last_seen': lastSeen,
     'can_write_private_message': canWritePrivateMessage,
+    'can_see_all_posts': canSeeAllPosts, // Add to JSON
     // Serialize groups correctly
     'groups': groups.map((g) => g.toJson()).toList(),
     'photos': photos,
@@ -81,7 +85,6 @@ class VKGroupUser {
     }
 
     // Safely parse groups (if they somehow exist in the JSON during loading)
-    // Note: Normally groups will be populated separately by the repository
     List<VKGroupInfo> parsedGroups = [];
     if (json['groups'] != null && json['groups'] is List) {
       try {
@@ -92,6 +95,20 @@ class VKGroupUser {
         print("Error parsing groups from JSON: $e");
         // Keep parsedGroups empty if parsing fails
       }
+    }
+
+    // Helper to parse boolean fields safely (handles int 0/1 or bool)
+    bool? parseBool(dynamic value) {
+      if (value == null) return null;
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      if (value is String) {
+        if (value.toLowerCase() == 'true') return true;
+        if (value.toLowerCase() == 'false') return false;
+        final intValue = int.tryParse(value);
+        if (intValue != null) return intValue == 1;
+      }
+      return null; // Cannot determine boolean value
     }
 
 
@@ -120,7 +137,6 @@ class VKGroupUser {
           : const [],
 
       // Initialize other fields
-      // photos: const [], // Populated separately - Keep this as it is
       groups: parsedGroups, // Use the parsed groups or default empty list
 
       // Parse simple string fields
@@ -135,24 +151,15 @@ class VKGroupUser {
 
       // Parse numeric fields
       sex: json['sex'] as int?,
-      relation: json['relation'] as int?,
+      relation: json['relation'] as int?, // Parse relation
 
-      // Parse boolean fields
-      online: json['online'] != null
-          ? (json['online'] is bool
-          ? json['online'] as bool
-          : (json['online'] as int) == 1)
-          : null,
+      // Parse boolean fields using helper
+      online: parseBool(json['online']),
+      canWritePrivateMessage: parseBool(json['can_write_private_message']),
+      canSeeAllPosts: parseBool(json['can_see_all_posts']), // Parse new field
 
       // Parse complex/nested fields
       lastSeen: json['last_seen'] as Map<String, dynamic>?,
-
-      // Parse can_write_private_message field
-      canWritePrivateMessage: json['can_write_private_message'] != null
-          ? (json['can_write_private_message'] is bool
-              ? json['can_write_private_message'] as bool
-              : (json['can_write_private_message'] as int) == 1)
-          : null,
 
       // We expect photos to be populated separately later
       photos: (json['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? const [],
@@ -165,7 +172,7 @@ class VKGroupUser {
   // List<VKGroupInfo> groups;
 
   @override
-  String toString() => '{userID: $userID, name: $name, surname: $surname}, groupURL: $groupURL';
+  String toString() => '{userID: $userID, name: $name, surname: $surname, relation: $relation, canSeeAllPosts: $canSeeAllPosts}, groupURL: $groupURL';
 
   @override
   bool operator ==(Object other) =>

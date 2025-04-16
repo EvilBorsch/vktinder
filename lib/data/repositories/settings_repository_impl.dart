@@ -1,3 +1,4 @@
+// --- File: lib/data/repositories/settings_repository_impl.dart ---
 import 'package:get/get.dart';
 import 'package:vktinder/data/providers/local_storage_provider.dart';
 
@@ -26,13 +27,17 @@ class SettingsRepository {
   (int?, int?) getAgeRange() {
     return _storageProvider.getAgeRange();
   }
-  
+
   int getSexFilter() {
     return _storageProvider.getSexFilter();
   }
-  
+
   bool getSkipClosedProfiles() {
     return _storageProvider.getSkipClosedProfiles();
+  }
+
+  bool getSkipRelationFilter() { // Added getter
+    return _storageProvider.getSkipRelationFilter();
   }
 
   List<String> getGroupUrls() {
@@ -51,6 +56,7 @@ class SettingsRepository {
     required int sexFilter,
     required List<String> groupUrls,
     required bool skipClosedProfiles,
+    required bool skipRelationFilter, // Added parameter
   }) async {
     await Future.wait([
       _storageProvider.saveVkToken(vkToken),
@@ -62,6 +68,7 @@ class SettingsRepository {
       _storageProvider.saveSexFilter(sexFilter),
       _storageProvider.saveGroupUrls(groupUrls),
       _storageProvider.saveSkipClosedProfiles(skipClosedProfiles),
+      _storageProvider.saveSkipRelationFilter(skipRelationFilter), // Added save call
     ]);
   }
 }

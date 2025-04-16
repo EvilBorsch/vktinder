@@ -1,13 +1,15 @@
+// --- File: lib/presentation/controllers/statistics_controller.dart ---
 // lib/presentation/controllers/statistics_controller.dart
 import 'package:get/get.dart';
 import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/models/vk_group_user.dart'; // Need this for the input type of addUserAction
 import 'package:vktinder/data/repositories/statistics_repository.dart';
+import 'dart:async'; // For Timer
 
 class StatisticsController extends GetxController {
   final StatisticsRepository _statisticsRepository = Get.find<StatisticsRepository>();
 
-  // In-memory state for user actions (Map<GroupURL, ListOfActions>)
+  // In-memory state for user actions (Map<GroupURL, RxList<Action>>)
   final RxMap<String, RxList<StatisticsUserAction>> userActions =
       <String, RxList<StatisticsUserAction>>{}.obs;
 
@@ -17,16 +19,29 @@ class StatisticsController extends GetxController {
   // Loading state for initial load
   final RxBool isLoading = true.obs;
 
+  // Debouncer for saving data
+  Timer? _saveDebounceTimer;
+  final Duration _saveDebounceDuration = const Duration(seconds: 2); // Save 2 seconds after last action
+
+
   @override
   void onInit() {
     super.onInit();
     _loadInitialData();
   }
 
-  // --- Public methods (Interface remains similar) ---
+  @override
+  void onClose() {
+    _saveDebounceTimer?.cancel(); // Cancel timer if controller is destroyed
+    // Consider a final save on close if needed, but debouncing should cover most cases
+    // _saveDataImmediate();
+    super.onClose();
+  }
+
+
+  // --- Public methods ---
 
   /// Adds a user action (like/dislike) to the statistics.
-  /// IMPORTANT: Now takes the original VKGroupUser only to extract necessary data.
   Future<void> addUserAction(String groupURL, VKGroupUser user, String actionType) async {
     final action = StatisticsUserAction(
       userId: user.userID,
@@ -40,55 +55,58 @@ class StatisticsController extends GetxController {
 
     // 1. Update in-memory map
     if (!userActions.containsKey(groupURL)) {
+      // Ensure reactivity by assigning a new RxList if the key is new
       userActions[groupURL] = <StatisticsUserAction>[].obs;
     }
     // Add to the beginning for chronological display (newest first)
+    // Use insert(0, action) on the existing RxList to trigger updates
     userActions[groupURL]!.insert(0, action);
+    // userActions.refresh(); // May not be needed if directly modifying RxList content
 
     // 2. Update in-memory set of skipped IDs (all swiped users are skipped)
     skippedUserIDs.add(user.userID);
+    // skippedUserIDs.refresh(); // May not be needed
 
-    // 3. Trigger save operations (can be awaited but might not be necessary for UI responsiveness)
-    // Convert RxMap/RxList to plain Map/List for saving
-    _saveData();
+    // 3. Debounce save operations
+    _debounceSaveData();
   }
 
-  /// Refreshes the statistics data from storage.
-  /// Called by the StatisticsPage when it becomes visible.
+  /// Refreshes the statistics data from storage only if needed (e.g., if controller wasn't permanent).
+  /// Mostly forces UI refresh now as data is kept in sync.
   Future<void> refreshStatisticsView() async {
-    // No need to reload from storage here if the controller is permanent
-    // and data is kept in sync. If the controller wasn't permanent,
-    // we would reload here.
-    print("StatisticsController: Refreshing view (data is in memory)");
-    // Force UI update if needed (though Rx should handle it)
+    print("StatisticsController: Refreshing view (forcing UI update)");
     userActions.refresh();
     skippedUserIDs.refresh();
   }
 
-  /// Loads user actions from the repository (typically called during init).
-  /// Renamed from getUserActions to avoid confusion with simple getter.
+  // --- Internal Methods ---
+
+  /// Loads user actions from the repository.
   Future<void> _loadUserActionsFromRepo() async {
     final loadedActionsMap = await _statisticsRepository.loadUserActions();
-    // Convert the loaded Map<String, List> to Map<String, RxList>
     final observableMap = <String, RxList<StatisticsUserAction>>{};
     loadedActionsMap.forEach((key, value) {
+      // Sort actions by date descending when loading for consistency
+      value.sort((a, b) => b.actionDate.compareTo(a.actionDate));
       observableMap[key] = value.obs;
     });
     userActions.value = observableMap; // Assign the new map to the RxMap
-    print("StatisticsController: Loaded user actions into memory.");
+    print("StatisticsController: Loaded ${userActions.length} groups with actions into memory.");
   }
 
-  /// Loads skipped user IDs from the repository (typically called during init).
-  /// Renamed from getSkippedIDs.
+  /// Loads skipped user IDs from the repository.
   Future<void> _loadSkippedUserIdsFromRepo() async {
     final loadedIds = await _statisticsRepository.loadSkippedUserIds();
     skippedUserIDs.value = loadedIds; // Assign the loaded set to the RxSet
-    print("StatisticsController: Loaded skipped IDs into memory.");
+    print("StatisticsController: Loaded ${skippedUserIDs.length} skipped IDs into memory.");
   }
 
   /// Loads all data initially.
   Future<void> _loadInitialData() async {
     isLoading.value = true;
+    // Clear existing in-memory data before loading
+    userActions.clear();
+    skippedUserIDs.clear();
     try {
       await Future.wait([
         _loadUserActionsFromRepo(),
@@ -96,7 +114,6 @@ class StatisticsController extends GetxController {
       ]);
     } catch (e) {
       print("Error loading initial statistics data: $e");
-      // Handle error appropriately, maybe show a snackbar
       Get.snackbar('Ошибка', 'Не удалось загрузить статистику: $e',
           snackPosition: SnackPosition.BOTTOM);
     } finally {
@@ -104,32 +121,44 @@ class StatisticsController extends GetxController {
     }
   }
 
-  /// Saves the current in-memory state to storage.
-  /// This can be called after each action or debounced/throttled later.
-  Future<void> _saveData() async {
+  /// Debounces the save operation.
+  void _debounceSaveData() {
+    if (_saveDebounceTimer?.isActive ?? false) _saveDebounceTimer!.cancel();
+    _saveDebounceTimer = Timer(_saveDebounceDuration, () {
+      _saveDataImmediate();
+    });
+  }
+
+
+  /// Saves the current in-memory state to storage immediately.
+  Future<void> _saveDataImmediate() async {
     // Convert Map<String, RxList<StatisticsUserAction>> to Map<String, List<StatisticsUserAction>>
     final Map<String, List<StatisticsUserAction>> plainActionsMap = {};
     userActions.forEach((key, rxList) {
       plainActionsMap[key] = rxList.toList(); // Convert RxList to List
     });
 
-    // Save both datasets
+    // Create a copy of the set for saving
+    final Set<String> idsToSave = skippedUserIDs.value.toSet();
+
+    print("StatisticsController: Saving data: ${plainActionsMap.length} action groups, ${idsToSave.length} skipped IDs.");
+
+    // Save both datasets concurrently
     try {
       await Future.wait([
         _statisticsRepository.saveUserActions(plainActionsMap),
-        _statisticsRepository.saveSkippedUserIds(skippedUserIDs.value.toSet()), // Ensure it's a Set
+        _statisticsRepository.saveSkippedUserIds(idsToSave),
       ]);
-      print("StatisticsController: Saved current state.");
+      print("StatisticsController: Saved current state successfully.");
     } catch (e) {
       print("Error saving statistics data: $e");
       // Handle saving error (e.g., show persistent error message)
-      // Be cautious about OutOfMemoryError here too, although it's less likely now
+      Get.snackbar('Ошибка Сохранения', 'Не удалось сохранить прогресс: $e', snackPosition: SnackPosition.BOTTOM);
     }
   }
 
 
   // --- Getter for HomeController ---
   /// Provides the set of skipped user IDs for filtering in HomeController.
-  Set<String> get skippedIdsSet => skippedUserIDs.value.toSet(); // Return a copy or the reactive set itself
-
+  Set<String> get skippedIdsSet => skippedUserIDs.value.toSet(); // Return a copy to prevent modification outside controller
 }

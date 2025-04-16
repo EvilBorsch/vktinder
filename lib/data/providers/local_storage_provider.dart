@@ -1,3 +1,4 @@
+// --- File: lib/data/providers/local_storage_provider.dart ---
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -7,8 +8,7 @@ class LocalStorageProvider extends GetxService {
   final _storage = GetStorage();
 
   // User cards storage
-  static const String _cardsKey =
-      'persisted_cards'; // Keep this if still needed for some caching
+  // static const String _cardsKey = 'persisted_cards'; // Keep this if still needed for some caching
 
   // Settings storage keys
   static const String _vkTokenKey = 'vk_token';
@@ -17,43 +17,60 @@ class LocalStorageProvider extends GetxService {
 
   // --- NEW KEYS ---
   static const String _citiesKey =
-      'search_cities'; // Stores List<String> as JSON
+      'search_cities_v2'; // Stores List<String> as JSON // v2 to avoid decode errors if format changed
   static const String _ageFromKey = 'search_age_from'; // Stores int?
   static const String _ageToKey = 'search_age_to'; // Stores int?
   static const String _groupUrlsKey =
-      'search_group_urls'; // Stores List<String> as JSON
+      'search_group_urls_v2'; // Stores List<String> as JSON // v2
   static const String _sexFilterKey =
       'search_sex_filter'; // Stores int (0, 1, 2)
   static const String _skipClosedProfilesKey =
-      'skip_closed_profiles'; // Stores bool
+      'skip_closed_profiles_v2'; // Use canSeeAllPosts logic now // v2
+  static const String _skipRelationFilterKey =
+      'skip_relation_filter'; // Stores bool (skip if relation != 0 and != 6)
   // --- END NEW KEYS ---
 
   // Cards methods (keep if still needed, but maybe less relevant with search)
+  // Note: Storing large lists of users here might become inefficient.
+  // Consider if this caching strategy is still required long-term.
+  // Future<List<VKGroupUser>> getStoredCards() async {
+  //   final storedCardsRaw = _storage.read(_cardsKey);
+  //   if (storedCardsRaw != null) {
+  //     try {
+  //       final List decoded = jsonDecode(storedCardsRaw);
+  //       return decoded
+  //           .map((item) => VKGroupUser.fromJson(item as Map<String, dynamic>))
+  //           .toList();
+  //     } catch (e) {
+  //       print("Error decoding stored cards: $e");
+  //       await _storage.remove(_cardsKey); // Clear corrupted cache
+  //       return [];
+  //     }
+  //   }
+  //   return [];
+  // }
+
+  // Future<void> saveCards(List<VKGroupUser> cards) async {
+  //   try {
+  //     await _storage.write(
+  //         _cardsKey, jsonEncode(cards.map((e) => e.toJson()).toList()));
+  //   } catch (e) {
+  //     print("Error encoding cards for storage: $e");
+  //   }
+  // }
+
+  // --- Cleaned up Cards Methods (Assume we don't store cards anymore) ---
   Future<List<VKGroupUser>> getStoredCards() async {
-    final storedCardsRaw = _storage.read(_cardsKey);
-    if (storedCardsRaw != null) {
-      try {
-        final List decoded = jsonDecode(storedCardsRaw);
-        return decoded
-            .map((item) => VKGroupUser.fromJson(item as Map<String, dynamic>))
-            .toList();
-      } catch (e) {
-        print("Error decoding stored cards: $e");
-        await _storage.remove(_cardsKey); // Clear corrupted cache
-        return [];
-      }
-    }
-    return [];
+    // Clear old key just in case
+    //await _storage.remove('persisted_cards');
+    return []; // Not using card storage anymore
   }
 
   Future<void> saveCards(List<VKGroupUser> cards) async {
-    try {
-      await _storage.write(
-          _cardsKey, jsonEncode(cards.map((e) => e.toJson()).toList()));
-    } catch (e) {
-      print("Error encoding cards for storage: $e");
-    }
+    // No-op - not saving cards this way anymore
+    return;
   }
+
 
   // --- EXISTING Settings methods ---
   String getVkToken() {
@@ -66,7 +83,7 @@ class LocalStorageProvider extends GetxService {
 
   String getDefaultMessage() {
     return _storage.read(_defaultMessageKey) ??
-        'Привет! Как дела?'; // Provide a default
+        'Привет'; // Update default message
   }
 
   Future<void> saveDefaultMessage(String message) async {
@@ -84,14 +101,14 @@ class LocalStorageProvider extends GetxService {
   // --- NEW Settings methods ---
   List<String> getCities() {
     final storedCities = _storage.read<String>(_citiesKey);
-    print("Raw stored cities data: $storedCities");
+    // print("Raw stored cities data: $storedCities"); // Keep for debug if needed
 
     if (storedCities != null && storedCities.isNotEmpty) {
       try {
         final List<dynamic> decoded = jsonDecode(storedCities);
         final List<String> cities =
-            decoded.map((item) => item.toString()).toList();
-        print("Decoded cities: $cities");
+        decoded.map((item) => item.toString()).toList();
+        // print("Decoded cities: $cities"); // Keep for debug if needed
         return cities;
       } catch (e) {
         print("Error decoding cities: $e");
@@ -99,18 +116,22 @@ class LocalStorageProvider extends GetxService {
         return [];
       }
     }
-    return []; // Default to empty list
+    return ["Севастополь"]; // Default to example city
   }
 
   Future<void> saveCities(List<String> cities) async {
-    print("Saving cities to storage: $cities");
-    final String encoded = jsonEncode(cities);
-    print("Encoded cities: $encoded");
-    await _storage.write(_citiesKey, encoded);
+    // print("Saving cities to storage: $cities"); // Keep for debug if needed
+    try {
+      final String encoded = jsonEncode(cities);
+      // print("Encoded cities: $encoded"); // Keep for debug if needed
+      await _storage.write(_citiesKey, encoded);
 
-    // Verify save
-    final saved = _storage.read<String>(_citiesKey);
-    print("Verified raw cities in storage: $saved");
+      // Verify save
+      // final saved = _storage.read<String>(_citiesKey);
+      // print("Verified raw cities in storage: $saved"); // Keep for debug if needed
+    } catch (e) {
+      print("Error encoding/saving cities: $e");
+    }
   }
 
   (int?, int?) getAgeRange() {
@@ -120,12 +141,19 @@ class LocalStorageProvider extends GetxService {
   }
 
   int getSexFilter() {
-    return _storage.read<int>(_sexFilterKey) ?? 0; // Default to 0 (any)
+    return _storage.read<int>(_sexFilterKey) ?? 1; // Default to 1 (female)
   }
 
   bool getSkipClosedProfiles() {
+    // Defaults to true - skip closed profiles initially
     return _storage.read<bool>(_skipClosedProfilesKey) ?? true;
   }
+
+  bool getSkipRelationFilter() {
+    // Defaults to false - don't skip based on relation initially
+    return _storage.read<bool>(_skipRelationFilterKey) ?? false;
+  }
+
 
   Future<void> saveAgeRange(int? ageFrom, int? ageTo) async {
     if (ageFrom == null) {
@@ -148,6 +176,11 @@ class LocalStorageProvider extends GetxService {
     await _storage.write(_skipClosedProfilesKey, skip);
   }
 
+  Future<void> saveSkipRelationFilter(bool skip) async {
+    await _storage.write(_skipRelationFilterKey, skip);
+  }
+
+
   List<String> getGroupUrls() {
     final storedUrls = _storage.read<String>(_groupUrlsKey);
     if (storedUrls != null && storedUrls.isNotEmpty) {
@@ -161,10 +194,13 @@ class LocalStorageProvider extends GetxService {
     }
     // --- ADD A DEFAULT GROUP FOR TESTING/INITIAL USE ---
     return ["https://vk.com/team"]; // Example default
-    // return []; // Default to empty list
   }
 
   Future<void> saveGroupUrls(List<String> urls) async {
-    await _storage.write(_groupUrlsKey, jsonEncode(urls));
+    try {
+      await _storage.write(_groupUrlsKey, jsonEncode(urls));
+    } catch (e) {
+      print("Error encoding/saving group URLs: $e");
+    }
   }
 }
