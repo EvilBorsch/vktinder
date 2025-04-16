@@ -120,7 +120,7 @@ class VkApiProvider extends getx.GetxService {
           "online": Random().nextInt(2),
           "city": {"id": 1, "title": "MockCity"},
           "relation": Random().nextInt(9), // Mock relation
-          "can_see_all_posts": Random().nextBool(), // Mock can_see_all_posts
+          "is_closed": Random().nextBool(), // Mock can_see_all_posts
         }));
   }
 
@@ -149,7 +149,7 @@ class VkApiProvider extends getx.GetxService {
       "about": "Это моковый профиль пользователя для тестирования.",
       "status": "Тестирую приложение \u{1F680}", // Rocket emoji
       "relation": Random().nextInt(9), // Mock relation
-      "can_see_all_posts": Random().nextBool(), // Mock can_see_all_posts
+      "is_closed": Random().nextBool(), // Mock can_see_all_posts
       "can_write_private_message": Random().nextBool(),
       "last_seen": {
         "time": DateTime.now().millisecondsSinceEpoch ~/ 1000 -
@@ -351,10 +351,10 @@ class VkApiProvider extends getx.GetxService {
         // matchesSex = (sex == (uniqueId % 2 == 0 ? 2 : 1)); // Even ID = male, Odd ID = female if sex != 0
       }
 
-      // Simulate relation and canSeeAllPosts
+      // Simulate relation and isClosed
       int mockRelation = random.nextInt(9); // 0-8
       // Simulate closed profiles: make about 20% of profiles "closed/limited"
-      bool mockCanSeeAllPosts = random.nextDouble() > 0.2;
+      bool isClosed = random.nextDouble() > 0.2;
 
       if (matchesCity && matchesAge && matchesSex) {
         mockUsers.add(VKGroupUser.fromJson({
@@ -379,7 +379,7 @@ class VkApiProvider extends getx.GetxService {
           "screen_name": "search_user_$uniqueId",
           "groupURL": groupURL,
           "relation": mockRelation, // Include mock relation
-          "can_see_all_posts": mockCanSeeAllPosts, // Include mock field
+          "is_closed": isClosed, // Include mock field
           "can_write_private_message": random.nextBool(), // Add this too for consistency
         }));
       }
@@ -411,7 +411,7 @@ class VkApiProvider extends getx.GetxService {
           'group_id': groupId,
           'access_token': vkToken,
           'fields':
-          'id,first_name,last_name,photo_100,photo_200,sex,online,city,country,bdate,relation,can_see_all_posts,can_write_private_message', // Added relation, can_see_all_posts
+          'id,first_name,last_name,photo_100,photo_200,sex,online,city,country,bdate,relation,is_closed,can_write_private_message', // Added relation, can_see_all_posts
           'v': _apiVersion,
           'count': 1000,
         },
@@ -459,7 +459,7 @@ class VkApiProvider extends getx.GetxService {
       final response = await _dio.get('users.get', queryParameters: {
         'user_ids': userID,
         'fields':
-        'id,first_name,last_name,photo_max_orig,sex,bdate,city,country,interests,about,status,relation,screen_name,online,last_seen,photo_50,photo_100,photo_200,photo_400_orig,can_write_private_message,can_see_all_posts', // Added can_see_all_posts
+        'id,first_name,last_name,photo_max_orig,sex,bdate,city,country,interests,about,status,relation,screen_name,online,last_seen,photo_50,photo_100,photo_200,photo_400_orig,can_write_private_message,is_closed',
         'access_token': vkToken,
         'v': _apiVersion,
       });
@@ -707,7 +707,6 @@ class VkApiProvider extends getx.GetxService {
         'extended': 0,
         'access_token': vkToken,
         'v': _apiVersion,
-        'count': 200 // Keep count reasonable
       });
       final responseData = _handleResponse(response);
       if (responseData?['groups']?['items'] is List) {
@@ -716,7 +715,7 @@ class VkApiProvider extends getx.GetxService {
         groupIdsRaw.map((id) => id as int).where((id) => id > 0).toList();
         print(
             "Fetched ${groupIds.length} group subscription IDs for user $userId.");
-        return groupIds;
+        return groupIds.sublist(0, 200); // Ограничиваем количество групп сверху
       } else {
         print(
             "Warning: users.getSubscriptions response did not contain a valid groups list for user $userId.");
@@ -751,7 +750,7 @@ class VkApiProvider extends getx.GetxService {
       return [];
     }
     List<VKGroupInfo> allGroups = [];
-    const chunkSize = 450; // Keep chunking
+    const chunkSize = 100; // Keep chunking
 
     for (var i = 0; i < groupIds.length; i += chunkSize) {
       final chunk = groupIds.sublist(i, min(i + chunkSize, groupIds.length));
@@ -1051,9 +1050,8 @@ class VkApiProvider extends getx.GetxService {
       'count': count.clamp(1, 1000),
       'offset': offset,
       'sex': sex,
-      // ADDED: relation and can_see_all_posts
       'fields':
-      'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen,can_write_private_message,relation,can_see_all_posts',
+      'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen,can_write_private_message,relation,is_closed',
       // Setting `has_photo` to 1 might slightly improve relevance, but isn't strictly necessary if filtering later
       'has_photo': 1,
     };

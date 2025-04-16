@@ -66,7 +66,7 @@ class GroupUsersRepository {
     final Set<VKGroupUser> foundUsers =
     {}; // Use a Set to automatically handle duplicates
     final Set<String> profileAccessLimitedIds =
-    {}; // Track profiles where can_see_all_posts is false
+    {}; // Track profiles where is_closed is true
     final Set<String> relationFilteredIds =
     {}; // Track profiles filtered by relation
     const int searchLimitPerRequest =
@@ -136,7 +136,7 @@ class GroupUsersRepository {
                 continue;
               }
 
-              // Check profile access filter (using can_see_all_posts)
+              // Check profile access filter (using is_closed)
               bool isLimitedAccess = _isProfileAccessLimited(user);
               if (isLimitedAccess) {
                 profileAccessLimitedIds.add(user.userID);
@@ -265,7 +265,7 @@ class GroupUsersRepository {
         online: baseProfileInfo.online,
         lastSeen: baseProfileInfo.lastSeen,
         canWritePrivateMessage: baseProfileInfo.canWritePrivateMessage,
-        canSeeAllPosts: baseProfileInfo.canSeeAllPosts, // Include the field
+        isClosed: baseProfileInfo.isClosed, // Include the field
         photos: photos,
         groups: groups, // Assign fetched groups
         groupURL: baseProfileInfo.groupURL // Preserve groupURL if it came from search
@@ -294,9 +294,9 @@ class GroupUsersRepository {
     }
   }
 
-  // Helper method to check if a profile has limited access based on can_see_all_posts and canWritePrivateMessage
+  // Helper method to check if a profile has limited access based on is_closed and canWritePrivateMessage
   bool _isProfileAccessLimited(VKGroupUser user) {
-    return user.canSeeAllPosts == false && user.canWritePrivateMessage != true;
+    return user.isClosed == true && user.canWritePrivateMessage != true;
   }
 
   // sendMessage (Remains the same)

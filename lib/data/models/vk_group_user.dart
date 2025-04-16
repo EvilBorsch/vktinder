@@ -21,7 +21,7 @@ class VKGroupUser {
   final bool? online;
   final Map<String, dynamic>? lastSeen;
   final bool? canWritePrivateMessage;
-  final bool? canSeeAllPosts;
+  final bool? isClosed;
   final String? groupURL; // *** Make sure this exists ***
 
   VKGroupUser({
@@ -43,7 +43,7 @@ class VKGroupUser {
     this.online,
     this.lastSeen,
     this.canWritePrivateMessage,
-    this.canSeeAllPosts,
+    this.isClosed,
     this.groupURL, // *** Add to constructor ***
   });
 
@@ -65,7 +65,7 @@ class VKGroupUser {
     'online': online,
     'last_seen': lastSeen, // VK format is fine here
     'can_write_private_message': canWritePrivateMessage,
-    'can_see_all_posts': canSeeAllPosts,
+    'is_closed': isClosed,
     'groupURL': groupURL, // *** Serialize groupURL ***
     // We generally DON'T save full photos/groups list in the persisted card stack
     // to keep it smaller. They are fetched on demand in the detail view.
@@ -135,7 +135,7 @@ class VKGroupUser {
       relation: json['relation'] as int?,
       online: parseBool(json['online']),
       canWritePrivateMessage: parseBool(json['can_write_private_message']),
-      canSeeAllPosts: parseBool(json['can_see_all_posts']),
+      isClosed: parseBool(json['is_closed']),
 
       lastSeen: json['last_seen'] as Map<String, dynamic>?,
 

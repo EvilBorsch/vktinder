@@ -178,7 +178,7 @@ class SettingsPage extends GetView<SettingsController> {
               Icon(Icons.family_restroom_outlined, size: 20),
               SizedBox(width: 12),
               Expanded(
-                child: Text('Искать только свободных / в поиске',
+                child: Text('Фильтровать людей в отношениях',
                     style: TextStyle(fontWeight: FontWeight.w500)),
               ),
             ],
@@ -192,7 +192,6 @@ class SettingsPage extends GetView<SettingsController> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           dense: true,
         )),
-        _buildHelpText('Позволяет отфильтровать тех, кто уже в отношениях, помолвлен, женат/замужем и т.д.'),
         const SizedBox(height: 24), // Spacing after switch
 
 
