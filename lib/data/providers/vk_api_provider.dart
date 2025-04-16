@@ -7,7 +7,7 @@ import 'dart:async'; // For Future.delayed
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart'; // Needed for Colors in _handleResponse snackbar
 import 'package:get/get.dart'
-as getx; // Use alias to avoid conflict with Get package's Get class
+    as getx; // Use alias to avoid conflict with Get package's Get class
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/data/models/vk_group_info.dart';
 
@@ -44,7 +44,7 @@ class VkApiProvider extends getx.GetxService {
             requestOptions: response.requestOptions,
             response: response,
             error:
-            'Ошибка авторизации [5]: Неверный VK токен. Проверьте токен в настройках.',
+                'Ошибка авторизации [5]: Неверный VK токен. Проверьте токен в настройках.',
             type: DioExceptionType.unknown,
           );
         } else if (errorCode == 15 || errorCode == 30) {
@@ -59,7 +59,7 @@ class VkApiProvider extends getx.GetxService {
             requestOptions: response.requestOptions,
             response: response,
             error:
-            'Ошибка параметров [100]: $errorMessage. Возможно, указан неверный ID группы или города.',
+                'Ошибка параметров [100]: $errorMessage. Возможно, указан неверный ID группы или города.',
             type: DioExceptionType.unknown,
           );
         } else if (errorCode == 6) {
@@ -69,7 +69,7 @@ class VkApiProvider extends getx.GetxService {
             requestOptions: response.requestOptions,
             response: response,
             error:
-            'Слишком много запросов [6]. Пожалуйста, подождите и попробуйте снова.',
+                'Слишком много запросов [6]. Пожалуйста, подождите и попробуйте снова.',
             type: DioExceptionType.unknown,
           );
         }
@@ -94,7 +94,7 @@ class VkApiProvider extends getx.GetxService {
         requestOptions: response.requestOptions,
         response: response,
         error:
-        'Ошибка сети при запросе к VK API (Статус: ${response.statusCode})',
+            'Ошибка сети при запросе к VK API (Статус: ${response.statusCode})',
         type: DioExceptionType.badResponse,
       );
     }
@@ -108,20 +108,20 @@ class VkApiProvider extends getx.GetxService {
     await Future.delayed(const Duration(milliseconds: 500));
     return List.generate(
         15,
-            (index) => VKGroupUser.fromJson({
-          "id": 1000 + index,
-          "first_name": "MockGroup",
-          "last_name": "User$index",
-          "photo_100":
-          "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000 + index}",
-          "photo_200":
-          "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000 + index}",
-          "sex": 1,
-          "online": Random().nextInt(2),
-          "city": {"id": 1, "title": "MockCity"},
-          "relation": Random().nextInt(9), // Mock relation
-          "is_closed": Random().nextBool(), // Mock can_see_all_posts
-        }));
+        (index) => VKGroupUser.fromJson({
+              "id": 1000 + index,
+              "first_name": "MockGroup",
+              "last_name": "User$index",
+              "photo_100":
+                  "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000 + index}",
+              "photo_200":
+                  "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000 + index}",
+              "sex": 1,
+              "online": Random().nextInt(2),
+              "city": {"id": 1, "title": "MockCity"},
+              "relation": Random().nextInt(9), // Mock relation
+              "is_closed": Random().nextBool(), // Mock can_see_all_posts
+            }));
   }
 
   // Mock for getFullProfile (returns base info, repo adds photos/groups)
@@ -134,11 +134,11 @@ class VkApiProvider extends getx.GetxService {
       "first_name": "MockFull",
       "last_name": "Profile$id",
       "photo_100":
-      "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
+          "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
       "photo_200":
-      "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
+          "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
       "photo_max_orig":
-      "https://via.placeholder.com/600/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
+          "https://via.placeholder.com/600/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=F$id",
       "sex": 1,
       "online": Random().nextInt(2),
       "screen_name": "mock_user_$id",
@@ -166,8 +166,8 @@ class VkApiProvider extends getx.GetxService {
     final id = int.tryParse(userID) ?? Random().nextInt(50000);
     return List.generate(
         Random().nextInt(5) + 1, // 1 to 5 photos
-            (index) =>
-        "https://via.placeholder.com/600/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=Photo${index}_User$id");
+        (index) =>
+            "https://via.placeholder.com/600/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=Photo${index}_User$id");
   }
 
   // Mock for sendMessage
@@ -199,8 +199,8 @@ class VkApiProvider extends getx.GetxService {
     await Future.delayed(const Duration(milliseconds: 350));
     return List.generate(
         Random().nextInt(15) + 5, // 5 to 19 groups
-            (index) => Random().nextInt(1000000) + 1 // Random group IDs
-    );
+        (index) => Random().nextInt(1000000) + 1 // Random group IDs
+        );
   }
 
   // Mock for getGroupsById
@@ -229,7 +229,7 @@ class VkApiProvider extends getx.GetxService {
     print("[MOCK] Resolving screen name: $screenName");
     await Future.delayed(const Duration(milliseconds: 100));
     switch (screenName.toLowerCase()) {
-    // case-insensitive mock
+      // case-insensitive mock
       case "flutterdev":
         return 1;
       case "facts":
@@ -253,7 +253,7 @@ class VkApiProvider extends getx.GetxService {
       case "invalid_name":
         return null; // Simulate not found
       default:
-      // Simulate finding some others, but not all
+        // Simulate finding some others, but not all
         if (screenName.hashCode % 3 != 0) {
           return Random().nextInt(100000) + 10000; // Random ID for others
         } else {
@@ -312,7 +312,7 @@ class VkApiProvider extends getx.GetxService {
     int sex = 1, // Respect sex parameter
     int count = 20,
     int offset = 0,
-    String groupURL= '',
+    String groupURL = '',
   }) async {
     print(
         "[MOCK] Searching users: groupId=$groupId, cityId=$cityId, ageFrom=$ageFrom, ageTo=$ageTo, sex=$sex, count=$count, offset=$offset");
@@ -346,7 +346,10 @@ class VkApiProvider extends getx.GetxService {
         matchesSex = true; // Match any sex if sex is 0
       } else {
         // Simulate roughly matching the requested sex (adjust distribution as needed)
-        matchesSex = (sex == (random.nextInt(3) == 0 ? 2 : 1)); // ~1/3 male (2), ~2/3 female (1), adjust as preferred
+        matchesSex = (sex ==
+            (random.nextInt(3) == 0
+                ? 2
+                : 1)); // ~1/3 male (2), ~2/3 female (1), adjust as preferred
         // Or more directly:
         // matchesSex = (sex == (uniqueId % 2 == 0 ? 2 : 1)); // Even ID = male, Odd ID = female if sex != 0
       }
@@ -363,14 +366,16 @@ class VkApiProvider extends getx.GetxService {
           "first_name": "Поиск${groupId ?? 'G'}${cityId ?? 'C'}",
           "last_name": "Юзер${offset + i}",
           "photo_100":
-          "https://via.placeholder.com/100/${uniqueId % 2 == 0 ? '00F' : 'F00'}/FFF?text=S$uniqueId",
+              "https://via.placeholder.com/100/${uniqueId % 2 == 0 ? '00F' : 'F00'}/FFF?text=S$uniqueId",
           "photo_200":
-          "https://via.placeholder.com/200/${uniqueId % 2 == 0 ? '00F' : 'F00'}/FFF?text=S$uniqueId",
-          "sex": (sex == 0) ? (uniqueId % 2 == 0 ? 2 : 1) : sex, // Return actual sex or requested sex
+              "https://via.placeholder.com/200/${uniqueId % 2 == 0 ? '00F' : 'F00'}/FFF?text=S$uniqueId",
+          "sex": (sex == 0) ? (uniqueId % 2 == 0 ? 2 : 1) : sex,
+          // Return actual sex or requested sex
           "online": random.nextInt(2),
-          "bdate": "1.1.${DateTime.now().year - mockAge}", // Approximate bdate
+          "bdate": "1.1.${DateTime.now().year - mockAge}",
+          // Approximate bdate
           "city":
-          cityId != null ? {"id": cityId, "title": "Город $cityId"} : null,
+              cityId != null ? {"id": cityId, "title": "Город $cityId"} : null,
           "last_seen": {
             "time": DateTime.now().millisecondsSinceEpoch ~/ 1000 -
                 random.nextInt(3600 * 24),
@@ -378,9 +383,12 @@ class VkApiProvider extends getx.GetxService {
           },
           "screen_name": "search_user_$uniqueId",
           "groupURL": groupURL,
-          "relation": mockRelation, // Include mock relation
-          "is_closed": isClosed, // Include mock field
-          "can_write_private_message": random.nextBool(), // Add this too for consistency
+          "relation": mockRelation,
+          // Include mock relation
+          "is_closed": isClosed,
+          // Include mock field
+          "can_write_private_message": random.nextBool(),
+          // Add this too for consistency
         }));
       }
     }
@@ -411,7 +419,8 @@ class VkApiProvider extends getx.GetxService {
           'group_id': groupId,
           'access_token': vkToken,
           'fields':
-          'id,first_name,last_name,photo_100,photo_200,sex,online,city,country,bdate,relation,is_closed,can_write_private_message', // Added relation, can_see_all_posts
+              'id,first_name,last_name,photo_100,photo_200,sex,online,city,country,bdate,relation,is_closed,can_write_private_message',
+          // Added relation, can_see_all_posts
           'v': _apiVersion,
           'count': 1000,
         },
@@ -430,7 +439,8 @@ class VkApiProvider extends getx.GetxService {
       //         VKGroupUser.fromJson(userData as Map<String, dynamic>))
       //     .toList();
       return usersList
-          .map((userData) => VKGroupUser.fromJson(userData as Map<String, dynamic>))
+          .map((userData) =>
+              VKGroupUser.fromJson(userData as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       print("DioError fetching group users: ${e.message}");
@@ -459,7 +469,7 @@ class VkApiProvider extends getx.GetxService {
       final response = await _dio.get('users.get', queryParameters: {
         'user_ids': userID,
         'fields':
-        'id,first_name,last_name,photo_max_orig,sex,bdate,city,country,interests,about,status,relation,screen_name,online,last_seen,photo_50,photo_100,photo_200,photo_400_orig,can_write_private_message,is_closed',
+            'id,first_name,last_name,photo_max_orig,sex,bdate,city,country,interests,about,status,relation,screen_name,online,last_seen,photo_50,photo_100,photo_200,photo_400_orig,can_write_private_message,is_closed',
         'access_token': vkToken,
         'v': _apiVersion,
       });
@@ -473,7 +483,7 @@ class VkApiProvider extends getx.GetxService {
       }
 
       final user =
-      VKGroupUser.fromJson(responseData[0] as Map<String, dynamic>);
+          VKGroupUser.fromJson(responseData[0] as Map<String, dynamic>);
       return user;
     } on DioException catch (e) {
       print("DioError fetching full profile: ${e.message}");
@@ -524,41 +534,41 @@ class VkApiProvider extends getx.GetxService {
 
       return photosList
           .map((photoData) {
-        if (photoData == null || photoData['sizes'] == null) return null;
-        final sizes = (photoData['sizes'] as List?) ?? [];
-        if (sizes.isNotEmpty) {
-          final priority = [
-            'w',
-            'z',
-            'y',
-            'x',
-            'r',
-            'q',
-            'p',
-            'o',
-            'm',
-            's'
-          ];
-          for (String type in priority) {
-            try {
-              final size = sizes.lastWhere(
+            if (photoData == null || photoData['sizes'] == null) return null;
+            final sizes = (photoData['sizes'] as List?) ?? [];
+            if (sizes.isNotEmpty) {
+              final priority = [
+                'w',
+                'z',
+                'y',
+                'x',
+                'r',
+                'q',
+                'p',
+                'o',
+                'm',
+                's'
+              ];
+              for (String type in priority) {
+                try {
+                  final size = sizes.lastWhere(
                       (s) => s != null && s['type'] == type,
-                  orElse: () => null);
-              if (size != null && size['url'] is String)
-                return size['url'] as String;
-            } catch (e) {
-              print("Error finding photo size '$type': $e");
+                      orElse: () => null);
+                  if (size != null && size['url'] is String)
+                    return size['url'] as String;
+                } catch (e) {
+                  print("Error finding photo size '$type': $e");
+                }
+              }
+              try {
+                if (sizes.last != null && sizes.last['url'] is String)
+                  return sizes.last['url'] as String;
+              } catch (e) {
+                print("Error accessing last photo size: $e");
+              }
             }
-          }
-          try {
-            if (sizes.last != null && sizes.last['url'] is String)
-              return sizes.last['url'] as String;
-          } catch (e) {
-            print("Error accessing last photo size: $e");
-          }
-        }
-        return null;
-      })
+            return null;
+          })
           .whereType<String>()
           .toList();
     } on DioException catch (e) {
@@ -702,7 +712,7 @@ class VkApiProvider extends getx.GetxService {
     try {
       print("VK API Call: users.getSubscriptions (userId: $userId)");
       final response =
-      await _dio.get('users.getSubscriptions', queryParameters: {
+          await _dio.get('users.getSubscriptions', queryParameters: {
         'user_id': userId,
         'extended': 0,
         'access_token': vkToken,
@@ -712,10 +722,10 @@ class VkApiProvider extends getx.GetxService {
       if (responseData?['groups']?['items'] is List) {
         final List groupIdsRaw = responseData['groups']['items'];
         final List<int> groupIds =
-        groupIdsRaw.map((id) => id as int).where((id) => id > 0).toList();
+            groupIdsRaw.map((id) => id as int).where((id) => id > 0).toList();
         print(
             "Fetched ${groupIds.length} group subscription IDs for user $userId.");
-        return groupIds.sublist(0, 200); // Ограничиваем количество групп сверху
+        return groupIds.sublist(0, 250); // Ограничиваем количество групп сверху
       } else {
         print(
             "Warning: users.getSubscriptions response did not contain a valid groups list for user $userId.");
@@ -745,60 +755,45 @@ class VkApiProvider extends getx.GetxService {
     if (_useMockData)
       return _getMockGroupsById(groupIds); // <--- Corrected Call
     // --- END MOCK SWITCH ---
-    // ... (rest of the method remains the same)
+
     if (vkToken.isEmpty || groupIds.isEmpty) {
       return [];
     }
     List<VKGroupInfo> allGroups = [];
-    const chunkSize = 100; // Keep chunking
+    final idsString = groupIds.join(',');
 
-    for (var i = 0; i < groupIds.length; i += chunkSize) {
-      final chunk = groupIds.sublist(i, min(i + chunkSize, groupIds.length));
-      final idsString = chunk.join(',');
+    try {
+      print("VK API Call: groups.getById ${groupIds.length} IDs)");
+      final response = await _dio.get('groups.getById', queryParameters: {
+        'group_ids': idsString,
+        'access_token': vkToken,
+        'fields': 'members_count,photo_50,photo_100,photo_200,screen_name,type',
+        'v': _apiVersion,
+      });
+      final responseData = _handleResponse(response);
 
-      try {
-        print(
-            "VK API Call: groups.getById (chunk ${i ~/ chunkSize + 1}, ${chunk.length} IDs)");
-        final response = await _dio.get('groups.getById', queryParameters: {
-          'group_ids': idsString,
-          'access_token': vkToken,
-          'fields':
-          'members_count,photo_50,photo_100,photo_200,screen_name,type',
-          'v': _apiVersion,
-        });
-        final responseData = _handleResponse(response);
-
-        List<dynamic> groupsList = [];
-        if (responseData is List) {
-          groupsList = responseData;
-        } else if (responseData is Map &&
-            responseData.containsKey('groups') &&
-            responseData['groups'] is List) {
-          groupsList = responseData['groups'];
-        } else {
-          print(
-              "Warning: groups.getById response data is not a list or expected map structure for chunk ${i ~/ chunkSize + 1}. Response: $responseData");
-          continue;
-        }
-
-        allGroups.addAll(groupsList
-            .map((groupData) =>
-            VKGroupInfo.fromJson(groupData as Map<String, dynamic>))
-            .toList());
-      } on DioException catch (e) {
-        print(
-            "DioError fetching group details chunk ${i ~/ chunkSize + 1}: ${e.message}");
-        if (e.response != null) {
-          print("DioError Response Data: ${e.response?.data}");
-        }
-      } catch (e, stackTrace) {
-        print(
-            "Error parsing group details chunk ${i ~/ chunkSize + 1}: $e\n$stackTrace");
+      List<dynamic> groupsList = [];
+      if (responseData is List) {
+        groupsList = responseData;
+      } else if (responseData is Map &&
+          responseData.containsKey('groups') &&
+          responseData['groups'] is List) {
+        groupsList = responseData['groups'];
       }
-      // Retain delay between chunks
-      if (groupIds.length > chunkSize && i + chunkSize < groupIds.length) {
-        await Future.delayed(const Duration(milliseconds: 350));
+
+      allGroups.addAll(groupsList
+          .map((groupData) =>
+              VKGroupInfo.fromJson(groupData as Map<String, dynamic>))
+          .toList());
+    } on DioException catch (e) {
+      print(
+          "DioError fetching group details chunk ${groupIds.length}: ${e.message}");
+      if (e.response != null) {
+        print("DioError Response Data: ${e.response?.data}");
       }
+    } catch (e, stackTrace) {
+      print(
+          "Error parsing group details chunk ${groupIds.length}: $e\n$stackTrace");
     }
     print(
         "Fetched details for ${allGroups.length} groups out of ${groupIds.length} requested.");
@@ -894,7 +889,8 @@ class VkApiProvider extends getx.GetxService {
     if (input.startsWith('/')) input = input.substring(1);
 
     // Updated Regex: Allow letters, numbers, underscore, dot. Also allow 'club' or 'public' followed by digits.
-    if (RegExp(r'^(club|public)\d+$').hasMatch(input) || RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(input)) {
+    if (RegExp(r'^(club|public)\d+$').hasMatch(input) ||
+        RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(input)) {
       return input;
     }
     print(
@@ -922,14 +918,14 @@ class VkApiProvider extends getx.GetxService {
           // Basic check: if mock title contains input name (simplistic) or if predefined maps it
           final lowerMockTitle = mockEntry['title'].toString().toLowerCase();
           if (lowerMockTitle.contains(lowerInput) ||
-              (lowerInput == "питер" &&
-                  mockEntry['id'] ==
-                      2) || // Handle specific aliases used in mock
-              (predefinedCities[lowerInput]?['id'] ==
-                  mockEntry['id']) //Check pre-defined map as well
-          ) {
+                  (lowerInput == "питер" &&
+                      mockEntry['id'] ==
+                          2) || // Handle specific aliases used in mock
+                  (predefinedCities[lowerInput]?['id'] ==
+                      mockEntry['id']) //Check pre-defined map as well
+              ) {
             resultMap[inputName.trim()] =
-            mockEntry['id'] as int; // Use original case
+                mockEntry['id'] as int; // Use original case
             break; // Take first match for this input name
           }
         }
@@ -955,9 +951,11 @@ class VkApiProvider extends getx.GetxService {
       try {
         print("VK API Call: database.getCities (query: $lowerTrimmedCityName)");
         final response = await _dio.get('database.getCities', queryParameters: {
-          'country_id': 1, // Assuming Russia (1) for now, could be parameterized
+          'country_id': 1,
+          // Assuming Russia (1) for now, could be parameterized
           'q': lowerTrimmedCityName,
-          'need_all': 0, // Find exact or close match
+          'need_all': 0,
+          // Find exact or close match
           'count': 1,
           'access_token': vkToken,
           'v': _apiVersion,
@@ -971,8 +969,11 @@ class VkApiProvider extends getx.GetxService {
           final cityId = cityInfo['id'] as int?;
           final foundTitle = cityInfo['title'] as String?;
           // Additional check: Sometimes VK returns a city for a different country if not found in country_id=1
-          final int? foundCountryId = responseData['items'][0]['country_id'] as int?;
-          if (cityId != null && foundTitle != null /* && foundCountryId == 1 */) { // Optional strict country check
+          final int? foundCountryId =
+              responseData['items'][0]['country_id'] as int?;
+          if (cityId != null &&
+              foundTitle != null /* && foundCountryId == 1 */) {
+            // Optional strict country check
             print(
                 "Resolved city '$lowerTrimmedCityName' (found as '$foundTitle') to ID: $cityId");
             cityIdMap[lowerTrimmedCityName] = cityId;
@@ -991,7 +992,7 @@ class VkApiProvider extends getx.GetxService {
             "Error parsing city response for '$lowerTrimmedCityName': $e\n$stackTrace");
       }
       // Add delay between city lookups
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(Duration(milliseconds: 350 + Random().nextInt(100)));
     }
     // Now map the results back to the original input names (case-insensitive)
     Map<String, int> finalResultMap = {};
@@ -999,7 +1000,7 @@ class VkApiProvider extends getx.GetxService {
       final key = originalName.toLowerCase().trim();
       if (cityIdMap.containsKey(key)) {
         finalResultMap[originalName.trim()] =
-        cityIdMap[key]!; // Use original name as key to preserve case
+            cityIdMap[key]!; // Use original name as key to preserve case
       }
     }
     print(
@@ -1051,7 +1052,7 @@ class VkApiProvider extends getx.GetxService {
       'offset': offset,
       'sex': sex,
       'fields':
-      'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen,can_write_private_message,relation,is_closed',
+          'id,first_name,last_name,photo_100,photo_200,online,city,country,bdate,screen_name,last_seen,can_write_private_message,relation,is_closed',
       // Setting `has_photo` to 1 might slightly improve relevance, but isn't strictly necessary if filtering later
       'has_photo': 1,
     };
@@ -1070,7 +1071,7 @@ class VkApiProvider extends getx.GetxService {
       print(
           "VK API Call: users.search (params: ${queryParams.keys.where((k) => k != 'access_token').join(',')}) Offset: $offset");
       final response =
-      await _dio.get('users.search', queryParameters: queryParams);
+          await _dio.get('users.search', queryParameters: queryParams);
       final responseData = _handleResponse(response);
 
       if (responseData == null || responseData['items'] == null) {
@@ -1083,9 +1084,11 @@ class VkApiProvider extends getx.GetxService {
 
       // Filter deactivated users and convert to VKGroupUser, attaching groupURL
       return usersList
-          .where((userData) => userData['deactivated'] == null && userData['first_name'] != 'DELETED')
+          .where((userData) =>
+              userData['deactivated'] == null &&
+              userData['first_name'] != 'DELETED')
           .map((userData) => convertUserFromResponse(
-          userData as Map<String, dynamic>, groupURL))
+              userData as Map<String, dynamic>, groupURL))
           .toList();
     } on DioException catch (e) {
       print("DioError searching users: ${e.message}");
@@ -1107,14 +1110,14 @@ class VkApiProvider extends getx.GetxService {
 
   // Helper to get predefined cities for mock lookup
   Map<String, Map<String, dynamic>> get predefinedCities => {
-    "москва": {"id": 1, "title": "Москва"},
-    "севастополь": {"id": 147, "title": "Севастополь"},
-    "ялта": {"id": 1000, "title": "Ялта"},
-    "санкт-петербург": {"id": 2, "title": "Санкт-Петербург"},
-    "питер": {"id": 2, "title": "Санкт-Петербург"},
-    "новгород": {"id": 95, "title": "Великий Новгород"},
-    "нижний новгород": {"id": 99, "title": "Нижний Новгород"},
-  };
+        "москва": {"id": 1, "title": "Москва"},
+        "севастополь": {"id": 147, "title": "Севастополь"},
+        "ялта": {"id": 1000, "title": "Ялта"},
+        "санкт-петербург": {"id": 2, "title": "Санкт-Петербург"},
+        "питер": {"id": 2, "title": "Санкт-Петербург"},
+        "новгород": {"id": 95, "title": "Великий Новгород"},
+        "нижний новгород": {"id": 99, "title": "Нижний Новгород"},
+      };
 
 // --- END: NEW API METHODS ---
 }

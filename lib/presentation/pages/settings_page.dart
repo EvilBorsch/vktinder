@@ -267,7 +267,7 @@ class SettingsPage extends GetView<SettingsController> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
-        const SizedBox(height: 24), // Bottom padding
+        const SizedBox(height: 14), // Bottom padding
       ],
     );
   }
