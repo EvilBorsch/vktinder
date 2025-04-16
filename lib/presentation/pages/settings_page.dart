@@ -74,7 +74,7 @@ class SettingsPage extends GetView<SettingsController> {
         _buildTextField(
           controller: citiesController,
           labelText: 'Города для поиска',
-          hintText: 'Напр: Севастополь, Ялта',
+          hintText: 'Напр: Москва, Ялта',
           icon: Icons.location_city,
         ),
         _buildHelpText('Введите названия городов через запятую. Оставьте пустым для поиска по всем городам.'),

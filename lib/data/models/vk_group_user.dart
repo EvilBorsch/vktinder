@@ -7,8 +7,8 @@ class VKGroupUser {
   final String surname;
   final String userID;
   final String? avatar;
-  final List<VKGroupInfo> groups; // Change to use VKGroupInfo
-  List<String> photos;
+  final List<VKGroupInfo> groups; // Populated in detail view
+  List<String> photos; // Populated in detail view
   final List<String> interests;
   final String? about;
   final String? status;
@@ -20,16 +20,16 @@ class VKGroupUser {
   final String? screenName;
   final bool? online;
   final Map<String, dynamic>? lastSeen;
-  final bool? canWritePrivateMessage; // Keep for reference, might be useful
-  final bool? canSeeAllPosts;         // New field to check profile access
-  final String? groupURL;
+  final bool? canWritePrivateMessage;
+  final bool? canSeeAllPosts;
+  final String? groupURL; // *** Make sure this exists ***
 
   VKGroupUser({
     required this.name,
     required this.surname,
     required this.userID,
     this.avatar,
-    this.groups = const [], // Initialize with an empty list of VKGroupInfo
+    this.groups = const [],
     this.photos = const [],
     this.interests = const [],
     this.about,
@@ -43,58 +43,47 @@ class VKGroupUser {
     this.online,
     this.lastSeen,
     this.canWritePrivateMessage,
-    this.canSeeAllPosts, // Add to constructor
-    this.groupURL,
+    this.canSeeAllPosts,
+    this.groupURL, // *** Add to constructor ***
   });
 
   Map<String, dynamic> toJson() => {
-    'id': int.tryParse(userID) ?? userID,
+    // Use string keys consistently for JSON
+    'id': userID, // Save as string to avoid type issues on load
     'first_name': name,
     'last_name': surname,
-    'photo_max_orig': avatar,
-    'interests': interests.join(', '),
+    'photo_max_orig': avatar, // Include best avatar for potential re-use
+    'interests': interests, // Save as list
     'about': about,
     'status': status,
     'bdate': bdate,
-    'city': city != null ? {'title': city} : null,
-    'country': country != null ? {'title': country} : null,
+    'city': city, // Store simple string if already processed
+    'country': country, // Store simple string if already processed
     'sex': sex,
     'relation': relation,
     'screen_name': screenName,
     'online': online,
-    'last_seen': lastSeen,
+    'last_seen': lastSeen, // VK format is fine here
     'can_write_private_message': canWritePrivateMessage,
-    'can_see_all_posts': canSeeAllPosts, // Add to JSON
-    // Serialize groups correctly
-    'groups': groups.map((g) => g.toJson()).toList(),
-    'photos': photos,
-    'groupURL': groupURL,
+    'can_see_all_posts': canSeeAllPosts,
+    'groupURL': groupURL, // *** Serialize groupURL ***
+    // We generally DON'T save full photos/groups list in the persisted card stack
+    // to keep it smaller. They are fetched on demand in the detail view.
+    // 'photos': photos,
+    // 'groups': groups.map((g) => g.toJson()).toList(),
+    "photo_100": avatar, // Add basic avatar for card view consistency on load if needed
+    "photo_200": avatar, // Add basic avatar for card view consistency on load if needed
   };
 
   factory VKGroupUser.fromJson(Map<String, dynamic> json) {
-    // Helper to safely parse comma-separated strings
-    List<String> parseCommaSeparatedString(String? input) {
-      if (input == null || input.trim().isEmpty) {
-        return [];
+    // Helper to safely parse comma-separated strings (if needed from old API format)
+    List<String> parseCommaSeparatedString(dynamic input) {
+      if (input == null) return [];
+      if (input is List) return List<String>.from(input); // Already a list (e.g., from our toJson)
+      if (input is String && input.trim().isNotEmpty) {
+        return input.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
       }
-      return input
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
-    }
-
-    // Safely parse groups (if they somehow exist in the JSON during loading)
-    List<VKGroupInfo> parsedGroups = [];
-    if (json['groups'] != null && json['groups'] is List) {
-      try {
-        parsedGroups = (json['groups'] as List)
-            .map((g) => VKGroupInfo.fromJson(g as Map<String, dynamic>))
-            .toList();
-      } catch (e) {
-        print("Error parsing groups from JSON: $e");
-        // Keep parsedGroups empty if parsing fails
-      }
+      return [];
     }
 
     // Helper to parse boolean fields safely (handles int 0/1 or bool)
@@ -111,17 +100,14 @@ class VKGroupUser {
       return null; // Cannot determine boolean value
     }
 
-
     return VKGroupUser(
-      // Handle possible ID formats (int from API, string from storage)
-      userID: json['id'] is int
-          ? (json['id'] as int).toString()
-          : json['id']?.toString() ?? '0',
+      // Handle 'id' being int (from API) or String (from our JSON)
+      userID: json['id']?.toString() ?? '0',
 
-      name: json['first_name'] as String? ?? 'Имя',
-      surname: json['last_name'] as String? ?? 'Фамилия',
+      name: json['first_name'] as String? ?? '?',
+      surname: json['last_name'] as String? ?? '?',
 
-      // Handle all possible photo fields with priority
+      // Prioritize best photo available in the JSON
       avatar: json['photo_max_orig'] as String? ??
           json['photo_max'] as String? ??
           json['photo_400_orig'] as String? ??
@@ -129,50 +115,44 @@ class VKGroupUser {
           json['photo_200'] as String? ??
           json['photo_100'] as String? ??
           json['photo_50'] as String? ??
-          'https://vk.com/images/camera_200.png',
+          'https://vk.com/images/camera_200.png', // Default placeholder
 
-      // Parse interests safely
-      interests: json['interests'] != null
-          ? parseCommaSeparatedString(json['interests'] as String?)
-          : const [],
+      // Interests might be stored as List<String> or comma-separated string
+      interests: parseCommaSeparatedString(json['interests']),
 
-      // Initialize other fields
-      groups: parsedGroups, // Use the parsed groups or default empty list
-
-      // Parse simple string fields
+      // Profile details
       about: json['about'] as String?,
       status: json['status'] as String?,
       bdate: json['bdate'] as String?,
       screenName: json['screen_name'] as String?,
 
-      // Parse nested objects
-      city: (json['city'] as Map<String, dynamic>?)?['title'] as String?,
-      country: (json['country'] as Map<String, dynamic>?)?['title'] as String?,
+      // Location: Handle both nested (API) and flat (our JSON) formats
+      city: (json['city'] is Map<String, dynamic> ? json['city']['title'] : json['city']) as String?,
+      country: (json['country'] is Map<String, dynamic> ? json['country']['title'] : json['country']) as String?,
 
-      // Parse numeric fields
+      // Numeric/Bool fields
       sex: json['sex'] as int?,
-      relation: json['relation'] as int?, // Parse relation
-
-      // Parse boolean fields using helper
+      relation: json['relation'] as int?,
       online: parseBool(json['online']),
       canWritePrivateMessage: parseBool(json['can_write_private_message']),
-      canSeeAllPosts: parseBool(json['can_see_all_posts']), // Parse new field
+      canSeeAllPosts: parseBool(json['can_see_all_posts']),
 
-      // Parse complex/nested fields
       lastSeen: json['last_seen'] as Map<String, dynamic>?,
 
-      // We expect photos to be populated separately later
-      photos: (json['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? const [],
+      // *** Deserialize groupURL ***
       groupURL: json['groupURL'] as String?,
+
+      // Photos and Groups are usually NOT loaded from this initial JSON
+      // They are fetched separately when viewing the full profile.
+      // Initialize as empty lists.
+      photos: (json['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? const [], // Handle potential persistence
+      groups: (json['groups'] as List<dynamic>?)?.map((g) => VKGroupInfo.fromJson(g as Map<String,dynamic>)).toList() ?? const [], // Handle potential persistence
     );
   }
 
-  // Make groups mutable if needed in the repository
-  // Remove 'final' if you need to assign it later
-  // List<VKGroupInfo> groups;
 
   @override
-  String toString() => '{userID: $userID, name: $name, surname: $surname, relation: $relation, canSeeAllPosts: $canSeeAllPosts}, groupURL: $groupURL';
+  String toString() => '{userID: $userID, name: $name $surname, groupURL: $groupURL}';
 
   @override
   bool operator ==(Object other) =>
@@ -184,3 +164,4 @@ class VKGroupUser {
   @override
   int get hashCode => userID.hashCode;
 }
+

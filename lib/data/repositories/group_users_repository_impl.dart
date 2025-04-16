@@ -129,7 +129,7 @@ class GroupUsersRepository {
               }
 
               // Check relation status filter
-              if (skipRelationFilter && !(user.relation == 0 || user.relation == 6 || user.relation == 1)) {
+              if (skipRelationFilter && !(user.relation == 0 || user.relation == 6 || user.relation == 1 || user.relation == null)) {
                 relationFilteredIds.add(user.userID);
                 skippedRelationCount++;
                 // print("Skipping relation filter: User ${user.userID}, relation: ${user.relation}"); // Verbose logging
@@ -296,7 +296,7 @@ class GroupUsersRepository {
 
   // Helper method to check if a profile has limited access based on can_see_all_posts and canWritePrivateMessage
   bool _isProfileAccessLimited(VKGroupUser user) {
-    return user.canSeeAllPosts == false || user.canWritePrivateMessage == false;
+    return user.canSeeAllPosts == false && user.canWritePrivateMessage != true;
   }
 
   // sendMessage (Remains the same)
