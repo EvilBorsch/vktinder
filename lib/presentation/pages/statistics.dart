@@ -13,7 +13,7 @@ import 'package:intl/date_symbol_data_local.dart'; // Import for locale data
 
 class StatisticsPage extends GetView<StatisticsController> {
   StatisticsPage({Key? key}) : super(key: key);
-  
+
   // Cached group infos from settings
   final Map<String, VKGroupInfo> _groupInfoCache = {};
 
@@ -25,12 +25,12 @@ class StatisticsPage extends GetView<StatisticsController> {
     // Request a refresh of the view data when the page is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.refreshStatisticsView();
-      
+
       // Load resolved group infos from settings repository
       try {
         final settingsRepo = Get.find<SettingsRepository>();
         final groupInfos = settingsRepo.getGroupInfos();
-        
+
         // Cache group infos by source URL for quick lookup
         for (final info in groupInfos) {
           if (info.sourceUrl != null) {
@@ -280,13 +280,13 @@ class StatisticsPage extends GetView<StatisticsController> {
   /// Get displayable group name with resolved info if available
   String _extractGroupName(String groupUrl) {
     if (groupUrl == 'all_groups') return 'Все группы';
-    
+
     // First check if we have resolved info for this URL
     final groupInfo = _groupInfoCache[groupUrl];
     if (groupInfo != null) {
       return groupInfo.name;
     }
-    
+
     // Fallback to extraction from URL
     try {
       if (groupUrl.startsWith('http')) {
@@ -301,8 +301,8 @@ class StatisticsPage extends GetView<StatisticsController> {
       }
       // Handle screen names like club123, public123
       if (RegExp(r'^(club|public)\d+$').hasMatch(groupUrl)) {
-        return groupUrl.replaceFirstMapped(RegExp(r'^(club|public)(\d+)'), 
-            (match) => 'ID ${match.group(2)}');
+        return groupUrl.replaceFirstMapped(
+            RegExp(r'^(club|public)(\d+)'), (match) => 'ID ${match.group(2)}');
       }
       return groupUrl; // Assume it's a screen name
     } catch (e) {
@@ -483,31 +483,62 @@ class StatisticsPage extends GetView<StatisticsController> {
 
                   // Time and Group
                   Row(
+                    // Align items vertically. 'start' often works well if the right column might wrap.
+                    // Use 'center' if you prefer vertical centering.
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.access_time,
-                          size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        formattedTime,
-                        style: TextStyle(
-                            color: Colors.grey.shade600, fontSize: 13),
+                      // --- Time Info ---
+                      Icon(
+                        Icons.access_time,
+                        size: 14.0, // Use defined size
+                        color: Colors.grey.shade600, // Use defined color
                       ),
-                      const Spacer(),
-                      // Display group and city information
-                      if ((action.groupURL != null && action.groupURL!.isNotEmpty) || 
-                          (action.cityName != null && action.cityName!.isNotEmpty))
-                        Flexible(
-                          child: Text(
-                            _formatLocationInfo(action, currentFilterGroup),
-                            style: TextStyle(
-                                color: Colors.grey.shade600, fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                      const SizedBox(width: 4), // Keep small horizontal gap
+                      // Add padding to slightly adjust baseline alignment with icon if needed
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1.0), // Adjust this value (or remove) as needed
+                        child: Text(
+                          formattedTime,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13), // Use defined style
                         ),
+                      ),
+
+                      const Spacer(), // Pushes the following content to the right
+
+                      // --- Location Info Column ---
+                      // Only build column if there's location data to prevent empty space
+                      if ((action.groupURL != null && action.groupURL!.isNotEmpty) ||
+                          (action.cityName != null && action.cityName!.isNotEmpty))
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (action.cityName != null && action.cityName!.isNotEmpty) ...[
+                              Text(
+                                action.cityName!, // Use the city name directly
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12.0), // Use defined style (can be same as locationStyle)
+                                overflow: TextOverflow.ellipsis, // Handle long text
+                                maxLines: 1,                   // Prevent wrapping
+                                textAlign: TextAlign.end,      // Explicitly align text right
+                              ),
+                              if (action.groupURL != null && action.groupURL!.isNotEmpty)
+                                const SizedBox(height: 2), // Small vertical gap
+                            ],
+                            if (action.groupURL != null && action.groupURL!.isNotEmpty)
+                              Text(
+                                // No extra parentheses unless desired: "(${_extractGroupName(action.groupURL!)})"
+                                _extractGroupName(action.groupURL!),
+                                style: TextStyle(fontSize: 12.0), // Use defined style
+                                overflow: TextOverflow.ellipsis, // Handle long text
+                                maxLines: 1,                   // Prevent wrapping
+                                textAlign: TextAlign.end,      // Explicitly align text right
+                              ),
+                          ],
+                        )
                     ],
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 2),
 
                   // Open in VK button
                   SizedBox(
@@ -534,32 +565,6 @@ class StatisticsPage extends GetView<StatisticsController> {
         ),
       ),
     );
-  }
-
-  // Helper to format location information (group name + city name)
-  String _formatLocationInfo(StatisticsUserAction action, String currentFilterGroup) {
-    List<String> parts = [];
-    
-    // Only show group in "all groups" mode
-    if (action.groupURL != null && 
-        action.groupURL!.isNotEmpty && 
-        currentFilterGroup == 'all_groups') {
-      parts.add(_extractGroupName(action.groupURL!));
-    }
-    
-    // Always show city when available
-    if (action.cityName != null && action.cityName!.isNotEmpty) {
-      parts.add(action.cityName!);
-    }
-    
-    // Join with comma
-    if (parts.isEmpty) {
-      return "";
-    } else if (parts.length == 1) {
-      return "(" + parts[0] + ")";
-    } else {
-      return "(" + parts.join(", ") + ")";
-    }
   }
 
   // _openVkProfile remains the same
