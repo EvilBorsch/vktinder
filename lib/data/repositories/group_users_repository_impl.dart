@@ -1,6 +1,7 @@
 // --- File: lib/data/repositories/group_users_repository_impl.dart ---
 // lib/data/repositories/group_users_repository_impl.dart
 import 'dart:async';
+import 'dart:math';
 
 import 'package:collection/collection.dart'; // For firstWhereOrNull
 import 'package:get/get.dart';
@@ -14,8 +15,6 @@ class GroupUsersRepository {
 
   // Get SettingsRepository to access all settings easily
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
-
-
 
   // --- MODIFIED getUsers ---
   Future<List<VKGroupUser>> getUsers(
@@ -40,9 +39,9 @@ class GroupUsersRepository {
 
     // 2. Resolve City Names and Group URLs to IDs concurrently
     final Map<String, int> cityIdMap =
-    await _resolveCityNames(vkToken, cityNames);
+        await _resolveCityNames(vkToken, cityNames);
     final List<VKGroupInfo?> groupInfosNullable =
-    await _resolveGroupUrls(vkToken, groupUrls);
+        await _resolveGroupUrls(vkToken, groupUrls);
 
     // Filter out groups that failed to resolve
     final List<VKGroupInfo> groupInfos = groupInfosNullable.whereType<VKGroupInfo>().toList();
@@ -50,9 +49,8 @@ class GroupUsersRepository {
     final Map<int, String> groupIdToUrlMap = { for (var g in groupInfos) g.id : g.sourceUrl! };
     final List<int> targetGroupIds = groupInfos.map((g) => g.id).toList();
 
-
     final List<int> targetCityIds =
-    cityIdMap.values.toSet().toList(); // Unique, valid IDs
+        cityIdMap.values.toSet().toList(); // Unique, valid IDs
 
     if (targetGroupIds.isEmpty) {
       print("Could not resolve any valid group IDs from the provided URLs.");
@@ -63,20 +61,18 @@ class GroupUsersRepository {
         "Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo, Sex=$sexFilter, SkipClosed=$skipClosedProfiles, SkipRelation=$skipRelationFilter");
 
     // 3. Perform Search using users.search
-    final Set<VKGroupUser> foundUsers =
-    {}; // Use a Set to automatically handle duplicates
-    final Set<String> profileAccessLimitedIds =
-    {}; // Track profiles where is_closed is true
-    final Set<String> relationFilteredIds =
-    {}; // Track profiles filtered by relation
-    const int searchLimitPerRequest =
-    100; // VK limit is 1000, but smaller batches might be safer/faster start
+    final Set<VKGroupUser> foundUsers = {}; // Use a Set to automatically handle duplicates
+    final Set<String> profileAccessLimitedIds = {}; // Track profiles where is_closed is true
+    final Set<String> relationFilteredIds = {}; // Track profiles filtered by relation
+    const int searchLimitPerRequest = 1000; // Maximum allowed by VK API
     bool reachedVkLimit = false; // Flag if VK stops returning results
 
     // Prioritize searching within specified cities if any are given
     final searchCityIds = targetCityIds.isNotEmpty
         ? targetCityIds
         : [null]; // Use null if no cities specified
+
+    final random = Random();
 
     for (final groupId in targetGroupIds) {
       // Get the original URL associated with this ID for context
@@ -88,100 +84,150 @@ class GroupUsersRepository {
       }
 
       for (final cityId in searchCityIds) {
-        int currentOffset = 0;
-        int totalFoundInCombo = 0;
-        const maxOffset = 900; // VK search offset limit
+        if (reachedVkLimit) break; // Stop searching cities if hit limit
+        
+        try {
+          // Add a delay before each API request (0.2 sec base + random 0.1-0.5 sec)
+          // This respects VK's rate limit of max 3 RPS
+          final randomDelay = 100 + random.nextInt(400); // 100-500ms random component
+          await Future.delayed(Duration(milliseconds: 200 + randomDelay));
+          
+          print("Requesting users: Group $groupId / City ${cityId ?? 'any'}");
+          
+          // Single request with maximum count (1000)
+          final List<VKGroupUser> users = await _apiProvider.searchUsers(
+            vkToken: vkToken,
+            groupId: groupId,
+            cityId: cityId, // Can be null
+            ageFrom: ageFrom,
+            ageTo: ageTo,
+            sex: sexFilter, // Use the sex filter from settings
+            count: searchLimitPerRequest,
+            offset: 0, // No pagination needed, VK returns max 1000
+            groupURL: groupURL, // Pass the group URL
+          );
 
-        while (currentOffset <= maxOffset && !reachedVkLimit) {
-          try {
-            final List<VKGroupUser> batch = await _apiProvider.searchUsers(
-              vkToken: vkToken,
-              groupId: groupId,
-              cityId: cityId, // Can be null
-              ageFrom: ageFrom,
-              ageTo: ageTo,
-              sex: sexFilter, // Use the sex filter from settings
-              count: searchLimitPerRequest,
-              offset: currentOffset,
-              groupURL: groupURL, // Pass the group URL
-            );
+          if (users.isEmpty) {
+            print("No users found for group $groupId / city ${cityId ?? 'any'} with current filters.");
+            continue;
+          }
 
-            if (batch.isEmpty) {
-              if (currentOffset > 0) {
-                print("Finished searching group $groupId / city ${cityId ?? 'any'} at offset $currentOffset.");
-              } else {
-                print("No users found for group $groupId / city ${cityId ?? 'any'} with current filters.");
-              }
-              break;
+          int addedCount = 0;
+          int skippedClosedCount = 0;
+          int skippedRelationCount = 0;
+          int skippedAlreadySeenCount = 0;
+
+          for (var user in users) {
+            // Check if already swiped
+            if (skippedIDs.contains(user.userID)) {
+              skippedAlreadySeenCount++;
+              continue;
             }
 
-            int addedCount = 0;
-            int skippedClosedCount = 0;
-            int skippedRelationCount = 0;
-            int skippedAlreadySeenCount = 0;
+            // Check relation status filter
+            if (skipRelationFilter && !(user.relation == 0 || user.relation == 6 || user.relation == 1 || user.relation == null)) {
+              relationFilteredIds.add(user.userID);
+              skippedRelationCount++;
+              continue;
+            }
 
-            for (var user in batch) {
-              // Check if already swiped
-              if (skippedIDs.contains(user.userID)) {
-                skippedAlreadySeenCount++;
-                // print("Skipping ${user.userID} because it was already swiped"); // Verbose logging
-                continue;
+            // Check profile access filter (using is_closed)
+            bool isLimitedAccess = _isProfileAccessLimited(user);
+            if (isLimitedAccess) {
+              profileAccessLimitedIds.add(user.userID);
+              if (skipClosedProfiles) {
+                skippedClosedCount++;
+                continue; // Skip this user
               }
+            }
 
-              // Check relation status filter
-              if (skipRelationFilter && !(user.relation == 0 || user.relation == 6 || user.relation == 1 || user.relation == null)) {
-                relationFilteredIds.add(user.userID);
-                skippedRelationCount++;
-                // print("Skipping relation filter: User ${user.userID}, relation: ${user.relation}"); // Verbose logging
-                continue;
-              }
+            // Add user if not already present
+            if (foundUsers.add(user)) {
+              addedCount++;
+            }
+          }
+          
+          print(
+              "Group $groupId / City ${cityId ?? 'any'}: Found ${users.length}, Added $addedCount new. Skipped: $skippedAlreadySeenCount (seen), $skippedRelationCount (relation), $skippedClosedCount (closed). Total unique: ${foundUsers.length}");
 
-              // Check profile access filter (using is_closed)
-              bool isLimitedAccess = _isProfileAccessLimited(user);
-              if (isLimitedAccess) {
-                profileAccessLimitedIds.add(user.userID);
-                if (skipClosedProfiles) {
-                  skippedClosedCount++;
-                  // print("Skipping closed/limited profile: User ${user.userID}"); // Verbose logging
-                  continue; // Skip this user
+        } catch (e) {
+          print("Error during users.search (group $groupId, city ${cityId ?? 'any'}): $e");
+          
+          if (e.toString().contains('Too many requests') || e.toString().contains('rate limit')) {
+            print("Rate limit hit, adding longer delay before retry");
+            await Future.delayed(Duration(seconds: 2));
+            
+            // Try again with same group/city
+            try {
+              final randomDelay = 100 + random.nextInt(400);
+              await Future.delayed(Duration(milliseconds: 200 + randomDelay));
+              
+              print("Retrying: Group $groupId / City ${cityId ?? 'any'}");
+              
+              final List<VKGroupUser> retryUsers = await _apiProvider.searchUsers(
+                vkToken: vkToken,
+                groupId: groupId,
+                cityId: cityId,
+                ageFrom: ageFrom,
+                ageTo: ageTo,
+                sex: sexFilter,
+                count: searchLimitPerRequest,
+                offset: 0,
+                groupURL: groupURL,
+              );
+              
+              // Process users from retry (same logic as above)
+              int addedCount = 0;
+              int skippedClosedCount = 0;
+              int skippedRelationCount = 0;
+              int skippedAlreadySeenCount = 0;
+
+              for (var user in retryUsers) {
+                if (skippedIDs.contains(user.userID)) {
+                  skippedAlreadySeenCount++;
+                  continue;
+                }
+
+                if (skipRelationFilter && !(user.relation == 0 || user.relation == 6 || user.relation == 1 || user.relation == null)) {
+                  relationFilteredIds.add(user.userID);
+                  skippedRelationCount++;
+                  continue;
+                }
+
+                bool isLimitedAccess = _isProfileAccessLimited(user);
+                if (isLimitedAccess) {
+                  profileAccessLimitedIds.add(user.userID);
+                  if (skipClosedProfiles) {
+                    skippedClosedCount++;
+                    continue;
+                  }
+                }
+
+                if (foundUsers.add(user)) {
+                  addedCount++;
                 }
               }
-
-              // Add user if not already present
-              if (foundUsers.add(user)) {
-                addedCount++;
-              }
+              
+              print("RETRY Group $groupId / City ${cityId ?? 'any'}: Found ${retryUsers.length}, Added $addedCount new. Total unique: ${foundUsers.length}");
+              
+            } catch (retryError) {
+              print("Retry failed for group $groupId / city ${cityId ?? 'any'}: $retryError");
+              // Continue to next city/group after retry failure
             }
-            print(
-                "Batch (Group $groupId/City ${cityId ?? 'any'}/Offset $currentOffset): Found ${batch.length}, Added $addedCount new. Skipped: $skippedAlreadySeenCount (seen), $skippedRelationCount (relation), $skippedClosedCount (closed). Total unique: ${foundUsers.length}");
-
-            totalFoundInCombo += batch.length;
-            currentOffset += searchLimitPerRequest;
-
-            if (batch.length == searchLimitPerRequest) {
-              await Future.delayed(const Duration(milliseconds: 350));
-            }
-
-          } catch (e) {
-            print(
-                "Error during users.search (group $groupId, city ${cityId ?? 'any'}, offset $currentOffset): $e");
+          } else {
             reachedVkLimit = true; // Assume a potentially blocking error
-            break;
           }
-        } // End while loop (pagination)
-        if (reachedVkLimit) break; // Stop searching cities
+        }
       } // End city loop
+      
       if (reachedVkLimit) break; // Stop searching groups
     } // End group loop
 
     // 4. Convert Set to List and Return
     final usersList = foundUsers.toList();
-    print(
-        "Total unique users found across all groups/cities: ${usersList.length}");
+    print("Total unique users found across all groups/cities: ${usersList.length}");
     print("Total profiles skipped due to relation filter: ${relationFilteredIds.length}");
     print("Total profiles skipped due to limited access filter: ${profileAccessLimitedIds.length}");
-
-
 
     return usersList;
   }
