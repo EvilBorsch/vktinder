@@ -13,10 +13,10 @@ class MainScreen extends GetView<NavController> {
     return Scaffold(
       body: Obx(() => IndexedStack(
             index: controller.selectedIndex.value,
-            children: const [
-              HomePage(),
+            children: [
+              const HomePage(),
               StatisticsPage(),
-              SettingsPage(),
+              const SettingsPage(),
             ],
           )),
       bottomNavigationBar: Obx(() => BottomNavigationBar(

@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vktinder/core/theme/theme_service.dart';
-import 'package:vktinder/data/providers/vk_api_provider.dart'; // Import API provider for group validation
+import 'package:vktinder/data/models/vk_city_info.dart';
+import 'package:vktinder/data/models/vk_group_info.dart';
+import 'package:vktinder/data/providers/vk_api_provider.dart';
 import 'package:vktinder/data/repositories/settings_repository_impl.dart';
-
-import '../../data/models/vk_group_info.dart';
 
 class SettingsController extends GetxController {
   TextEditingController? vkTokenController;
@@ -25,13 +25,14 @@ class SettingsController extends GetxController {
   final RxString _defaultMessage = ''.obs;
   final RxString _theme = 'system'.obs;
 
-  // --- NEW Observables ---
+  // --- Observables ---
   final RxList<String> cities = <String>[].obs;
   final RxnInt ageFrom = RxnInt(); // Use RxnInt for nullable int
   final RxnInt ageTo = RxnInt(); // Use RxnInt for nullable int
   final RxInt sexFilter = 0.obs; // 0 = any, 1 = female, 2 = male
-  final RxList<String> groupUrls =
-      <String>[].obs; // Store URLs as entered by user
+  final RxList<String> groupUrls = <String>[].obs; // Store URLs as entered by user
+  final RxList<VKGroupInfo> groupInfos = <VKGroupInfo>[].obs; // Store resolved group info
+  final RxList<VKCityInfo> cityInfos = <VKCityInfo>[].obs; // Store resolved city info
   final RxBool skipClosedProfiles =
       true.obs; // Skip users with closed profiles - Default TRUE
   final RxBool skipRelationFilter =
@@ -71,8 +72,8 @@ class SettingsController extends GetxController {
     _vkToken.value = _settingsRepository.getVkToken();
     _defaultMessage.value = _settingsRepository.getDefaultMessage();
     _theme.value = _settingsRepository.getTheme();
-    // --- NEW Loads ---
-    cities.clear(); // Use clear/addAll for reactivity if needed
+    
+    cities.clear();
     cities.addAll(_settingsRepository.getCities());
     final (from, to) = _settingsRepository.getAgeRange();
     ageFrom.value = from;
@@ -80,7 +81,11 @@ class SettingsController extends GetxController {
     sexFilter.value = _settingsRepository.getSexFilter();
     groupUrls.assignAll(_settingsRepository.getGroupUrls());
     skipClosedProfiles.value = _settingsRepository.getSkipClosedProfiles();
-    skipRelationFilter.value = _settingsRepository.getSkipRelationFilter(); // Load new setting
+    skipRelationFilter.value = _settingsRepository.getSkipRelationFilter();
+    
+    // Load resolved infos
+    groupInfos.assignAll(_settingsRepository.getGroupInfos());
+    cityInfos.assignAll(_settingsRepository.getCityInfos());
 
     // Re-initialize controllers after loading
     vkTokenController = TextEditingController(text: _vkToken.value);
@@ -96,6 +101,19 @@ class SettingsController extends GetxController {
   // --- Methods to modify settings reactively (mostly used by saveSettings now) ---
 
   // Add/Remove Group URLs
+  // Helper method to get group info by URL from storage
+  VKGroupInfo? getGroupInfoByUrl(String url) {
+    return groupInfos.firstWhereOrNull((info) => info.sourceUrl == url);
+  }
+  
+  // Helper method to find a city info by name
+  VKCityInfo? getCityInfoByName(String cityName) {
+    final normalized = cityName.trim().toLowerCase();
+    return cityInfos.firstWhereOrNull(
+      (info) => info.name.toLowerCase() == normalized
+    );
+  }
+
   Future<void> addGroupUrl(String url) async {
     final trimmedUrl = url.trim();
     if (trimmedUrl.isEmpty) {
@@ -119,40 +137,13 @@ class SettingsController extends GetxController {
       return;
     }
 
-
-    // Basic check if it looks like a URL or screen name (Simplified, relies on API for full validation)
-    // if (!trimmedUrl.startsWith('http') &&
-    //     !RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(trimmedUrl)) {
-    //   Get.snackbar(
-    //     'Ошибка',
-    //     'Неверный формат URL или короткого имени.',
-    //     snackPosition: SnackPosition.BOTTOM,
-    //     backgroundColor: Colors.red[100],
-    //     colorText: Colors.red[900],
-    //     margin: const EdgeInsets.all(8),
-    //   );
-    //   return;
-    // }
-
-    // Optional: Validate against VK API before adding
+    // Validate against VK API before adding
     isGroupUrlValidating.value = true;
     try {
-      final groupInfo =
-      await _apiProvider.getGroupInfoByScreenName(vkToken, trimmedUrl);
+      final groupInfo = await _apiProvider.getGroupInfoByScreenName(vkToken, trimmedUrl);
       if (groupInfo != null) {
         // Check if ID is already present via another URL/name
-        bool idExists = false;
-        List<Future<VKGroupInfo?>> checkFutures = [];
-        for (var existingUrl in groupUrls) {
-          checkFutures
-              .add(_apiProvider.getGroupInfoByScreenName(vkToken, existingUrl));
-        }
-        if (checkFutures.isNotEmpty) {
-          final existingInfos = await Future.wait(checkFutures);
-          idExists = existingInfos
-              .whereType<VKGroupInfo>()
-              .any((g) => g.id == groupInfo.id);
-        }
+        bool idExists = groupInfos.any((g) => g.id == groupInfo.id);
 
         if (idExists) {
           Get.snackbar(
@@ -163,6 +154,8 @@ class SettingsController extends GetxController {
           );
         } else {
           groupUrls.add(trimmedUrl); // Add the original URL/name
+          groupInfos.add(groupInfo); // Store the resolved group info
+          
           Get.snackbar(
             'Успех',
             'Группа "${groupInfo.name}" добавлена. Не забудьте сохранить настройки.',
@@ -201,6 +194,10 @@ class SettingsController extends GetxController {
 
   void removeGroupUrl(String url) {
     groupUrls.remove(url);
+    
+    // Also remove the corresponding group info
+    groupInfos.removeWhere((info) => info.sourceUrl == url);
+    
     Get.snackbar(
       'Удалено',
       'Группа "$url" удалена из списка. Не забудьте сохранить настройки.',
@@ -210,19 +207,47 @@ class SettingsController extends GetxController {
     );
   }
 
-  // --- Updated Save Method ---
+  // Method to resolve city names to city IDs
+  Future<void> resolveCityNames(List<String> cityNames) async {
+    if (vkToken.isEmpty || cityNames.isEmpty) return;
+    
+    // Clear existing city info entries that aren't in the new list
+    cityInfos.removeWhere((info) => 
+        !cityNames.any((name) => name.trim().toLowerCase() == info.name.toLowerCase()));
+    
+    // Filter out cities that already have info
+    final unresolved = cityNames.where((name) => 
+        !cityInfos.any((info) => info.name.toLowerCase() == name.trim().toLowerCase())).toList();
+    
+    if (unresolved.isEmpty) return; // All cities already resolved
+    
+    try {
+      final cityIdMap = await _apiProvider.getCityIdsByNames(vkToken, unresolved);
+      
+      // Add resolved cities to cityInfos
+      cityIdMap.forEach((name, id) {
+        if (!cityInfos.any((info) => info.id == id)) {
+          cityInfos.add(VKCityInfo(id: id, name: name));
+        }
+      });
+    } catch (e) {
+      print("Error resolving city names: $e");
+      // Don't show a snackbar here as it's part of the save process
+    }
+  }
+  
+  // Updated Save Method
   Future<void> saveSettings({
     required String vkToken,
     required String defaultMessage,
     required String theme,
-    // Read from UI controllers/Rx vars for new fields
     required List<String> currentCities,
     required String? ageFromString,
     required String? ageToString,
     required int sexFilter,
     required List<String> currentGroupUrls,
-    required bool skipClosedProfiles, // Direct value from UI
-    required bool skipRelationFilter, // Direct value from UI
+    required bool skipClosedProfiles,
+    required bool skipRelationFilter,
   }) async {
     // Validate and parse age
     final parsedAgeFrom = (ageFromString != null && ageFromString.isNotEmpty)
@@ -248,7 +273,7 @@ class SettingsController extends GetxController {
       return; // Don't save invalid range
     }
 
-    // Check if filters actually changed before triggering reload signal
+    // Check if filters actually changed
     final bool filtersChanged = _vkToken.value != vkToken ||
         !listEquals(cities, currentCities) ||
         ageFrom.value != parsedAgeFrom ||
@@ -256,36 +281,52 @@ class SettingsController extends GetxController {
         this.sexFilter.value != sexFilter ||
         !listEquals(groupUrls, currentGroupUrls) ||
         this.skipClosedProfiles.value != skipClosedProfiles ||
-        this.skipRelationFilter.value != skipRelationFilter; // Check new filter
+        this.skipRelationFilter.value != skipRelationFilter;
 
-    // Update internal reactive variables BEFORE saving
+    // Update reactive variables
     _vkToken.value = vkToken;
     _defaultMessage.value = defaultMessage;
     _theme.value = theme;
-
-    // Use assignAll or clear/addAll for lists to ensure reactivity
     cities.assignAll(currentCities);
     groupUrls.assignAll(currentGroupUrls);
-
     ageFrom.value = parsedAgeFrom;
     ageTo.value = parsedAgeTo;
     this.sexFilter.value = sexFilter;
     this.skipClosedProfiles.value = skipClosedProfiles;
-    this.skipRelationFilter.value = skipRelationFilter; // Update reactive variable
+    this.skipRelationFilter.value = skipRelationFilter;
 
-    // Save to repository using the updated internal values
+    // 1. Resolve group URLs and update groupInfos if needed
+    List<Future<void>> resolutionTasks = [];
+    for (final url in currentGroupUrls) {
+      if (!groupInfos.any((info) => info.sourceUrl == url)) {
+        // Try to resolve any URLs that don't have info yet
+        resolutionTasks.add(_resolveAndAddGroupInfo(url));
+      }
+    }
+    
+    // 2. Resolve city names to IDs
+    resolutionTasks.add(resolveCityNames(currentCities));
+    
+    // Wait for all resolutions to complete
+    if (resolutionTasks.isNotEmpty) {
+      await Future.wait(resolutionTasks);
+    }
+
     try {
+      // 3. Save to repository with all resolved data
       await _settingsRepository.saveSettings(
         vkToken: _vkToken.value,
         defaultMessage: _defaultMessage.value,
         theme: _theme.value,
-        cities: this.cities.toList(), // Pass current list
-        ageFrom: this.ageFrom.value, // Pass current value
-        ageTo: this.ageTo.value,     // Pass current value
-        sexFilter: this.sexFilter.value, // Pass current value
-        groupUrls: this.groupUrls.toList(), // Pass current list
-        skipClosedProfiles: this.skipClosedProfiles.value, // Pass current value
-        skipRelationFilter: this.skipRelationFilter.value, // Pass current value
+        cities: this.cities.toList(),
+        ageFrom: this.ageFrom.value,
+        ageTo: this.ageTo.value,
+        sexFilter: this.sexFilter.value,
+        groupUrls: this.groupUrls.toList(),
+        groupInfos: this.groupInfos.toList(),
+        cityInfos: this.cityInfos.toList(),
+        skipClosedProfiles: this.skipClosedProfiles.value,
+        skipRelationFilter: this.skipRelationFilter.value,
       );
 
       // Update theme immediately
@@ -293,8 +334,7 @@ class SettingsController extends GetxController {
 
       // Trigger reload only if relevant filters changed
       if (filtersChanged) {
-        settingsChanged
-            .value++; // Increment to notify listeners (like HomeController)
+        settingsChanged.value++;
         print("Settings relevant to user search changed. Triggering update.");
       }
 
@@ -320,6 +360,22 @@ class SettingsController extends GetxController {
         borderRadius: 10,
         duration: const Duration(seconds: 4),
       );
+    }
+  }
+  
+  // Helper to resolve and add a group info
+  Future<void> _resolveAndAddGroupInfo(String url) async {
+    try {
+      final groupInfo = await _apiProvider.getGroupInfoByScreenName(vkToken, url);
+      if (groupInfo != null) {
+        // Remove any existing info for this URL
+        groupInfos.removeWhere((info) => info.sourceUrl == url);
+        // Add the new info
+        groupInfos.add(groupInfo);
+      }
+    } catch (e) {
+      print("Error resolving group URL $url: $e");
+      // We don't show a snackbar here as this is part of the save process
     }
   }
 

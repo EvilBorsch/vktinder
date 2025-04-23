@@ -17,7 +17,9 @@ class LocalStorageProvider extends GetxService {
   static const String _citiesKey = 'search_cities_v2';
   static const String _ageFromKey = 'search_age_from';
   static const String _ageToKey = 'search_age_to';
-  static const String _groupUrlsKey = 'search_group_urls_v2';
+  static const String _groupUrlsKey = 'search_group_urls_v3';
+  static const String _groupInfosKey = 'search_group_infos_v1';
+  static const String _cityInfosKey = 'search_city_infos_v1';
   static const String _sexFilterKey = 'search_sex_filter';
   static const String _skipClosedProfilesKey = 'skip_closed_profiles_v2';
   static const String _skipRelationFilterKey = 'skip_relation_filter';
@@ -152,9 +154,51 @@ class LocalStorageProvider extends GetxService {
     return ["https://vk.com/team"]; // Default example
   }
 
+  List<Map<String, dynamic>> getGroupInfos() {
+    final storedInfos = _storage.read<String>(_groupInfosKey);
+    if (storedInfos != null && storedInfos.isNotEmpty) {
+      try { 
+        final List<dynamic> decoded = jsonDecode(storedInfos);
+        return decoded.map((item) => item as Map<String, dynamic>).toList();
+      }
+      catch (e) { 
+        print("Error decoding group infos: $e"); 
+        _storage.remove(_groupInfosKey); 
+        return []; 
+      }
+    }
+    return []; // No default for group infos
+  }
+
   Future<void> saveGroupUrls(List<String> urls) async {
     try { await _storage.write(_groupUrlsKey, jsonEncode(urls)); }
     catch (e) { print("Error encoding/saving group URLs: $e"); }
+  }
+
+  Future<void> saveGroupInfos(List<Map<String, dynamic>> infos) async {
+    try { await _storage.write(_groupInfosKey, jsonEncode(infos)); }
+    catch (e) { print("Error encoding/saving group infos: $e"); }
+  }
+
+  List<Map<String, dynamic>> getCityInfos() {
+    final storedInfos = _storage.read<String>(_cityInfosKey);
+    if (storedInfos != null && storedInfos.isNotEmpty) {
+      try { 
+        final List<dynamic> decoded = jsonDecode(storedInfos);
+        return decoded.map((item) => item as Map<String, dynamic>).toList();
+      }
+      catch (e) { 
+        print("Error decoding city infos: $e"); 
+        _storage.remove(_cityInfosKey); 
+        return []; 
+      }
+    }
+    return []; // No default for city infos
+  }
+
+  Future<void> saveCityInfos(List<Map<String, dynamic>> infos) async {
+    try { await _storage.write(_cityInfosKey, jsonEncode(infos)); }
+    catch (e) { print("Error encoding/saving city infos: $e"); }
   }
 
   bool getSkipClosedProfiles() {

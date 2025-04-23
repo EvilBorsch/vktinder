@@ -5,8 +5,6 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
-import '../../data/providers/vk_api_provider.dart';
-
 class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({Key? key}) : super(key: key);
 
@@ -14,11 +12,16 @@ class SettingsPage extends GetView<SettingsController> {
   Widget build(BuildContext context) {
     // Ensure controllers are initialized when the widget builds
     // This is safe because loadSettings also initializes them if null
-    controller.vkTokenController ??= TextEditingController(text: controller.vkToken);
-    controller.defaultMsgController ??= TextEditingController(text: controller.defaultMessage);
-    controller.citiesController ??= TextEditingController(text: controller.cities.join(', '));
-    controller.ageFromController ??= TextEditingController(text: controller.ageFrom.value?.toString() ?? '');
-    controller.ageToController ??= TextEditingController(text: controller.ageTo.value?.toString() ?? '');
+    controller.vkTokenController ??=
+        TextEditingController(text: controller.vkToken);
+    controller.defaultMsgController ??=
+        TextEditingController(text: controller.defaultMessage);
+    controller.citiesController ??=
+        TextEditingController(text: controller.cities.join(', '));
+    controller.ageFromController ??=
+        TextEditingController(text: controller.ageFrom.value?.toString() ?? '');
+    controller.ageToController ??=
+        TextEditingController(text: controller.ageTo.value?.toString() ?? '');
     controller.newGroupUrlController ??= TextEditingController();
 
     return Scaffold(
@@ -61,7 +64,9 @@ class SettingsPage extends GetView<SettingsController> {
           // Keep icon small
           label: const Text('Получить VK Token (выберите vk.com)'),
           // Concise label
-          onPressed: () async => await launchUrl(Uri.parse('https://vkhost.github.io/'), mode: LaunchMode.externalApplication),
+          onPressed: () async => await launchUrl(
+              Uri.parse('https://vkhost.github.io/'),
+              mode: LaunchMode.externalApplication),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             // Adjust horizontal padding
@@ -79,9 +84,9 @@ class SettingsPage extends GetView<SettingsController> {
         _buildSectionHeader('В каких группах ищем?', Icons.groups_2_outlined),
         const SizedBox(height: 12),
         _buildGroupManagementSection(context, newGroupUrlController),
-        _buildHelpText('Поиск будет вестись по участникам всех добавленных групп.'),
+        _buildHelpText(
+            'Поиск будет вестись по участникам всех добавленных групп.'),
         const SizedBox(height: 24),
-
 
         // Cities Input
         _buildTextField(
@@ -90,7 +95,8 @@ class SettingsPage extends GetView<SettingsController> {
           hintText: 'Напр: Москва, Ялта',
           icon: Icons.location_city,
         ),
-        _buildHelpText('Введите названия городов через запятую. Оставьте пустым для поиска по всем городам.'),
+        _buildHelpText(
+            'Введите названия городов через запятую. Оставьте пустым для поиска по всем городам.'),
         const SizedBox(height: 16),
 
         // Age Range Input
@@ -103,9 +109,7 @@ class SettingsPage extends GetView<SettingsController> {
                     hintText: 'Напр. 18',
                     icon: Icons.calendar_view_day_outlined,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly]
-                )
-            ),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
             const SizedBox(width: 16),
             Expanded(
                 child: _buildTextField(
@@ -114,9 +118,7 @@ class SettingsPage extends GetView<SettingsController> {
                     hintText: 'Напр. 30',
                     icon: Icons.calendar_view_day,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly]
-                )
-            ),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
           ],
         ),
         _buildHelpText('Оставьте поля пустыми, чтобы не ограничивать возраст.'),
@@ -124,74 +126,92 @@ class SettingsPage extends GetView<SettingsController> {
 
         // Sex Filter
         Obx(() => Card(
-          elevation: 1,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            children: [
-              _buildSexOption(
-                'Любой пол', 'Показывать всех пользователей', Icons.people_outline, 0, controller.sexFilter,
+              elevation: 1,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                children: [
+                  _buildSexOption(
+                    'Любой пол',
+                    'Показывать всех пользователей',
+                    Icons.people_outline,
+                    0,
+                    controller.sexFilter,
+                  ),
+                  const Divider(height: 0, indent: 50),
+                  _buildSexOption(
+                    'Женский',
+                    'Показывать только женщин',
+                    Icons.female,
+                    1,
+                    controller.sexFilter,
+                  ),
+                  const Divider(height: 0, indent: 50),
+                  _buildSexOption(
+                    'Мужской',
+                    'Показывать только мужчин',
+                    Icons.male,
+                    2,
+                    controller.sexFilter,
+                  ),
+                ],
               ),
-              const Divider(height: 0, indent: 50),
-              _buildSexOption(
-                'Женский', 'Показывать только женщин', Icons.female, 1, controller.sexFilter,
-              ),
-              const Divider(height: 0, indent: 50),
-              _buildSexOption(
-                'Мужской', 'Показывать только мужчин', Icons.male, 2, controller.sexFilter,
-              ),
-            ],
-          ),
-        )),
+            )),
         const SizedBox(height: 16),
 
         // Skip Closed Profiles Option
         Obx(() => SwitchListTile(
-          title: const Row(
-            children: [
-              Icon(Icons.visibility_off_outlined, size: 20),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text('Пропускать закрытые профили',
-                    style: TextStyle(fontWeight: FontWeight.w500)), // Simplified style
+              title: const Row(
+                children: [
+                  Icon(Icons.visibility_off_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Пропускать закрытые профили',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w500)), // Simplified style
+                  ),
+                ],
               ),
-            ],
-          ),
-          value: controller.skipClosedProfiles.value,
-          onChanged: (value) {
-            controller.skipClosedProfiles.value = value;
-          },
-          // Use same card styling as theme/sex options
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          tileColor: Get.theme.cardTheme.color ?? Get.theme.cardColor, // Use theme card color
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          dense: true,
-        )),
+              value: controller.skipClosedProfiles.value,
+              onChanged: (value) {
+                controller.skipClosedProfiles.value = value;
+              },
+              // Use same card styling as theme/sex options
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              tileColor: Get.theme.cardTheme.color ??
+                  Get.theme.cardColor, // Use theme card color
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              dense: true,
+            )),
         const SizedBox(height: 16), // Spacing after switch
 
         // --- NEW: Skip Relation Filter ---
         Obx(() => SwitchListTile(
-          title: const Row(
-            children: [
-              Icon(Icons.family_restroom_outlined, size: 20),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text('Фильтровать людей в отношениях',
-                    style: TextStyle(fontWeight: FontWeight.w500)),
+              title: const Row(
+                children: [
+                  Icon(Icons.family_restroom_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Фильтровать людей в отношениях',
+                        style: TextStyle(fontWeight: FontWeight.w500)),
+                  ),
+                ],
               ),
-            ],
-          ),
-          value: controller.skipRelationFilter.value,
-          onChanged: (value) {
-            controller.skipRelationFilter.value = value;
-          },
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          tileColor: Get.theme.cardTheme.color ?? Get.theme.cardColor,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          dense: true,
-        )),
+              value: controller.skipRelationFilter.value,
+              onChanged: (value) {
+                controller.skipRelationFilter.value = value;
+              },
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              tileColor: Get.theme.cardTheme.color ?? Get.theme.cardColor,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              dense: true,
+            )),
         const SizedBox(height: 24), // Spacing after switch
-
 
         // --- Default Message ---
         _buildSectionHeader('Стандартное сообщение', Icons.message_outlined),
@@ -203,32 +223,47 @@ class SettingsPage extends GetView<SettingsController> {
           icon: Icons.edit_note,
           maxLines: 3,
         ),
-        _buildHelpText('Используйте как основу для сообщений при свайпе вправо'),
+        _buildHelpText(
+            'Используйте как основу для сообщений при свайпе вправо'),
         const SizedBox(height: 24),
 
         // --- Theme Selection ---
         _buildSectionHeader('Тема приложения', Icons.palette_outlined),
         const SizedBox(height: 12),
-        Obx(() => Card( // Obx needed for groupValue reactivity
-          elevation: 1,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            children: [
-              _buildThemeOption(
-                'Системная', 'Следовать настройкам системы', Icons.settings_suggest_outlined, 'system', themeValue.obs,
+        Obx(() => Card(
+              // Obx needed for groupValue reactivity
+              elevation: 1,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                children: [
+                  _buildThemeOption(
+                    'Системная',
+                    'Следовать настройкам системы',
+                    Icons.settings_suggest_outlined,
+                    'system',
+                    themeValue.obs,
+                  ),
+                  const Divider(height: 0, indent: 50),
+                  _buildThemeOption(
+                    'Светлая',
+                    'Светлое оформление',
+                    Icons.wb_sunny_outlined,
+                    'light',
+                    themeValue.obs,
+                  ),
+                  const Divider(height: 0, indent: 50),
+                  _buildThemeOption(
+                    'Темная',
+                    'Темное оформление',
+                    Icons.nights_stay_outlined,
+                    'dark',
+                    themeValue.obs,
+                  ),
+                ],
               ),
-              const Divider(height: 0, indent: 50),
-              _buildThemeOption(
-                'Светлая', 'Светлое оформление', Icons.wb_sunny_outlined, 'light', themeValue.obs,
-              ),
-              const Divider(height: 0, indent: 50),
-              _buildThemeOption(
-                'Темная', 'Темное оформление', Icons.nights_stay_outlined, 'dark', themeValue.obs,
-              ),
-            ],
-          ),
-        )),
+            )),
         const SizedBox(height: 32),
 
         // --- Save Button ---
@@ -249,10 +284,14 @@ class SettingsPage extends GetView<SettingsController> {
               currentCities: citiesList,
               ageFromString: ageFromController.text.trim(),
               ageToString: ageToController.text.trim(),
-              sexFilter: controller.sexFilter.value, // Pass the sex filter value
-              currentGroupUrls: controller.groupUrls.toList(), // Get current list from controller
-              skipClosedProfiles: controller.skipClosedProfiles.value, // Pass reactive value
-              skipRelationFilter: controller.skipRelationFilter.value, // Pass reactive value
+              sexFilter:
+                  controller.sexFilter.value, // Pass the sex filter value
+              currentGroupUrls: controller.groupUrls
+                  .toList(), // Get current list from controller
+              skipClosedProfiles:
+                  controller.skipClosedProfiles.value, // Pass reactive value
+              skipRelationFilter:
+                  controller.skipRelationFilter.value, // Pass reactive value
             );
             // Unfocus keyboard
             FocusScope.of(context).unfocus();
@@ -264,7 +303,8 @@ class SettingsPage extends GetView<SettingsController> {
           ),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 14), // Bottom padding
@@ -305,13 +345,15 @@ class SettingsPage extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildGroupManagementSection(BuildContext context, TextEditingController newGroupUrlController) {
+  Widget _buildGroupManagementSection(
+      BuildContext context, TextEditingController newGroupUrlController) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Input Row for adding new group
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start, // Align items to the top
+          crossAxisAlignment:
+              CrossAxisAlignment.start, // Align items to the top
           children: [
             Expanded(
               child: _buildTextField(
@@ -323,34 +365,38 @@ class SettingsPage extends GetView<SettingsController> {
             ),
             const SizedBox(width: 8),
             Obx(() => IconButton(
-              icon: controller.isGroupUrlValidating.value
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.add_circle_outline, size: 28), // Make icon larger
-              onPressed: controller.isGroupUrlValidating.value ? null : () async {
-                final url = newGroupUrlController.text;
-                await controller.addGroupUrl(url);
-                // Clear only if add logic didn't show an error keeping the text field populated
-                // Check isGroupUrlValidating again, as it might be set to false even on error by the controller.
-                // A better approach might be for addGroupUrl to return a bool indicating success.
-                if (!controller.isGroupUrlValidating.value && newGroupUrlController.text == url) {
-                  // Assume success if value hasn't changed and validation finished.
-                  // This isn't perfect, relies on timing.
-                  final groupInfo = await controller.isGroupUrlValidating(false); // temporary hack
-                  final groupInfo2 = await Get.find<VkApiProvider>().getGroupInfoByScreenName(controller.vkToken, url); // Re-validate without UI block
-                  if (groupInfo2 != null && controller.groupUrls.contains(url)) { // If it exists now, clear
-                    newGroupUrlController.clear();
-                  }
-                }
-                // Alternative: Always clear, user needs to re-enter on validation failure.
-                // newGroupUrlController.clear();
-              },
-              tooltip: 'Добавить группу',
-              style: IconButton.styleFrom(
-                padding: const EdgeInsets.all(12), // Increase tap area
-                backgroundColor: Get.theme.colorScheme.primaryContainer,
-                foregroundColor: Get.theme.colorScheme.onPrimaryContainer,
-              ),
-            )),
+                  icon: controller.isGroupUrlValidating.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.add_circle_outline,
+                          size: 28), // Make icon larger
+                  onPressed: controller.isGroupUrlValidating.value
+                      ? null
+                      : () async {
+                          final url = newGroupUrlController.text;
+                          await controller.addGroupUrl(url);
+                          // Clear only if add logic didn't show an error keeping the text field populated
+                          // Check isGroupUrlValidating again, as it might be set to false even on error by the controller.
+                          // A better approach might be for addGroupUrl to return a bool indicating success.
+                          // Clear the text field if the group URL is now in the list
+                          // (this means it was successfully added)
+                          if (!controller.isGroupUrlValidating.value &&
+                              controller.groupUrls.contains(url) &&
+                              controller.getGroupInfoByUrl(url) != null) {
+                            newGroupUrlController.clear();
+                          }
+                          // Alternative: Always clear, user needs to re-enter on validation failure.
+                          // newGroupUrlController.clear();
+                        },
+                  tooltip: 'Добавить группу',
+                  style: IconButton.styleFrom(
+                    padding: const EdgeInsets.all(12), // Increase tap area
+                    backgroundColor: Get.theme.colorScheme.primaryContainer,
+                    foregroundColor: Get.theme.colorScheme.onPrimaryContainer,
+                  ),
+                )),
           ],
         ),
         const SizedBox(height: 12),
@@ -359,59 +405,59 @@ class SettingsPage extends GetView<SettingsController> {
         Obx(() {
           if (controller.groupUrls.isEmpty) {
             return Container(
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 decoration: BoxDecoration(
-                    color: Get.theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                    color:
+                        Get.theme.colorScheme.surfaceVariant.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Get.theme.dividerColor)
-                ),
-                child: const Center(child: Text('Добавьте группы для поиска', style: TextStyle(color: Colors.grey)))
-            );
+                    border: Border.all(color: Get.theme.dividerColor)),
+                child: const Center(
+                    child: Text('Добавьте группы для поиска',
+                        style: TextStyle(color: Colors.grey))));
           }
           return Card(
             elevation: 1,
             margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListView.separated(
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(), // List is inside a ListView
+              physics:
+                  const NeverScrollableScrollPhysics(), // List is inside a ListView
               itemCount: controller.groupUrls.length,
               itemBuilder: (context, index) {
                 final url = controller.groupUrls[index];
-                // Extract a display name (improve this logic if needed)
-                String displayName = url;
-                try {
-                  if (url.startsWith('http')) {
-                    Uri uri = Uri.parse(url);
-                    if (uri.pathSegments.isNotEmpty) {
-                      displayName = uri.pathSegments.last;
-                      if (displayName.isEmpty && uri.pathSegments.length > 1) {
-                        displayName = uri.pathSegments[uri.pathSegments.length - 2]; // Fallback for trailing slash
-                      }
-                    }
-                  }
-                  // Remove potential leading 'club' or 'public' for cleaner display if it's just that + ID
-                  displayName = displayName.replaceFirstMapped(RegExp(r'^(club|public)(\d+)'), (match) => 'ID ${match.group(2)}');
-
-                } catch (e) {
-                  print("Error parsing group URL for display name: $url");
-                }
-
+                // Get group info if available, otherwise extract from URL as fallback
+                final groupInfo = controller.getGroupInfoByUrl(url);
+                final String displayName =
+                    groupInfo?.name ?? _extractGroupName(url);
 
                 return ListTile(
-                  leading: Icon(Icons.group, color: Get.theme.colorScheme.primary),
+                  leading: groupInfo?.photo100 != null
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(groupInfo!.photo100!),
+                          backgroundColor: Colors.grey.shade200,
+                        )
+                      : Icon(Icons.group, color: Get.theme.colorScheme.primary),
                   title: Text(displayName, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(url, style: Get.textTheme.bodySmall?.copyWith(color: Colors.grey), overflow: TextOverflow.ellipsis), // Show full url subtly
+                  subtitle: Text(url,
+                      style:
+                          Get.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      overflow: TextOverflow.ellipsis),
                   trailing: IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent), // Use clearer red
+                    icon: const Icon(Icons.remove_circle_outline,
+                        color: Colors.redAccent), // Use clearer red
                     onPressed: () => controller.removeGroupUrl(url),
                     tooltip: 'Удалить группу',
                   ),
                   dense: true,
-                  contentPadding: const EdgeInsets.only(left: 16, right: 8), // Adjust padding
+                  contentPadding: const EdgeInsets.only(
+                      left: 16, right: 8), // Adjust padding
                 );
               },
-              separatorBuilder: (context, index) => const Divider(height: 0, indent: 52),
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 0, indent: 52),
             ),
           );
         }),
@@ -428,7 +474,8 @@ class SettingsPage extends GetView<SettingsController> {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Get.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600), // Bolder title
+          style: Get.textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w600), // Bolder title
         ),
       ],
     );
@@ -437,21 +484,26 @@ class SettingsPage extends GetView<SettingsController> {
   // Helper for help text below fields
   Widget _buildHelpText(String text) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4.0, top: 4.0, right: 4.0), // Added right padding
+      padding: const EdgeInsets.only(
+          left: 4.0, top: 4.0, right: 4.0), // Added right padding
       child: Text(
         text,
-        style: Get.textTheme.bodySmall?.copyWith(color: Colors.grey[600], height: 1.3), // Adjusted line height
+        style: Get.textTheme.bodySmall?.copyWith(
+            color: Colors.grey[600], height: 1.3), // Adjusted line height
       ),
     );
   }
 
-  Widget _buildThemeOption(String title, String subtitle, IconData icon, String value, RxString groupValue) {
+  Widget _buildThemeOption(String title, String subtitle, IconData icon,
+      String value, RxString groupValue) {
     return RadioListTile<String>(
       title: Row(
         children: [
           Icon(icon, size: 20),
           const SizedBox(width: 12),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)), // Adjusted style
+          Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w500)), // Adjusted style
         ],
       ),
       subtitle: Text(subtitle, style: Get.textTheme.bodySmall),
@@ -459,22 +511,27 @@ class SettingsPage extends GetView<SettingsController> {
       groupValue: groupValue.value, // Reactive group value
       onChanged: (newValue) {
         if (newValue != null) {
-          groupValue.value = newValue; // Update the controller's reactive variable directly
+          groupValue.value =
+              newValue; // Update the controller's reactive variable directly
         }
       },
-      shape: const RoundedRectangleBorder(), // Remove individual shape, rely on Card
+      shape:
+          const RoundedRectangleBorder(), // Remove individual shape, rely on Card
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       dense: true,
     );
   }
 
-  Widget _buildSexOption(String title, String subtitle, IconData icon, int value, RxInt groupValue) {
+  Widget _buildSexOption(String title, String subtitle, IconData icon,
+      int value, RxInt groupValue) {
     return RadioListTile<int>(
       title: Row(
         children: [
           Icon(icon, size: 20),
           const SizedBox(width: 12),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w500)), // Adjusted style
+          Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w500)), // Adjusted style
         ],
       ),
       subtitle: Text(subtitle, style: Get.textTheme.bodySmall),
@@ -482,12 +539,37 @@ class SettingsPage extends GetView<SettingsController> {
       groupValue: groupValue.value, // Reactive group value
       onChanged: (newValue) {
         if (newValue != null) {
-          groupValue.value = newValue; // Update the controller's reactive variable
+          groupValue.value =
+              newValue; // Update the controller's reactive variable
         }
       },
-      shape: const RoundedRectangleBorder(), // Remove individual shape, rely on Card
+      shape:
+          const RoundedRectangleBorder(), // Remove individual shape, rely on Card
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       dense: true,
     );
+  }
+
+  // Helper method to extract a group name from URL as fallback
+  String _extractGroupName(String url) {
+    try {
+      if (url.startsWith('http')) {
+        Uri uri = Uri.parse(url);
+        if (uri.pathSegments.isNotEmpty) {
+          String name = uri.pathSegments.last;
+          if (name.isEmpty && uri.pathSegments.length > 1) {
+            name = uri.pathSegments[
+                uri.pathSegments.length - 2]; // Fallback for trailing slash
+          }
+          return name.isNotEmpty ? name : url;
+        }
+      }
+      // Remove potential leading 'club' or 'public' for cleaner display
+      return url.replaceFirstMapped(
+          RegExp(r'^(club|public)(\d+)'), (match) => 'ID ${match.group(2)}');
+    } catch (e) {
+      print("Error parsing group URL for display name: $url");
+      return url;
+    }
   }
 }

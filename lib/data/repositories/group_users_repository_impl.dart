@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart'; // For firstWhereOrNull
 import 'package:get/get.dart';
+import 'package:vktinder/data/models/vk_city_info.dart'; // Import VKCityInfo
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/data/models/vk_group_info.dart';
 import 'package:vktinder/data/providers/vk_api_provider.dart';
@@ -16,16 +17,20 @@ class GroupUsersRepository {
   // Get SettingsRepository to access all settings easily
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
 
-  // --- MODIFIED getUsers ---
+  // --- UPDATED getUsers to use stored info ---
   Future<List<VKGroupUser>> getUsers(
       String vkToken, List<String> skippedIDs) async {
-    // 1. Get settings
+    // 1. Get settings including resolved info
     final cityNames = _settingsRepository.getCities();
     final (ageFrom, ageTo) = _settingsRepository.getAgeRange();
     final sexFilter = _settingsRepository.getSexFilter();
     final groupUrls = _settingsRepository.getGroupUrls();
     final skipClosedProfiles = _settingsRepository.getSkipClosedProfiles();
-    final skipRelationFilter = _settingsRepository.getSkipRelationFilter(); // Get new setting
+    final skipRelationFilter = _settingsRepository.getSkipRelationFilter();
+    
+    // Get resolved information from settings
+    final List<VKGroupInfo> storedGroupInfos = _settingsRepository.getGroupInfos();
+    final List<VKCityInfo> storedCityInfos = _settingsRepository.getCityInfos();
 
     // Check prerequisites
     if (vkToken.isEmpty) {
@@ -37,14 +42,34 @@ class GroupUsersRepository {
       return [];
     }
 
-    // 2. Resolve City Names and Group URLs to IDs concurrently
-    final Map<String, int> cityIdMap =
-        await _resolveCityNames(vkToken, cityNames);
-    final List<VKGroupInfo?> groupInfosNullable =
-        await _resolveGroupUrls(vkToken, groupUrls);
-
-    // Filter out groups that failed to resolve
-    final List<VKGroupInfo> groupInfos = groupInfosNullable.whereType<VKGroupInfo>().toList();
+    // 2. Use stored info or resolve when needed
+    final Map<String, int> cityIdMap = _getCityIdMap(storedCityInfos, cityNames);
+    
+    // If we don't have all city info, resolve the missing ones
+    if (cityNames.isNotEmpty && cityIdMap.length < cityNames.length) {
+      final missingCityNames = cityNames.where((name) => !cityIdMap.containsKey(name)).toList();
+      final resolvedMap = await _resolveCityNames(vkToken, missingCityNames);
+      cityIdMap.addAll(resolvedMap);
+    }
+    
+    // Get group infos from stored data when available
+    List<VKGroupInfo> groupInfos = [];
+    for (final url in groupUrls) {
+      final info = storedGroupInfos.firstWhereOrNull((info) => info.sourceUrl == url);
+      if (info != null) {
+        groupInfos.add(info);
+      } else {
+        // Resolve if not found in stored data
+        try {
+          final resolvedInfo = await _apiProvider.getGroupInfoByScreenName(vkToken, url);
+          if (resolvedInfo != null) {
+            groupInfos.add(resolvedInfo);
+          }
+        } catch (e) {
+          print("Error resolving group URL $url: $e");
+        }
+      }
+    }
 
     final Map<int, String> groupIdToUrlMap = { for (var g in groupInfos) g.id : g.sourceUrl! };
     final List<int> targetGroupIds = groupInfos.map((g) => g.id).toList();
@@ -232,7 +257,26 @@ class GroupUsersRepository {
     return usersList;
   }
 
-  // Helper to resolve city names
+  // Helper to get city ID map from stored city infos
+  Map<String, int> _getCityIdMap(List<VKCityInfo> cityInfos, List<String> cityNames) {
+    final Map<String, int> result = {};
+    
+    // Normalize city names for comparison (lowercase, trim)
+    final normalizedNames = cityNames.map((name) => name.trim().toLowerCase()).toList();
+    
+    for (final info in cityInfos) {
+      final normalized = info.name.toLowerCase();
+      final index = normalizedNames.indexOf(normalized);
+      if (index >= 0) {
+        // Use the original case from user input
+        result[cityNames[index]] = info.id;
+      }
+    }
+    
+    return result;
+  }
+
+  // Helper to resolve city names (only when not found in stored data)
   Future<Map<String, int>> _resolveCityNames(
       String vkToken, List<String> cityNames) async {
     if (cityNames.isEmpty) return {};
@@ -241,34 +285,6 @@ class GroupUsersRepository {
     } catch (e) {
       print("Error resolving city names: $e");
       return {}; // Return empty on error
-    }
-  }
-
-  // Helper to resolve group URLs/screen names
-  Future<List<VKGroupInfo?>> _resolveGroupUrls(
-      String vkToken, List<String> groupUrls) async {
-    List<Future<VKGroupInfo?>> futures = [];
-    for (final url in groupUrls) {
-      futures.add(_apiProvider.getGroupInfoByScreenName(vkToken, url));
-      // Short delay between API calls
-      await Future.delayed(const Duration(milliseconds: 200));
-    }
-    try {
-      final results = await Future.wait(futures);
-      // Filter out nulls (failed resolutions) and potentially log them
-      final failedUrls = groupUrls
-          .whereIndexed((index, url) => results[index] == null)
-          .toList();
-      if (failedUrls.isNotEmpty) {
-        print(
-            "Could not resolve the following group URLs/names: ${failedUrls.join(', ')}");
-        // Consider notifying the user via the controller/snackbar
-      }
-      return results; // Return list potentially containing nulls
-    } catch (e) {
-      print("Error resolving group URLs: $e");
-      return List.filled(
-          groupUrls.length, null); // Return list of nulls on major error
     }
   }
 

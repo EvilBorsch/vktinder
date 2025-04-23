@@ -6,11 +6,16 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vktinder/data/models/statistics.dart';
+import 'package:vktinder/data/models/vk_group_info.dart';
+import 'package:vktinder/data/repositories/settings_repository_impl.dart';
 import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Import for locale data
 
 class StatisticsPage extends GetView<StatisticsController> {
-  const StatisticsPage({Key? key}) : super(key: key);
+  StatisticsPage({Key? key}) : super(key: key);
+  
+  // Cached group infos from settings
+  final Map<String, VKGroupInfo> _groupInfoCache = {};
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +25,21 @@ class StatisticsPage extends GetView<StatisticsController> {
     // Request a refresh of the view data when the page is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.refreshStatisticsView();
+      
+      // Load resolved group infos from settings repository
+      try {
+        final settingsRepo = Get.find<SettingsRepository>();
+        final groupInfos = settingsRepo.getGroupInfos();
+        
+        // Cache group infos by source URL for quick lookup
+        for (final info in groupInfos) {
+          if (info.sourceUrl != null) {
+            _groupInfoCache[info.sourceUrl!] = info;
+          }
+        }
+      } catch (e) {
+        print("Error loading group infos for statistics: $e");
+      }
     });
 
     // State variables for filtering and sorting (local to this build method)
@@ -257,9 +277,17 @@ class StatisticsPage extends GetView<StatisticsController> {
 
   // --- Helper Functions ---
 
-  /// Extracts a displayable name from a group URL/screen name.
+  /// Get displayable group name with resolved info if available
   String _extractGroupName(String groupUrl) {
     if (groupUrl == 'all_groups') return 'Все группы';
+    
+    // First check if we have resolved info for this URL
+    final groupInfo = _groupInfoCache[groupUrl];
+    if (groupInfo != null) {
+      return groupInfo.name;
+    }
+    
+    // Fallback to extraction from URL
     try {
       if (groupUrl.startsWith('http')) {
         Uri uri = Uri.parse(groupUrl);
@@ -268,14 +296,13 @@ class StatisticsPage extends GetView<StatisticsController> {
           if (name.isEmpty && uri.pathSegments.length > 1) {
             name = uri.pathSegments[uri.pathSegments.length - 2];
           }
-          return name.isNotEmpty
-              ? name
-              : groupUrl; // Fallback to full URL if parsing fails
+          return name.isNotEmpty ? name : groupUrl;
         }
       }
       // Handle screen names like club123, public123
       if (RegExp(r'^(club|public)\d+$').hasMatch(groupUrl)) {
-        return groupUrl; // Keep as is for now
+        return groupUrl.replaceFirstMapped(RegExp(r'^(club|public)(\d+)'), 
+            (match) => 'ID ${match.group(2)}');
       }
       return groupUrl; // Assume it's a screen name
     } catch (e) {
@@ -466,13 +493,12 @@ class StatisticsPage extends GetView<StatisticsController> {
                             color: Colors.grey.shade600, fontSize: 13),
                       ),
                       const Spacer(),
-                      // **** FIX: Use the passed currentFilterGroup parameter ****
-                      if (action.groupURL != null &&
-                          action.groupURL!.isNotEmpty &&
-                          currentFilterGroup == 'all_groups')
+                      // Display group and city information
+                      if ((action.groupURL != null && action.groupURL!.isNotEmpty) || 
+                          (action.cityName != null && action.cityName!.isNotEmpty))
                         Flexible(
                           child: Text(
-                            '(${_extractGroupName(action.groupURL!)})',
+                            _formatLocationInfo(action, currentFilterGroup),
                             style: TextStyle(
                                 color: Colors.grey.shade600, fontSize: 12),
                             overflow: TextOverflow.ellipsis,
@@ -510,15 +536,41 @@ class StatisticsPage extends GetView<StatisticsController> {
     );
   }
 
+  // Helper to format location information (group name + city name)
+  String _formatLocationInfo(StatisticsUserAction action, String currentFilterGroup) {
+    List<String> parts = [];
+    
+    // Only show group in "all groups" mode
+    if (action.groupURL != null && 
+        action.groupURL!.isNotEmpty && 
+        currentFilterGroup == 'all_groups') {
+      parts.add(_extractGroupName(action.groupURL!));
+    }
+    
+    // Always show city when available
+    if (action.cityName != null && action.cityName!.isNotEmpty) {
+      parts.add(action.cityName!);
+    }
+    
+    // Join with comma
+    if (parts.isEmpty) {
+      return "";
+    } else if (parts.length == 1) {
+      return "(" + parts[0] + ")";
+    } else {
+      return "(" + parts.join(", ") + ")";
+    }
+  }
+
   // _openVkProfile remains the same
   void _openVkProfile(String userId) async {
     final url = 'https://vk.com/id$userId';
     final uri = Uri.parse(url);
     bool launched = false;
     try {
-      if (kIsWeb){
+      if (kIsWeb) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }else {
+      } else {
         launched = await launchUrl(
           Uri.parse('vk://profile/$userId'),
           mode: LaunchMode.externalApplication,

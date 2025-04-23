@@ -15,6 +15,7 @@ class StatisticsUserAction {
   final String surname;
   final String? avatar;
   final String? groupURL; // Keep group URL for grouping stats
+  final String? cityName;  // Add city name
   final String action; // 'like' or 'dislike'
   final DateTime actionDate;
 
@@ -24,6 +25,7 @@ class StatisticsUserAction {
     required this.surname,
     this.avatar,
     this.groupURL,
+    this.cityName,  // Add to constructor
     required this.action,
     required this.actionDate,
   });
@@ -35,6 +37,7 @@ class StatisticsUserAction {
     String? surname,
     String? avatar,
     String? groupURL,
+    String? cityName,  // Add to copyWith
     String? action,
     DateTime? actionDate,
   }) {
@@ -44,6 +47,7 @@ class StatisticsUserAction {
       surname: surname ?? this.surname,
       avatar: avatar ?? this.avatar,
       groupURL: groupURL ?? this.groupURL,
+      cityName: cityName ?? this.cityName,  // Add to return
       action: action ?? this.action,
       actionDate: actionDate ?? this.actionDate,
     );
@@ -57,6 +61,7 @@ class StatisticsUserAction {
       'surname': surname,
       'avatar': avatar,
       'groupURL': groupURL,
+      'cityName': cityName,  // Add to map
       'action': action,
       'actionDate': actionDate.millisecondsSinceEpoch,
     };
@@ -88,6 +93,7 @@ class StatisticsUserAction {
         surname: map['surname'] as String? ?? 'Фамилия',
         avatar: map['avatar'] as String?,
         groupURL: map['groupURL'] as String?,
+        cityName: map['cityName'] as String?,  // Add to constructor
         action: map['action'] as String,
         actionDate: DateTime.fromMillisecondsSinceEpoch(map['actionDate'] as int),
       );

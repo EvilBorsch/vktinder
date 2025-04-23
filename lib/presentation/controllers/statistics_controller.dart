@@ -7,7 +7,8 @@ import 'package:vktinder/data/repositories/statistics_repository.dart';
 import 'dart:async'; // For Timer
 
 class StatisticsController extends GetxController {
-  final StatisticsRepository _statisticsRepository = Get.find<StatisticsRepository>();
+  final StatisticsRepository _statisticsRepository =
+      Get.find<StatisticsRepository>();
 
   // In-memory state for user actions (Map<GroupURL, RxList<Action>>)
   final RxMap<String, RxList<StatisticsUserAction>> userActions =
@@ -21,8 +22,8 @@ class StatisticsController extends GetxController {
 
   // Debouncer for saving data
   Timer? _saveDebounceTimer;
-  final Duration _saveDebounceDuration = const Duration(seconds: 1); // Save 2 seconds after last action
-
+  final Duration _saveDebounceDuration =
+      const Duration(seconds: 1); // Save 2 seconds after last action
 
   @override
   void onInit() {
@@ -38,17 +39,21 @@ class StatisticsController extends GetxController {
     super.onClose();
   }
 
-
   // --- Public methods ---
 
   /// Adds a user action (like/dislike) to the statistics.
-  Future<void> addUserAction(String groupURL, VKGroupUser user, String actionType) async {
+  Future<void> addUserAction(
+      String groupURL, VKGroupUser user, String actionType) async {
+    // Extract city name - it's already a string in the VKGroupUser model
+    String? cityName = user.city;
+
     final action = StatisticsUserAction(
       userId: user.userID,
       name: user.name,
       surname: user.surname,
       avatar: user.avatar,
       groupURL: groupURL, // Use the provided groupURL
+      cityName: cityName, // Include city name
       action: actionType,
       actionDate: DateTime.now(),
     );
@@ -91,14 +96,16 @@ class StatisticsController extends GetxController {
       observableMap[key] = value.obs;
     });
     userActions.value = observableMap; // Assign the new map to the RxMap
-    print("StatisticsController: Loaded ${userActions.length} groups with actions into memory.");
+    print(
+        "StatisticsController: Loaded ${userActions.length} groups with actions into memory.");
   }
 
   /// Loads skipped user IDs from the repository.
   Future<void> _loadSkippedUserIdsFromRepo() async {
     final loadedIds = await _statisticsRepository.loadSkippedUserIds();
     skippedUserIDs.value = loadedIds; // Assign the loaded set to the RxSet
-    print("StatisticsController: Loaded ${skippedUserIDs.length} skipped IDs into memory.");
+    print(
+        "StatisticsController: Loaded ${skippedUserIDs.length} skipped IDs into memory.");
   }
 
   /// Loads all data initially.
@@ -129,7 +136,6 @@ class StatisticsController extends GetxController {
     });
   }
 
-
   /// Saves the current in-memory state to storage immediately.
   Future<void> _saveDataImmediate() async {
     // Convert Map<String, RxList<StatisticsUserAction>> to Map<String, List<StatisticsUserAction>>
@@ -141,7 +147,8 @@ class StatisticsController extends GetxController {
     // Create a copy of the set for saving
     final Set<String> idsToSave = skippedUserIDs.value.toSet();
 
-    print("StatisticsController: Saving data: ${plainActionsMap.length} action groups, ${idsToSave.length} skipped IDs.");
+    print(
+        "StatisticsController: Saving data: ${plainActionsMap.length} action groups, ${idsToSave.length} skipped IDs.");
 
     // Save both datasets concurrently
     try {
@@ -153,12 +160,13 @@ class StatisticsController extends GetxController {
     } catch (e) {
       print("Error saving statistics data: $e");
       // Handle saving error (e.g., show persistent error message)
-      Get.snackbar('Ошибка Сохранения', 'Не удалось сохранить прогресс: $e', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Ошибка Сохранения', 'Не удалось сохранить прогресс: $e',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
 
-
   // --- Getter for HomeController ---
   /// Provides the set of skipped user IDs for filtering in HomeController.
-  Set<String> get skippedIdsSet => skippedUserIDs.value.toSet(); // Return a copy to prevent modification outside controller
+  Set<String> get skippedIdsSet => skippedUserIDs.value
+      .toSet(); // Return a copy to prevent modification outside controller
 }
