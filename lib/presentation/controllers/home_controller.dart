@@ -1,6 +1,8 @@
 // --- File: lib/presentation/controllers/home_controller.dart ---
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vktinder/core/base/base_controller.dart';
+import 'package:vktinder/core/utils/snackbar_utils.dart';
 import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
@@ -10,7 +12,7 @@ import 'package:vktinder/data/providers/local_storage_provider.dart';
 import 'dart:async';
 
 /// Controller responsible for managing the home screen with user cards
-class HomeController extends GetxController {
+class HomeController extends BaseController {
   // Dependencies
   final SettingsController _settingsController = Get.find<SettingsController>();
   final GroupUsersRepository _groupUsersRepository =
@@ -466,30 +468,12 @@ class HomeController extends GetxController {
 
   /// Shows an error snackbar with the specified message
   void _showErrorSnackbar(String message) {
-    Get.snackbar(
-      'Ошибка',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red[100],
-      colorText: Colors.red[900],
-      margin: const EdgeInsets.all(8),
-      borderRadius: 10,
-      duration: const Duration(seconds: 4),
-    );
+    showErrorSnackbar(message);
   }
 
   /// Shows a success snackbar with the specified message
   void _showSuccessSnackbar(String message) {
-    Get.snackbar(
-      'Успех',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green[100],
-      colorText: Colors.green[900],
-      margin: const EdgeInsets.all(8),
-      borderRadius: 10,
-      duration: const Duration(seconds: 2),
-    );
+    showSuccessSnackbar(message);
   }
 
   VoidCallback get refreshButtonAction =>

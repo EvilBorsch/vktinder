@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:vktinder/core/di/service_locator.dart';
 import 'package:vktinder/core/theme/theme_service.dart';
 import 'package:vktinder/routes/app_pages.dart';
 
@@ -10,6 +11,9 @@ void main() async {
   // Initialize GetStorage for persistent storage
   await GetStorage.init();
 
+  // Initialize service locator
+  ServiceLocator.init();
+
   runApp(const MyApp());
 }
 
@@ -18,8 +22,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Initialize ThemeService here to get initial theme
-    final themeService = Get.put(ThemeService());
+    // Get ThemeService from service locator
+    final themeService = Get.find<ThemeService>();
 
     return GetMaterialApp(
       title: 'VK Tinder',

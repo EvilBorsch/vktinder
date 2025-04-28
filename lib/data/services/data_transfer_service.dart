@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vktinder/core/utils/snackbar_utils.dart';
 import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/models/vk_city_info.dart';
 import 'package:vktinder/data/models/vk_group_info.dart';
@@ -18,8 +19,6 @@ class DataTransferService extends GetxService {
       Get.find<StatisticsRepository>();
 
   // UI constants
-  static const _snackbarMargin = EdgeInsets.all(8);
-  static const _snackbarBorderRadius = 10.0;
   static const _successDuration = Duration(seconds: 2);
   static const _errorDuration = Duration(seconds: 4);
 
@@ -198,14 +197,7 @@ class DataTransferService extends GetxService {
 
   /// Shows a success snackbar with the specified message
   void _showSuccessSnackbar(String message) {
-    Get.snackbar(
-      'Успех',
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.green[100],
-      colorText: Colors.green[900],
-      margin: _snackbarMargin,
-      borderRadius: _snackbarBorderRadius,
+    SnackbarUtils.showSuccess(message, 
       duration: _successDuration,
       icon: const Icon(Icons.check_circle, color: Colors.green),
     );
@@ -213,14 +205,7 @@ class DataTransferService extends GetxService {
 
   /// Shows an error snackbar with the specified message
   void _showErrorSnackbar(String message) {
-    Get.snackbar(
-      'Ошибка',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red[100],
-      colorText: Colors.red[900],
-      margin: _snackbarMargin,
-      borderRadius: _snackbarBorderRadius,
+    SnackbarUtils.showError(message,
       duration: _errorDuration,
     );
   }

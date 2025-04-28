@@ -1,12 +1,13 @@
 // --- File: lib/presentation/controllers/statistics_controller.dart ---
 import 'package:get/get.dart';
+import 'package:vktinder/core/base/base_controller.dart';
 import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
 import 'package:vktinder/data/repositories/statistics_repository.dart';
 import 'dart:async';
 
 /// Controller responsible for managing user action statistics and skipped user IDs
-class StatisticsController extends GetxController {
+class StatisticsController extends BaseController {
   // Dependencies
   final StatisticsRepository _statisticsRepository =
       Get.find<StatisticsRepository>();
@@ -158,12 +159,7 @@ class StatisticsController extends GetxController {
 
   /// Shows an error snackbar with the specified message
   void _showErrorSnackbar(String message) {
-    Get.snackbar(
-      'Ошибка',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 4),
-    );
+    showErrorSnackbar(message);
   }
 
   /// Provides the set of skipped user IDs for filtering
