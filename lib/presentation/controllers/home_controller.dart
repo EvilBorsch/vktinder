@@ -9,348 +9,371 @@ import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 import 'package:vktinder/data/providers/local_storage_provider.dart';
 import 'dart:async';
 
+/// Controller responsible for managing the home screen with user cards
 class HomeController extends GetxController {
+  // Dependencies
   final SettingsController _settingsController = Get.find<SettingsController>();
-  final GroupUsersRepository _groupUsersRepository = Get.find<GroupUsersRepository>();
-  final StatisticsController _statisticsController = Get.find<StatisticsController>();
-  final LocalStorageProvider _localStorageProvider = Get.find<LocalStorageProvider>();
+  final GroupUsersRepository _groupUsersRepository =
+      Get.find<GroupUsersRepository>();
+  final StatisticsController _statisticsController =
+      Get.find<StatisticsController>();
+  final LocalStorageProvider _localStorageProvider =
+      Get.find<LocalStorageProvider>();
 
+  // Observable state
   final RxList<VKGroupUser> users = <VKGroupUser>[].obs;
   final RxBool isLoading = true.obs;
   final RxBool isLoadingMore = false.obs;
   final RxBool isSendingMessage = false.obs;
   final RxnString errorMessage = RxnString();
 
+  // Configuration
   final int _loadMoreThreshold = 5;
-
-  Timer? _saveStackDebounceTimer;
   final Duration _saveStackDebounceDuration = const Duration(milliseconds: 600);
-
-  Timer? _fetchDebounceTimer;
   final Duration _fetchDebounceDuration = const Duration(milliseconds: 500);
 
+  // Debounce timers
+  Timer? _saveStackDebounceTimer;
+  Timer? _fetchDebounceTimer;
+
+  // Getters for settings
   String get vkToken => _settingsController.vkToken;
+
   String get defaultMessage => _settingsController.defaultMessage;
+
   bool get hasVkToken => vkToken.isNotEmpty;
+
   bool get hasGroupsConfigured => _settingsController.groupUrls.isNotEmpty;
 
+  // Internal state
   bool _justLoadedFromDisk = false;
   bool _isApiFetchInProgress = false;
-
 
   @override
   void onInit() {
     super.onInit();
-    print("HomeController onInit");
 
+    // Listen for settings changes and reload data when they change
     debounce<int>(
       _settingsController.settingsChanged,
-          (_) {
-        print("Settings changed, debounced event triggered. Clearing stack and forcing reload.");
+      (_) {
+        // Cancel any pending operations
         _fetchDebounceTimer?.cancel();
         _saveStackDebounceTimer?.cancel();
+
+        // Clear existing data and reload
         _clearPersistedAndMemoryStack();
         _triggerApiFetch(isInitialLoad: true);
       },
       time: const Duration(milliseconds: 500),
     );
 
+    // Initialize card stack after the first frame is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print("HomeController: First frame callback - initiating initial load sequence.");
       _initializeCardStack();
     });
   }
 
   @override
   void onClose() {
+    // Cancel all timers to prevent memory leaks
     _saveStackDebounceTimer?.cancel();
     _fetchDebounceTimer?.cancel();
     super.onClose();
   }
 
+  /// Initializes the card stack by loading persisted cards or fetching from API
   Future<void> _initializeCardStack() async {
-    print("Initializing card stack...");
+    // Reset state
     isLoading.value = true;
     errorMessage.value = null;
     users.clear();
     _isApiFetchInProgress = false;
 
+    // Check prerequisites
     if (!hasVkToken) {
       errorMessage.value = "Необходимо указать VK токен в настройках.";
       isLoading.value = false;
-      print("Initialization aborted: VK Token missing.");
-      return;
-    }
-    if (!hasGroupsConfigured) {
-      errorMessage.value = "Необходимо добавить хотя бы одну группу в настройках.";
-      isLoading.value = false;
-      print("Initialization aborted: No groups configured.");
       return;
     }
 
+    if (!hasGroupsConfigured) {
+      errorMessage.value =
+          "Необходимо добавить хотя бы одну группу в настройках.";
+      isLoading.value = false;
+      return;
+    }
+
+    // Try to load persisted cards
     List<VKGroupUser> persistedUsers = [];
     try {
       persistedUsers = await _localStorageProvider.loadPersistedCards();
     } catch (e) {
-      print("Error loading persisted cards during init: $e");
+      // If loading fails, clear persisted cards to prevent future errors
       await _localStorageProvider.clearPersistedCards();
     }
 
+    // If we have persisted users, use them and fetch more if needed
     if (persistedUsers.isNotEmpty) {
-      print("Loaded ${persistedUsers.length} users from persisted stack.");
       users.assignAll(persistedUsers);
       _justLoadedFromDisk = true;
       isLoading.value = false;
       _checkAndFetchMoreIfNeeded(delay: const Duration(milliseconds: 100));
     } else {
-      print("No persisted stack found. Triggering initial API fetch.");
+      // Otherwise, fetch from API
       await _triggerApiFetch(isInitialLoad: true);
     }
 
-    if (isLoading.value && persistedUsers.isNotEmpty){
+    // Ensure loading state is consistent
+    if (isLoading.value && persistedUsers.isNotEmpty) {
       isLoading.value = false;
     }
-    print("Card stack initialization complete. Users: ${users.length}, Loading: ${isLoading.value}");
   }
 
+  /// Loads cards from API with option to force reload
   Future<void> loadCardsFromAPI({required bool forceReload}) async {
     if (!forceReload) {
-      print("loadCardsFromAPI called without forceReload=true. Use the refresh button or let automatic fetching handle it.");
-      return;
+      return; // Only proceed if force reload is requested
     }
 
-    print("Force Reload Initiated.");
+    // Cancel any pending operations
     _fetchDebounceTimer?.cancel();
     _saveStackDebounceTimer?.cancel();
 
-    if (_isApiFetchInProgress) {
-      print("Warning: Force reload triggered while another API fetch might be in progress.");
-    }
-
+    // Clear existing data and reload
     await _clearPersistedAndMemoryStack();
     await _triggerApiFetch(isInitialLoad: true);
   }
 
+  /// Triggers an API fetch operation to load users
   Future<void> _triggerApiFetch({required bool isInitialLoad}) async {
+    // Skip if another fetch is already in progress
     if (_isApiFetchInProgress) {
-      print("API fetch triggered, but another fetch is already in progress. Skipping.");
       return;
     }
 
+    // Check prerequisites
     if (!hasVkToken || !hasGroupsConfigured) {
-      print("API fetch aborted: Token or Groups missing.");
-      errorMessage.value = !hasVkToken
-          ? "Необходимо указать VK токен в настройках."
-          : "Необходимо добавить хотя бы одну группу в настройках.";
-      isLoading.value = false;
-      isLoadingMore.value = false;
+      _handleMissingPrerequisites();
       return;
     }
 
     _isApiFetchInProgress = true;
-
-    if (isInitialLoad) {
-      print("Setting state for initial/forced API fetch: isLoading=true");
-      if (!isLoading.value) isLoading.value = true;
-      if (isLoadingMore.value) isLoadingMore.value = false;
-      errorMessage.value = null;
-    } else {
-      print("Setting state for background API fetch: isLoadingMore=true");
-      if (!isLoadingMore.value) isLoadingMore.value = true;
-      if (isLoading.value) isLoading.value = false;
-    }
+    _updateLoadingState(isInitialLoad);
 
     try {
-      final Set<String> skippedIds = _statisticsController.skippedIdsSet;
-      print("Calling repository.getUsers... (Skipped IDs count: ${skippedIds.length})");
+      final fetchedUsers = await _fetchUsersFromRepository();
 
-      // --- FIX: Convert Set to List before passing ---
-      final fetchedUsers = await _groupUsersRepository.getUsers(vkToken, skippedIds.toList());
-      print("Repository returned ${fetchedUsers.length} potential users.");
+      if (isClosed) return; // Skip processing if controller is disposed
 
-      // --- FIX: Check if controller is disposed using 'isClosed' property ---
-      if (!isClosed) { // Check if controller is still mounted
-        final existingUserIds = users.map((u) => u.userID).toSet();
-        final uniqueNewUsers = fetchedUsers
-            .where((user) => !existingUserIds.contains(user.userID))
-            .toList();
-
-        print("${uniqueNewUsers.length} unique new users received from API.");
-
-        if (uniqueNewUsers.isNotEmpty) {
-          users.addAll(uniqueNewUsers);
-          if(errorMessage.value != null) errorMessage.value = null;
-          print("Added new users. Total cards now: ${users.length}");
-          _saveCurrentStackWithDebounce();
-        } else {
-          if (isInitialLoad && users.isEmpty) {
-            print("Initial API fetch returned no users and stack is empty.");
-            errorMessage.value = "Не найдено новых пользователей по вашим критериям.\nПопробуйте изменить фильтры или обновить.";
-          } else if (!isInitialLoad) {
-            print("Background API fetch returned no *new* users.");
-          }
-        }
-      } else {
-        print("HomeController closed during API fetch. Aborting state update.");
-      }
-
+      _processNewUsers(fetchedUsers, isInitialLoad);
     } catch (e) {
-      print("Error during API fetch (_triggerApiFetch): $e");
-      // --- FIX: Check if controller is disposed using 'isClosed' property ---
-      if (!isClosed) { // Check if controller is still mounted
-        final errorMsg = e.toString().replaceFirst('Exception: ', '');
-        Get.snackbar(
-          'Ошибка загрузки', errorMsg,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red[100], colorText: Colors.red[900],
-          margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 4),
-        );
-        if (isInitialLoad && users.isEmpty) {
-          errorMessage.value = "Ошибка при загрузке: $errorMsg";
-        }
-      } else {
-        print("HomeController closed during API fetch error handling.");
-      }
+      if (isClosed) return; // Skip error handling if controller is disposed
+
+      _handleFetchError(e, isInitialLoad);
     } finally {
-      print("API fetch cycle finishing. Resetting flags.");
-      // --- FIX: Check if controller is disposed using 'isClosed' property ---
-      if (!isClosed) { // Reset flags ONLY IF the controller is still active
+      if (!isClosed) {
+        // Reset flags only if controller is still active
         _isApiFetchInProgress = false;
         isLoading.value = false;
         isLoadingMore.value = false;
-      } else {
-        print("HomeController closed, skipping final flag resets.");
       }
     }
   }
 
+  /// Updates loading state based on whether this is an initial or background load
+  void _updateLoadingState(bool isInitialLoad) {
+    if (isInitialLoad) {
+      if (!isLoading.value) isLoading.value = true;
+      if (isLoadingMore.value) isLoadingMore.value = false;
+      errorMessage.value = null;
+    } else {
+      if (!isLoadingMore.value) isLoadingMore.value = true;
+      if (isLoading.value) isLoading.value = false;
+    }
+  }
+
+  /// Handles the case when token or groups are missing
+  void _handleMissingPrerequisites() {
+    errorMessage.value = !hasVkToken
+        ? "Необходимо указать VK токен в настройках."
+        : "Необходимо добавить хотя бы одну группу в настройках.";
+    isLoading.value = false;
+    isLoadingMore.value = false;
+  }
+
+  /// Fetches users from the repository
+  Future<List<VKGroupUser>> _fetchUsersFromRepository() async {
+    final Set<String> skippedIds = _statisticsController.skippedIdsSet;
+    return await _groupUsersRepository.getUsers(vkToken, skippedIds.toList());
+  }
+
+  /// Processes newly fetched users
+  void _processNewUsers(List<VKGroupUser> fetchedUsers, bool isInitialLoad) {
+    final existingUserIds = users.map((u) => u.userID).toSet();
+    final uniqueNewUsers = fetchedUsers
+        .where((user) => !existingUserIds.contains(user.userID))
+        .toList();
+
+    if (uniqueNewUsers.isNotEmpty) {
+      users.addAll(uniqueNewUsers);
+      if (errorMessage.value != null) errorMessage.value = null;
+      _saveCurrentStackWithDebounce();
+    } else if (isInitialLoad && users.isEmpty) {
+      errorMessage.value =
+          "Не найдено новых пользователей по вашим критериям.\nПопробуйте изменить фильтры или обновить.";
+    }
+  }
+
+  /// Handles errors during fetch operation
+  void _handleFetchError(dynamic error, bool isInitialLoad) {
+    final errorMsg = error.toString().replaceFirst('Exception: ', '');
+
+    Get.snackbar(
+      'Ошибка загрузки',
+      errorMsg,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red[100],
+      colorText: Colors.red[900],
+      margin: const EdgeInsets.all(8),
+      borderRadius: 10,
+      duration: const Duration(seconds: 4),
+    );
+
+    if (isInitialLoad && users.isEmpty) {
+      errorMessage.value = "Ошибка при загрузке: $errorMsg";
+    }
+  }
+
+  /// Dismisses the top card with the given direction (like/dislike)
   Future<void> dismissCard(DismissDirection direction) async {
-    if (users.isEmpty || isLoading.value || isLoadingMore.value || isSendingMessage.value || _isApiFetchInProgress) {
-      print("Dismissal blocked: Busy (loading/sending/fetching) or stack empty.");
+    // Skip if busy or no cards
+    if (users.isEmpty ||
+        isLoading.value ||
+        isLoadingMore.value ||
+        isSendingMessage.value ||
+        _isApiFetchInProgress) {
       return;
     }
 
+    // Process the dismissed card
     final dismissedUser = users.removeAt(0);
     final groupURL = dismissedUser.groupURL ?? "unknown_group";
-    final actionType = direction == DismissDirection.startToEnd ? ActionLike : ActionDislike;
+    final actionType =
+        direction == DismissDirection.startToEnd ? ActionLike : ActionDislike;
 
-    print("${actionType == ActionLike ? 'Liking' : 'Disliking'} user: ${dismissedUser.userID} from group '$groupURL'");
+    // Record the action in statistics
+    await _statisticsController.addUserAction(
+        groupURL, dismissedUser, actionType);
 
-    await _statisticsController.addUserAction(groupURL, dismissedUser, actionType);
-    _saveCurrentStackWithDebounce(); // Save remaining stack
+    // Save the updated stack
+    _saveCurrentStackWithDebounce();
 
+    // Show message dialog for likes
     if (actionType == ActionLike) {
       showMessageDialogForUser(dismissedUser);
     }
 
+    // Check if we need to fetch more cards
     _checkAndFetchMoreIfNeeded(delay: _fetchDebounceDuration);
 
+    // Reset the loaded from disk flag
     if (_justLoadedFromDisk) {
       _justLoadedFromDisk = false;
     }
   }
 
+  /// Checks if more cards need to be fetched and triggers a fetch if needed
   void _checkAndFetchMoreIfNeeded({Duration delay = Duration.zero}) {
     _fetchDebounceTimer?.cancel();
+
+    // Skip if we just loaded from disk
     if (_justLoadedFromDisk) {
-      print("CheckFetchMore: Just loaded from disk, skipping fetch trigger for now.");
       return;
     }
 
     _fetchDebounceTimer = Timer(delay, () {
-      // --- FIX: Check 'isClosed' property ---
-      if (isClosed) {
-        print("CheckFetchMore: Timer fired but controller is closed. Aborting.");
-        return;
-      }
+      if (isClosed) return;
+
+      // Fetch more if card count is below threshold
       if (users.length < _loadMoreThreshold && !_isApiFetchInProgress) {
-        print("Card count low (${users.length}), triggering background API fetch.");
         _triggerApiFetch(isInitialLoad: false);
-      } else {
-        // print("CheckFetchMore: Card count (${users.length}) sufficient or fetch already in progress.");
       }
     });
   }
 
+  /// Saves the current stack with debounce to avoid frequent saves
   Future<void> _saveCurrentStackWithDebounce() async {
     _saveStackDebounceTimer?.cancel();
     _saveStackDebounceTimer = Timer(_saveStackDebounceDuration, () {
       _saveCurrentStackImmediate();
     });
-    // print("Save stack debouncer reset."); // Can be noisy, optional log
   }
 
+  /// Saves the current stack immediately
   Future<void> _saveCurrentStackImmediate() async {
-    // --- FIX: Check 'isClosed' property ---
-    if (isClosed) {
-      print("Save stack immediate: Controller is closed. Skipping save.");
-      return;
-    }
+    if (isClosed) return;
+
     final List<VKGroupUser> stackToSave = List.from(users); // Safe copy
-    print("Saving current stack (immediate): ${stackToSave.length} users");
     await _localStorageProvider.savePersistedCards(stackToSave);
   }
 
+  /// Clears both persisted and in-memory card stack
   Future<void> _clearPersistedAndMemoryStack() async {
-    print("Clearing persisted and in-memory card stack.");
     users.clear(); // Clear memory
     await _localStorageProvider.clearPersistedCards(); // Clear disk
   }
 
+  /// Sends a VK message to the specified user
   Future<bool> sendVKMessage(String userId, String message) async {
+    // Validate inputs and state
     if (isSendingMessage.value) {
-      print("Send message requested, but already sending. Skipping.");
       return false;
     }
+
     if (userId.isEmpty || !hasVkToken) {
-      Get.snackbar('Ошибка', 'Не указан ID пользователя или VK токен.', snackPosition: SnackPosition.BOTTOM);
+      _showErrorSnackbar('Не указан ID пользователя или VK токен.');
       return false;
     }
+
     if (message.isEmpty) {
-      Get.snackbar('Ошибка', 'Сообщение не может быть пустым.', snackPosition: SnackPosition.BOTTOM);
+      _showErrorSnackbar('Сообщение не может быть пустым.');
       return false;
     }
 
     bool success = false;
     try {
       isSendingMessage.value = true;
-      print("Setting isSendingMessage = true");
-      success = await _groupUsersRepository.sendMessage(vkToken, userId, message);
-      if (success) {
-        Get.snackbar('Успех', 'Сообщение отправлено.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green[100], colorText: Colors.green[900], margin: const EdgeInsets.all(8), borderRadius: 10, duration: const Duration(seconds: 2));
+      success =
+          await _groupUsersRepository.sendMessage(vkToken, userId, message);
+
+      if (success && !isClosed) {
+        _showSuccessSnackbar('Сообщение отправлено.');
       }
     } catch (e) {
-      print("Error sending message from controller: $e");
-      Get.snackbar('Ошибка', 'Не удалось отправить сообщение: ${e.toString()}', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red[100], colorText: Colors.red[900], margin: const EdgeInsets.all(8), borderRadius: 10);
+      if (!isClosed) {
+        _showErrorSnackbar('Не удалось отправить сообщение: ${e.toString()}');
+      }
       success = false;
     } finally {
-      // --- FIX: Check 'isClosed' property ---
-      if (!isClosed) { // Avoid setting state if controller is disposed
+      if (!isClosed) {
         isSendingMessage.value = false;
-        print("Setting isSendingMessage = false");
       }
     }
     return success;
   }
 
+  /// Shows a dialog to send a message to the specified user
   void showMessageDialogForUser(VKGroupUser targetUser) {
     final TextEditingController messageController =
-    TextEditingController(text: defaultMessage);
+        TextEditingController(text: defaultMessage);
     final RxBool isDialogSending = false.obs;
 
     Get.dialog(
       AlertDialog(
         title: const Text('Отправить сообщение'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          RichText(
-              text: TextSpan(
-                  style: TextStyle(color: Get.theme.textTheme.bodyMedium?.color),
-                  children: [
-                    const TextSpan(text: 'Кому: '),
-                    TextSpan(
-                        text: '${targetUser.name} ${targetUser.surname}',
-                        style: const TextStyle(fontWeight: FontWeight.bold))
-                  ])),
+          _buildRecipientText(targetUser),
           const SizedBox(height: 16),
           _buildTextField(
               controller: messageController,
@@ -368,35 +391,57 @@ class HomeController extends GetxController {
           Obx(() => ElevatedButton.icon(
               onPressed: isDialogSending.value
                   ? null
-                  : () async {
-                final message = messageController.text.trim();
-                if (message.isEmpty) {
-                  Get.snackbar('Ошибка', 'Сообщение не может быть пустым.',
-                      snackPosition: SnackPosition.BOTTOM);
-                  return;
-                }
-                isDialogSending.value = true;
-                Get.back(result: true);
-                await sendVKMessage(targetUser.userID, message);
-              },
+                  : () => _handleSendMessage(
+                      targetUser, messageController, isDialogSending),
               icon: isDialogSending.value
                   ? const SizedBox(
-                  width: 18, height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.send_outlined, size: 18),
-              label: Text(isDialogSending.value ? 'Отправка...' : 'Отправить'))),
+              label:
+                  Text(isDialogSending.value ? 'Отправка...' : 'Отправить'))),
         ],
       ),
       barrierDismissible: !isDialogSending.value,
     );
   }
 
+  /// Handles the send message button click
+  Future<void> _handleSendMessage(VKGroupUser targetUser,
+      TextEditingController messageController, RxBool isDialogSending) async {
+    final message = messageController.text.trim();
+    if (message.isEmpty) {
+      _showErrorSnackbar('Сообщение не может быть пустым.');
+      return;
+    }
+
+    isDialogSending.value = true;
+    Get.back(result: true);
+    await sendVKMessage(targetUser.userID, message);
+  }
+
+  /// Builds the recipient text for the message dialog
+  Widget _buildRecipientText(VKGroupUser targetUser) {
+    return RichText(
+        text: TextSpan(
+            style: TextStyle(color: Get.theme.textTheme.bodyMedium?.color),
+            children: [
+          const TextSpan(text: 'Кому: '),
+          TextSpan(
+              text: '${targetUser.name} ${targetUser.surname}',
+              style: const TextStyle(fontWeight: FontWeight.bold))
+        ]));
+  }
+
+  /// Builds a text field with the specified parameters
   Widget _buildTextField(
       {required TextEditingController controller,
-        required String labelText,
-        required String hintText,
-        required IconData icon,
-        int maxLines = 1}) {
+      required String labelText,
+      required String hintText,
+      required IconData icon,
+      int maxLines = 1}) {
     return TextField(
         controller: controller,
         maxLines: maxLines,
@@ -409,19 +454,44 @@ class HomeController extends GetxController {
             isDense: true,
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none
-            ),
+                borderSide: BorderSide.none),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[400]!)
-            ),
+                borderSide: BorderSide(color: Colors.grey[400]!)),
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Get.theme.primaryColor, width: 1.5)
-            )
-        )
+                borderSide:
+                    BorderSide(color: Get.theme.primaryColor, width: 1.5))));
+  }
+
+  /// Shows an error snackbar with the specified message
+  void _showErrorSnackbar(String message) {
+    Get.snackbar(
+      'Ошибка',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red[100],
+      colorText: Colors.red[900],
+      margin: const EdgeInsets.all(8),
+      borderRadius: 10,
+      duration: const Duration(seconds: 4),
     );
   }
 
-  VoidCallback get refreshButtonAction => () => loadCardsFromAPI(forceReload: true);
+  /// Shows a success snackbar with the specified message
+  void _showSuccessSnackbar(String message) {
+    Get.snackbar(
+      'Успех',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green[100],
+      colorText: Colors.green[900],
+      margin: const EdgeInsets.all(8),
+      borderRadius: 10,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  VoidCallback get refreshButtonAction =>
+      () => loadCardsFromAPI(forceReload: true);
 }

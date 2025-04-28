@@ -181,8 +181,8 @@ class SettingsPage extends GetView<SettingsController> {
               // Use same card styling as theme/sex options
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              tileColor: Get.theme.cardTheme.color ??
-                  Get.theme.cardColor, // Use theme card color
+              tileColor: Get.theme.cardTheme.color ?? Get.theme.cardColor,
+              // Use theme card color
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               dense: true,
@@ -287,16 +287,17 @@ class SettingsPage extends GetView<SettingsController> {
             controller.saveSettings(
               vkToken: vkTokenController.text.trim(),
               defaultMessage: defaultMsgController.text.trim(),
-              theme: themeValue, // Get value from the reactive variable
+              theme: themeValue,
+              // Get value from the reactive variable
               currentCities: citiesList,
               ageFromString: ageFromController.text.trim(),
               ageToString: ageToController.text.trim(),
-              sexFilter:
-                  controller.sexFilter.value, // Pass the sex filter value
-              currentGroupUrls: controller.groupUrls
-                  .toList(), // Get current list from controller
-              skipClosedProfiles:
-                  controller.skipClosedProfiles.value, // Pass reactive value
+              sexFilter: controller.sexFilter.value,
+              // Pass the sex filter value
+              currentGroupUrls: controller.groupUrls.toList(),
+              // Get current list from controller
+              skipClosedProfiles: controller.skipClosedProfiles.value,
+              // Pass reactive value
               skipRelationFilter:
                   controller.skipRelationFilter.value, // Pass reactive value
             );
@@ -430,8 +431,8 @@ class SettingsPage extends GetView<SettingsController> {
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: ListView.separated(
               shrinkWrap: true,
-              physics:
-                  const NeverScrollableScrollPhysics(), // List is inside a ListView
+              physics: const NeverScrollableScrollPhysics(),
+              // List is inside a ListView
               itemCount: controller.groupUrls.length,
               itemBuilder: (context, index) {
                 final url = controller.groupUrls[index];
@@ -515,15 +516,16 @@ class SettingsPage extends GetView<SettingsController> {
       ),
       subtitle: Text(subtitle, style: Get.textTheme.bodySmall),
       value: value,
-      groupValue: groupValue.value, // Reactive group value
+      groupValue: groupValue.value,
+      // Reactive group value
       onChanged: (newValue) {
         if (newValue != null) {
           groupValue.value =
               newValue; // Update the controller's reactive variable directly
         }
       },
-      shape:
-          const RoundedRectangleBorder(), // Remove individual shape, rely on Card
+      shape: const RoundedRectangleBorder(),
+      // Remove individual shape, rely on Card
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       dense: true,
     );
@@ -543,15 +545,16 @@ class SettingsPage extends GetView<SettingsController> {
       ),
       subtitle: Text(subtitle, style: Get.textTheme.bodySmall),
       value: value,
-      groupValue: groupValue.value, // Reactive group value
+      groupValue: groupValue.value,
+      // Reactive group value
       onChanged: (newValue) {
         if (newValue != null) {
           groupValue.value =
               newValue; // Update the controller's reactive variable
         }
       },
-      shape:
-          const RoundedRectangleBorder(), // Remove individual shape, rely on Card
+      shape: const RoundedRectangleBorder(),
+      // Remove individual shape, rely on Card
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       dense: true,
     );
@@ -588,9 +591,7 @@ class SettingsPage extends GetView<SettingsController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHelpText(
-          'Экспортируйте данные для переноса на другое устройство или создания резервной копии. '
-          'Импортируйте данные для восстановления настроек и статистики с другого устройства.'
-        ),
+            'Экспортируйте/импортируйте данные для переноса на другое устройство (после импорта перезагрузите приложение)'),
         const SizedBox(height: 16),
         Row(
           children: [
