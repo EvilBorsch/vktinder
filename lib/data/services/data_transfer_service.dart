@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vktinder/core/theme/theme_service.dart';
 import 'package:vktinder/core/utils/snackbar_utils.dart';
 import 'package:vktinder/data/models/statistics.dart';
 import 'package:vktinder/data/models/vk_city_info.dart';
@@ -17,6 +18,7 @@ class DataTransferService extends GetxService {
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
   final StatisticsRepository _statisticsRepository =
       Get.find<StatisticsRepository>();
+  final ThemeService _themeService = Get.find<ThemeService>();
 
   // UI constants
   static const _successDuration = Duration(seconds: 2);
@@ -165,6 +167,9 @@ class DataTransferService extends GetxService {
       skipClosedProfiles: skipClosedProfiles,
       skipRelationFilter: skipRelationFilter,
     );
+
+    // Update theme immediately
+    await _themeService.saveTheme(theme);
 
     // Save statistics
     final userActions = _deserializeUserActions(userActionsJson);

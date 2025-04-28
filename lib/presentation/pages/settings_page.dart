@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For TextInputFormatters
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vktinder/core/theme/theme_service.dart';
 import 'package:vktinder/data/services/data_transfer_service.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
@@ -44,7 +45,7 @@ class SettingsPage extends GetView<SettingsController> {
     final newGroupUrlController = controller.newGroupUrlController!;
 
     // Use the controller's RxString for theme selection directly
-    final themeValue = controller.theme; // Already RxString in controller
+    final themeRx = controller.themeRx; // Get the RxString directly
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -244,7 +245,7 @@ class SettingsPage extends GetView<SettingsController> {
                     'Следовать настройкам системы',
                     Icons.settings_suggest_outlined,
                     'system',
-                    themeValue.obs,
+                    themeRx,
                   ),
                   const Divider(height: 0, indent: 50),
                   _buildThemeOption(
@@ -252,7 +253,7 @@ class SettingsPage extends GetView<SettingsController> {
                     'Светлое оформление',
                     Icons.wb_sunny_outlined,
                     'light',
-                    themeValue.obs,
+                    themeRx,
                   ),
                   const Divider(height: 0, indent: 50),
                   _buildThemeOption(
@@ -260,7 +261,7 @@ class SettingsPage extends GetView<SettingsController> {
                     'Темное оформление',
                     Icons.nights_stay_outlined,
                     'dark',
-                    themeValue.obs,
+                    themeRx,
                   ),
                 ],
               ),
@@ -287,7 +288,7 @@ class SettingsPage extends GetView<SettingsController> {
             controller.saveSettings(
               vkToken: vkTokenController.text.trim(),
               defaultMessage: defaultMsgController.text.trim(),
-              theme: themeValue,
+              theme: themeRx.value,
               // Get value from the reactive variable
               currentCities: citiesList,
               ageFromString: ageFromController.text.trim(),
@@ -520,8 +521,10 @@ class SettingsPage extends GetView<SettingsController> {
       // Reactive group value
       onChanged: (newValue) {
         if (newValue != null) {
-          groupValue.value =
-              newValue; // Update the controller's reactive variable directly
+          groupValue.value = newValue; // Update the controller's reactive variable directly
+          // Apply theme immediately
+          final themeService = Get.find<ThemeService>();
+          themeService.updateTheme(newValue);
         }
       },
       shape: const RoundedRectangleBorder(),

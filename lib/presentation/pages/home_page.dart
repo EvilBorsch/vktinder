@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:vktinder/core/utils/ui_constants.dart';
 import 'package:vktinder/presentation/controllers/home_controller.dart';
 import 'package:vktinder/presentation/controllers/nav_controller.dart';
 import 'package:vktinder/presentation/widgets/common/app_loading_indicator.dart';

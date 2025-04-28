@@ -49,6 +49,7 @@ class SettingsController extends GetxController {
   String get vkToken => _vkToken.value;
   String get defaultMessage => _defaultMessage.value;
   String get theme => _theme.value;
+  RxString get themeRx => _theme;
 
   @override
   void onInit() {
@@ -72,7 +73,7 @@ class SettingsController extends GetxController {
     _vkToken.value = _settingsRepository.getVkToken();
     _defaultMessage.value = _settingsRepository.getDefaultMessage();
     _theme.value = _settingsRepository.getTheme();
-    
+
     cities.clear();
     cities.addAll(_settingsRepository.getCities());
     final (from, to) = _settingsRepository.getAgeRange();
@@ -82,7 +83,7 @@ class SettingsController extends GetxController {
     groupUrls.assignAll(_settingsRepository.getGroupUrls());
     skipClosedProfiles.value = _settingsRepository.getSkipClosedProfiles();
     skipRelationFilter.value = _settingsRepository.getSkipRelationFilter();
-    
+
     // Load resolved infos
     groupInfos.assignAll(_settingsRepository.getGroupInfos());
     cityInfos.assignAll(_settingsRepository.getCityInfos());
@@ -105,7 +106,7 @@ class SettingsController extends GetxController {
   VKGroupInfo? getGroupInfoByUrl(String url) {
     return groupInfos.firstWhereOrNull((info) => info.sourceUrl == url);
   }
-  
+
   // Helper method to find a city info by name
   VKCityInfo? getCityInfoByName(String cityName) {
     final normalized = cityName.trim().toLowerCase();
@@ -155,7 +156,7 @@ class SettingsController extends GetxController {
         } else {
           groupUrls.add(trimmedUrl); // Add the original URL/name
           groupInfos.add(groupInfo); // Store the resolved group info
-          
+
           Get.snackbar(
             'Успех',
             'Группа "${groupInfo.name}" добавлена. Не забудьте сохранить настройки.',
@@ -194,10 +195,10 @@ class SettingsController extends GetxController {
 
   void removeGroupUrl(String url) {
     groupUrls.remove(url);
-    
+
     // Also remove the corresponding group info
     groupInfos.removeWhere((info) => info.sourceUrl == url);
-    
+
     Get.snackbar(
       'Удалено',
       'Группа "$url" удалена из списка. Не забудьте сохранить настройки.',
@@ -210,20 +211,20 @@ class SettingsController extends GetxController {
   // Method to resolve city names to city IDs
   Future<void> resolveCityNames(List<String> cityNames) async {
     if (vkToken.isEmpty || cityNames.isEmpty) return;
-    
+
     // Clear existing city info entries that aren't in the new list
     cityInfos.removeWhere((info) => 
         !cityNames.any((name) => name.trim().toLowerCase() == info.name.toLowerCase()));
-    
+
     // Filter out cities that already have info
     final unresolved = cityNames.where((name) => 
         !cityInfos.any((info) => info.name.toLowerCase() == name.trim().toLowerCase())).toList();
-    
+
     if (unresolved.isEmpty) return; // All cities already resolved
-    
+
     try {
       final cityIdMap = await _apiProvider.getCityIdsByNames(vkToken, unresolved);
-      
+
       // Add resolved cities to cityInfos
       cityIdMap.forEach((name, id) {
         if (!cityInfos.any((info) => info.id == id)) {
@@ -235,7 +236,7 @@ class SettingsController extends GetxController {
       // Don't show a snackbar here as it's part of the save process
     }
   }
-  
+
   // Updated Save Method
   Future<void> saveSettings({
     required String vkToken,
@@ -303,10 +304,10 @@ class SettingsController extends GetxController {
         resolutionTasks.add(_resolveAndAddGroupInfo(url));
       }
     }
-    
+
     // 2. Resolve city names to IDs
     resolutionTasks.add(resolveCityNames(currentCities));
-    
+
     // Wait for all resolutions to complete
     if (resolutionTasks.isNotEmpty) {
       await Future.wait(resolutionTasks);
@@ -330,7 +331,7 @@ class SettingsController extends GetxController {
       );
 
       // Update theme immediately
-      _themeService.updateTheme(theme);
+      _themeService.saveTheme(theme);
 
       // Trigger reload only if relevant filters changed
       if (filtersChanged) {
@@ -362,7 +363,7 @@ class SettingsController extends GetxController {
       );
     }
   }
-  
+
   // Helper to resolve and add a group info
   Future<void> _resolveAndAddGroupInfo(String url) async {
     try {
