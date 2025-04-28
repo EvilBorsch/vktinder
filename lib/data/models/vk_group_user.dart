@@ -75,7 +75,7 @@ class VKGroupUser {
     "photo_200": avatar, // Add basic avatar for card view consistency on load if needed
   };
 
-  factory VKGroupUser.fromJson(Map<String, dynamic> json) {
+  factory VKGroupUser.fromJson(Map<dynamic, dynamic> json) {
     // Helper to safely parse comma-separated strings (if needed from old API format)
     List<String> parseCommaSeparatedString(dynamic input) {
       if (input == null) return [];
@@ -98,6 +98,17 @@ class VKGroupUser {
         if (intValue != null) return intValue == 1;
       }
       return null; // Cannot determine boolean value
+    }
+
+    // Helper to convert Map<dynamic, dynamic> to Map<String, dynamic>
+    Map<String, dynamic>? convertDynamicMap(dynamic map) {
+      if (map == null) return null;
+      if (map is Map) {
+        return Map<String, dynamic>.from(map.map(
+          (key, value) => MapEntry(key.toString(), value),
+        ));
+      }
+      return null;
     }
 
     return VKGroupUser(
@@ -127,8 +138,8 @@ class VKGroupUser {
       screenName: json['screen_name'] as String?,
 
       // Location: Handle both nested (API) and flat (our JSON) formats
-      city: (json['city'] is Map<String, dynamic> ? json['city']['title'] : json['city']) as String?,
-      country: (json['country'] is Map<String, dynamic> ? json['country']['title'] : json['country']) as String?,
+      city: (json['city'] is Map ? json['city']['title'] : json['city']) as String?,
+      country: (json['country'] is Map ? json['country']['title'] : json['country']) as String?,
 
       // Numeric/Bool fields
       sex: json['sex'] as int?,
@@ -137,7 +148,7 @@ class VKGroupUser {
       canWritePrivateMessage: parseBool(json['can_write_private_message']),
       isClosed: parseBool(json['is_closed']),
 
-      lastSeen: json['last_seen'] as Map<String, dynamic>?,
+      lastSeen: convertDynamicMap(json['last_seen']),
 
       // *** Deserialize groupURL ***
       groupURL: json['groupURL'] as String?,
@@ -146,7 +157,7 @@ class VKGroupUser {
       // They are fetched separately when viewing the full profile.
       // Initialize as empty lists.
       photos: (json['photos'] as List<dynamic>?)?.map((p) => p.toString()).toList() ?? const [], // Handle potential persistence
-      groups: (json['groups'] as List<dynamic>?)?.map((g) => VKGroupInfo.fromJson(g as Map<String,dynamic>)).toList() ?? const [], // Handle potential persistence
+      groups: (json['groups'] as List<dynamic>?)?.map((g) => VKGroupInfo.fromJson(g as Map<dynamic, dynamic>)).toList() ?? const [], // Handle potential persistence
     );
   }
 
@@ -164,4 +175,3 @@ class VKGroupUser {
   @override
   int get hashCode => userID.hashCode;
 }
-

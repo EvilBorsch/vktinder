@@ -39,6 +39,7 @@ class ServiceLocator {
 
   /// Register data providers
   static void _registerProviders() {
+    // HiveStorageProvider is already registered in main.dart via HiveStorageProvider.initService()
     Get.put(LocalStorageProvider(), permanent: true);
     Get.put(VkApiProvider(), permanent: true);
   }

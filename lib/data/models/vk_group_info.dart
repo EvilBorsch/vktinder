@@ -26,7 +26,7 @@ class VKGroupInfo {
   String get avatarUrl =>
       photo200 ?? photo100 ?? photo50 ?? 'https://vk.com/images/community_100.png';
 
-  factory VKGroupInfo.fromJson(Map<String, dynamic> json, {String? sourceUrl}) { // Add optional sourceUrl parameter
+  factory VKGroupInfo.fromJson(Map<dynamic, dynamic> json, {String? sourceUrl}) { // Add optional sourceUrl parameter
     return VKGroupInfo(
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? 'Unknown Group',

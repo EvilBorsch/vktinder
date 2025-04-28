@@ -1,6 +1,6 @@
 # VK Tinder Clone - Flutter App
 
-A Flutter application demonstrating a Tinder-like interface for discovering VK (Vkontakte) users based on shared groups and user-defined filters. It utilizes the VK API, manages state with GetX, and persists data locally using GetStorage.
+A Flutter application demonstrating a Tinder-like interface for discovering VK (Vkontakte) users based on shared groups and user-defined filters. It utilizes the VK API, manages state with GetX, and persists data locally using GetStorage and Hive database.
 
 (!) App does not utilises any backend, all data stored locally  (!)
 
@@ -28,7 +28,7 @@ Some parts os code was written by hands, but many parts are written by LLM, like
 *   Persists user settings (token, filters, theme).
 *   **Statistics:** View a history of liked and disliked users, filterable by group.
 *   **State Management:** Uses GetX for dependency injection, state management (`.obs`, `Obx`), and routing.
-*   **Local Storage:** Uses GetStorage for simple key-value persistence.
+*   **Local Storage:** Uses GetStorage for simple key-value persistence and Hive database for high-performance data storage (user cards, statistics, etc.).
 *   **Theming:** Supports Light, Dark, and System themes.
 *   **Mock Data:** Includes a flag (`_useMockData` in `VkApiProvider`) to use simulated data for development without hitting the VK API.
 
@@ -42,13 +42,15 @@ The app follows a layered architecture facilitated by GetX:
 *   **`core/`**: Contains core functionalities like theming (`ThemeService`).
 *   **`data/`**: Handles data sourcing and manipulation.
     *   `models/`: Defines data structures (`VKGroupUser`, `VKGroupInfo`, `StatisticsUserAction`).
+        *   `hive/`: Contains Hive models for efficient database storage (`HiveVKGroupUser`, `HiveStatisticsUserAction`, `HiveSkippedUserIds`).
     *   `providers/`: Direct interaction with external sources.
-    *   `vk_api_provider.dart`: Makes actual HTTP calls to the VK API using Dio. Includes error handling and mock data logic.
-    *   `local_storage_provider.dart`: Handles reading/writing data to `GetStorage`.
-        *   `repositories/`: Abstract the data sources for the presentation layer.
-    *   `group_users_repository_impl.dart`: Combines API calls (via `VkApiProvider`) to fetch and process user lists and profiles.
-    *   `settings_repository_impl.dart`: Manages saving/loading application settings using `LocalStorageProvider`.
-    *   `statistics_repository.dart`: Manages saving/loading swipe actions and the set of all skipped user IDs using `GetStorage`.
+        *   `vk_api_provider.dart`: Makes actual HTTP calls to the VK API using Dio. Includes error handling and mock data logic.
+        *   `local_storage_provider.dart`: Handles reading/writing data to `GetStorage` and delegates performance-critical operations to `HiveStorageProvider`.
+        *   `hive_storage_provider.dart`: Manages Hive database operations for efficient storage of user cards, statistics, and skipped user IDs.
+    *   `repositories/`: Abstract the data sources for the presentation layer.
+        *   `group_users_repository_impl.dart`: Combines API calls (via `VkApiProvider`) to fetch and process user lists and profiles.
+        *   `settings_repository_impl.dart`: Manages saving/loading application settings using `LocalStorageProvider`.
+        *   `statistics_repository.dart`: Manages saving/loading swipe actions and the set of all skipped user IDs using Hive database.
 *   **`presentation/`**: Contains the UI and state management logic.
     *   `controllers/`: GetX controllers managing the state and business logic for different parts of the app (`HomeController`, `SettingsController`, `StatisticsController`, `UserDetailController`, `NavController`).
     *   `pages/`: Screen widgets (`HomePage`, `SettingsPage`, `StatisticsPage`, `UserDetailsPage`, `MainScreen`).
@@ -274,9 +276,25 @@ Here's where to look when adding new features:
 2.  Clone the repository.
 3.  Navigate to the project directory: `cd vktinder`
 4.  Install dependencies: `flutter pub get`
-5.  Run the app: `flutter run`
-6.  Navigate to Settings, enter your VK Token and add target groups.
-7.  Go back to the Home page to start swiping.
+5.  Generate Hive adapters: `flutter pub run build_runner build --delete-conflicting-outputs`
+6.  Run the app: `flutter run`
+7.  Navigate to Settings, enter your VK Token and add target groups.
+8.  Go back to the Home page to start swiping.
+
+### Hive Database
+
+The app uses Hive database for efficient storage of user cards, statistics, and skipped user IDs. This provides better performance when dealing with thousands of cards compared to the previous GetStorage implementation.
+
+If you make changes to the Hive models, you'll need to regenerate the adapters:
+
+```bash
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+The Hive models are located in `lib/data/models/hive/` and include:
+- `HiveVKGroupUser`: For storing user cards
+- `HiveStatisticsUserAction`: For storing user actions (likes/dislikes)
+- `HiveSkippedUserIds`: For storing skipped user IDs
 
 ## Mock Data Mode
 

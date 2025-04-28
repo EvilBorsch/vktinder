@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:vktinder/core/di/service_locator.dart';
 import 'package:vktinder/core/theme/theme_service.dart';
+import 'package:vktinder/data/providers/hive_storage_provider.dart';
 import 'package:vktinder/routes/app_pages.dart';
 
 void main() async {
@@ -10,6 +11,17 @@ void main() async {
 
   // Initialize GetStorage for persistent storage
   await GetStorage.init();
+
+  // Initialize Hive for database storage
+  await HiveStorageProvider.init();
+
+  // Initialize Hive provider as a service and make sure it's registered
+  final hiveProvider = await HiveStorageProvider.initService();
+
+  // Ensure HiveStorageProvider is registered before initializing service locator
+  if (!Get.isRegistered<HiveStorageProvider>()) {
+    Get.put(hiveProvider, permanent: true);
+  }
 
   // Initialize service locator
   ServiceLocator.init();

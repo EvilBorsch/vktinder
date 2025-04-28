@@ -1,50 +1,45 @@
 // lib/data/repositories/statistics_repository.dart
 import 'dart:async';
 import 'dart:convert';
-import 'package:get_storage/get_storage.dart';
+import 'package:get/get.dart';
 import 'package:vktinder/data/models/statistics.dart';
+import 'package:vktinder/data/providers/hive_storage_provider.dart';
 
 class StatisticsRepository {
-  final _storage = GetStorage();
+  late final HiveStorageProvider _hiveProvider;
 
-  final _groupUserKey = "statistics_user_actions_v2"; // Renamed key for updated format
-  final _skippedUsersKey = "statistics_skipped_ids_v2"; // Renamed key
+  StatisticsRepository() {
+    _hiveProvider = Get.find<HiveStorageProvider>();
+  }
 
   // --- Load User Actions ---
   Future<Map<String, List<StatisticsUserAction>>> loadUserActions() async {
-    final rawValue = _storage.read<String>(_groupUserKey);
-    if (rawValue == null || rawValue.isEmpty) {
-      return {}; // Return empty map if no data
-    }
-
     try {
-      final Map<String, dynamic> decodedMap = jsonDecode(rawValue);
-      final Map<String, List<StatisticsUserAction>> dbGroupUsers = {};
+      final Map<String, List<Map<String, dynamic>>> allUserActions = await _hiveProvider.loadAllUserActions();
+      final Map<String, List<StatisticsUserAction>> result = {};
 
-      decodedMap.forEach((groupURL, rawActionsList) {
-        if (rawActionsList is List) {
-          final actions = rawActionsList
-              .map((rawAction) {
-            try {
-              // IMPORTANT: jsonDecode *each action* because they were stored as strings
-              return StatisticsUserAction.fromJson(rawAction as String);
-            } catch (e) {
-              print('Error decoding individual user action for group $groupURL: $e');
-              return null; // Skip corrupted entries
-            }
-          })
-              .whereType<StatisticsUserAction>() // Filter out nulls
-              .toList();
-          if (actions.isNotEmpty) {
-            dbGroupUsers[groupURL] = actions;
-          }
+      allUserActions.forEach((groupURL, actionMaps) {
+        final actions = actionMaps
+            .map((actionMap) {
+              try {
+                return StatisticsUserAction.fromMap(actionMap);
+              } catch (e) {
+                print('Error converting action map to StatisticsUserAction for group $groupURL: $e');
+                return null;
+              }
+            })
+            .whereType<StatisticsUserAction>() // Filter out nulls
+            .toList();
+
+        if (actions.isNotEmpty) {
+          result[groupURL] = actions;
         }
       });
-      print("StatisticsRepository: Loaded ${dbGroupUsers.length} groups with actions.");
-      return dbGroupUsers;
+
+      print("StatisticsRepository: Loaded ${result.length} groups with actions from Hive.");
+      return result;
     } catch (e) {
-      print("Error decoding user actions map: $e");
-      await _storage.remove(_groupUserKey); // Clear corrupted data
+      print("Error loading user actions from Hive: $e");
       return {};
     }
   }
@@ -52,36 +47,25 @@ class StatisticsRepository {
   // --- Save User Actions ---
   Future<void> saveUserActions(Map<String, List<StatisticsUserAction>> actionsMap) async {
     try {
-      // IMPORTANT: Encode *each action* to JSON string before encoding the map
-      final Map<String, List<String>> encodableMap = actionsMap.map(
-            (groupURL, actions) => MapEntry(
-            groupURL, actions.map((action) => action.toJson()).toList()),
-      );
-      final String encodedData = jsonEncode(encodableMap);
-      await _storage.write(_groupUserKey, encodedData);
-      print("StatisticsRepository: Saved user actions for ${actionsMap.length} groups.");
+      // Save each group's actions separately
+      for (final entry in actionsMap.entries) {
+        await _hiveProvider.saveUserActions(entry.key, entry.value);
+      }
+      print("StatisticsRepository: Saved user actions for ${actionsMap.length} groups to Hive.");
     } catch (e) {
-      print("Error encoding/saving user actions map: $e");
+      print("Error saving user actions to Hive: $e");
       // Consider adding more robust error handling (e.g., retry, logging)
     }
   }
 
   // --- Load Skipped User IDs ---
   Future<Set<String>> loadSkippedUserIds() async {
-    final rawValue = _storage.read<String>(_skippedUsersKey);
-    if (rawValue == null || rawValue.isEmpty) {
-      return {}; // Return empty set
-    }
     try {
-      // Decode the JSON string into a List<dynamic>
-      final List<dynamic> decodedList = jsonDecode(rawValue);
-      // Convert to Set<String>, ensuring elements are strings
-      final Set<String> skippedIds = decodedList.map((id) => id.toString()).toSet();
-      print("StatisticsRepository: Loaded ${skippedIds.length} skipped user IDs.");
+      final skippedIds = await _hiveProvider.loadSkippedUserIds();
+      print("StatisticsRepository: Loaded ${skippedIds.length} skipped user IDs from Hive.");
       return skippedIds;
     } catch (e) {
-      print("Error decoding skipped user IDs: $e");
-      await _storage.remove(_skippedUsersKey); // Clear corrupted data
+      print("Error loading skipped user IDs from Hive: $e");
       return {};
     }
   }
@@ -89,17 +73,13 @@ class StatisticsRepository {
   // --- Save Skipped User IDs ---
   Future<void> saveSkippedUserIds(Set<String> skippedIds) async {
     try {
-      // Convert Set to List for JSON encoding
-      final List<String> idList = skippedIds.toList();
-      final String encodedData = jsonEncode(idList);
-      await _storage.write(_skippedUsersKey, encodedData);
-      print("StatisticsRepository: Saved ${skippedIds.length} skipped user IDs.");
+      await _hiveProvider.saveSkippedUserIds(skippedIds);
+      print("StatisticsRepository: Saved ${skippedIds.length} skipped user IDs to Hive.");
     } catch (e) {
-      print("Error encoding/saving skipped user IDs: $e");
+      print("Error saving skipped user IDs to Hive: $e");
       // Consider adding more robust error handling
-      // Avoid re-throwing the OutOfMemoryError here if possible
       if (e is OutOfMemoryError) {
-        print("FATAL: OutOfMemoryError while saving skipped IDs. Data might be lost.");
+        print("FATAL: OutOfMemoryError while saving skipped IDs to Hive. Data might be lost.");
         // Potentially try to save a smaller subset or log the error externally
       }
     }

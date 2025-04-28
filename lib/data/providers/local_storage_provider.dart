@@ -3,12 +3,13 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:vktinder/data/models/vk_group_user.dart';
+import 'package:vktinder/data/providers/hive_storage_provider.dart';
 
 class LocalStorageProvider extends GetxService {
   final _storage = GetStorage();
 
   // --- Card Stack Persistence ---
-  static const String _persistedCardsKey = 'home_user_cards_v2'; // Key for the visible card stack (v2 for safety)
+  // Using Hive for persisted cards
 
   // Settings storage keys
   static const String _vkTokenKey = 'vk_token';
@@ -24,60 +25,67 @@ class LocalStorageProvider extends GetxService {
   static const String _skipClosedProfilesKey = 'skip_closed_profiles_v2';
   static const String _skipRelationFilterKey = 'skip_relation_filter';
 
+  // Hive provider for persisted cards
+  HiveStorageProvider? _hiveProvider;
+
+  // Getter for _hiveProvider that ensures it's initialized
+  HiveStorageProvider get hiveProvider {
+    if (_hiveProvider == null) {
+      try {
+        _hiveProvider = Get.find<HiveStorageProvider>();
+      } catch (e) {
+        print("Error finding HiveStorageProvider: $e");
+        print("Will retry on next access");
+      }
+    }
+    if (_hiveProvider == null) {
+      throw Exception("HiveStorageProvider not found. Make sure it's initialized before using LocalStorageProvider.");
+    }
+    return _hiveProvider!;
+  }
 
   // --- Card Stack Methods ---
 
   Future<void> savePersistedCards(List<VKGroupUser> users) async {
     try {
-      final List<Map<String, dynamic>> userMaps = users.map((u) => u.toJson()).toList();
-      final String encodedData = jsonEncode(userMaps);
-      await _storage.write(_persistedCardsKey, encodedData);
-      print("LocalStorageProvider: Saved ${users.length} cards to persisted stack.");
+      await hiveProvider.savePersistedCards(users);
+      print("LocalStorageProvider: Saved ${users.length} cards to Hive persisted stack.");
     } catch (e, stackTrace) {
-      print("Error encoding/saving persisted cards: $e\n$stackTrace");
-      // Handle potential errors, maybe limit size or log more details
-      if (e is JsonUnsupportedObjectError) {
-        print("Non-serializable object found in user data: ${e.unsupportedObject}");
-      }
+      print("Error saving persisted cards to Hive: $e\n$stackTrace");
+      // Handle potential errors
       if (e is OutOfMemoryError) {
-        print("FATAL: OutOfMemoryError while saving persisted stack. Data might be lost.");
-        // Consider clearing the broken key to prevent load errors next time
+        print("FATAL: OutOfMemoryError while saving persisted stack to Hive. Data might be lost.");
+        // Consider clearing the broken data to prevent load errors next time
         await clearPersistedCards();
       }
     }
   }
 
   Future<List<VKGroupUser>> loadPersistedCards() async {
-    final rawValue = _storage.read<String>(_persistedCardsKey);
-    if (rawValue == null || rawValue.isEmpty) {
-      return []; // Return empty list if no data
-    }
-
     try {
-      final List<dynamic> decodedList = jsonDecode(rawValue);
-      final List<VKGroupUser> loadedUsers = decodedList
+      final List<Map<String, dynamic>> userMaps = await hiveProvider.loadPersistedCards();
+      final List<VKGroupUser> loadedUsers = userMaps
           .map((userData) {
         try {
-          return VKGroupUser.fromJson(userData as Map<String, dynamic>);
+          return VKGroupUser.fromJson(userData);
         } catch (e) {
-          print("Error decoding individual user from persisted stack: $e \nData: $userData");
+          print("Error creating VKGroupUser from Hive data: $e \nData: $userData");
           return null; // Skip corrupted user data
         }
       })
           .whereType<VKGroupUser>() // Filter out nulls
           .toList();
-      print("LocalStorageProvider: Loaded ${loadedUsers.length} cards from persisted stack.");
+      print("LocalStorageProvider: Loaded ${loadedUsers.length} cards from Hive persisted stack.");
       return loadedUsers;
     } catch (e) {
-      print("Error decoding persisted cards list: $e");
-      await _storage.remove(_persistedCardsKey); // Clear corrupted data
+      print("Error loading persisted cards from Hive: $e");
       return [];
     }
   }
 
   Future<void> clearPersistedCards() async {
-    await _storage.remove(_persistedCardsKey);
-    print("LocalStorageProvider: Cleared persisted card stack.");
+    await hiveProvider.clearPersistedCards();
+    print("LocalStorageProvider: Cleared Hive persisted card stack.");
   }
 
 
