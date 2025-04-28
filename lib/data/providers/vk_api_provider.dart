@@ -725,7 +725,8 @@ class VkApiProvider extends getx.GetxService {
             groupIdsRaw.map((id) => id as int).where((id) => id > 0).toList();
         print(
             "Fetched ${groupIds.length} group subscription IDs for user $userId.");
-        return groupIds.sublist(0, 250); // Ограничиваем количество групп сверху
+        final maxLen = min(groupIds.length, 250);
+        return groupIds.sublist(0, maxLen); // Ограничиваем количество групп сверху
       } else {
         print(
             "Warning: users.getSubscriptions response did not contain a valid groups list for user $userId.");

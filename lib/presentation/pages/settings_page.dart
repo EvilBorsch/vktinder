@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For TextInputFormatters
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vktinder/data/services/data_transfer_service.dart';
 import 'package:vktinder/presentation/controllers/settings_controller.dart';
 
 class SettingsPage extends GetView<SettingsController> {
@@ -264,6 +265,12 @@ class SettingsPage extends GetView<SettingsController> {
                 ],
               ),
             )),
+        const SizedBox(height: 24),
+
+        // --- Data Transfer Section ---
+        _buildSectionHeader('Перенос данных', Icons.sync_alt),
+        const SizedBox(height: 12),
+        _buildDataTransferSection(),
         const SizedBox(height: 32),
 
         // --- Save Button ---
@@ -571,5 +578,50 @@ class SettingsPage extends GetView<SettingsController> {
       print("Error parsing group URL for display name: $url");
       return url;
     }
+  }
+
+  /// Builds the data transfer section with import and export buttons
+  Widget _buildDataTransferSection() {
+    final dataTransferService = Get.find<DataTransferService>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHelpText(
+          'Экспортируйте данные для переноса на другое устройство или создания резервной копии. '
+          'Импортируйте данные для восстановления настроек и статистики с другого устройства.'
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => dataTransferService.exportData(),
+                icon: const Icon(Icons.upload_file, size: 20),
+                label: const Text('Экспорт данных'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: Get.theme.colorScheme.primaryContainer,
+                  foregroundColor: Get.theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => dataTransferService.importData(),
+                icon: const Icon(Icons.download_rounded, size: 20),
+                label: const Text('Импорт данных'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: Get.theme.colorScheme.secondaryContainer,
+                  foregroundColor: Get.theme.colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

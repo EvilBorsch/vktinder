@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:vktinder/data/repositories/statistics_repository.dart';
+import 'package:vktinder/data/services/data_transfer_service.dart';
 import 'package:vktinder/presentation/controllers/statistics_controller.dart';
 import 'package:vktinder/presentation/pages/full_user_info.dart';
 import 'package:vktinder/presentation/pages/main_screen.dart';
@@ -32,6 +33,9 @@ class AppBinding extends Bindings {
     Get.put<SettingsRepository>(SettingsRepository(), permanent: true);
     Get.put<GroupUsersRepository>(GroupUsersRepository(), permanent: true);
     Get.put<StatisticsRepository>(StatisticsRepository(), permanent: true);
+
+    // Services
+    Get.put(DataTransferService(), permanent: true);
 
     // Controllers for main navigation - permanent
     Get.put(NavController(), permanent: true);
