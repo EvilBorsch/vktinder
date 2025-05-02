@@ -31,7 +31,7 @@ class AnimatedSwipeCard extends StatefulWidget {
     this.onSwipeLeft,
     this.onSwipeRight,
     this.onTap,
-    this.swipeThreshold = 0.4,
+    this.swipeThreshold = 0.3,
     this.leftSwipeBackground,
     this.rightSwipeBackground,
   }) : super(key: key);

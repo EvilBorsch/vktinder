@@ -26,7 +26,7 @@ class UserCard extends StatelessWidget {
         onSwipeLeft: onSwipeLeft,
         onSwipeRight: onSwipeRight,
         onTap: onTap,
-        swipeThreshold: 0.4,
+        swipeThreshold: 0.3,
         leftSwipeBackground: _buildSwipeBackground(
           alignment: Alignment.centerRight,
           color: Colors.red,
@@ -75,14 +75,7 @@ class UserCard extends StatelessWidget {
       width: double.infinity, // Ensure container takes full width
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(UIConstants.borderRadiusXL),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withOpacity(UIConstants.opacityHigh),
-          ],
-        ),
+        color: Theme.of(context).cardColor,
         boxShadow: UIConstants.shadowHeavy,
       ),
       child: Padding(

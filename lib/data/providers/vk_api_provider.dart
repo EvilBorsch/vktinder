@@ -102,28 +102,6 @@ class VkApiProvider extends getx.GetxService {
 
   // --- Mock Data Section ---
 
-  // Mock for getGroupUsers (used by old logic, maybe keep for testing)
-  Future<List<VKGroupUser>> _getMockGroupUsers() async {
-    print("[MOCK] Getting mock group users");
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.generate(
-        15,
-        (index) => VKGroupUser.fromJson({
-              "id": 1000 + index,
-              "first_name": "MockGroup",
-              "last_name": "User$index",
-              "photo_100":
-                  "https://via.placeholder.com/100/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000 + index}",
-              "photo_200":
-                  "https://via.placeholder.com/200/${Random().nextInt(0xFFFFFF).toRadixString(16)}/FFF?text=G${1000 + index}",
-              "sex": 1,
-              "online": Random().nextInt(2),
-              "city": {"id": 1, "title": "MockCity"},
-              "relation": Random().nextInt(9), // Mock relation
-              "is_closed": Random().nextBool(), // Mock can_see_all_posts
-            }));
-  }
-
   // Mock for getFullProfile (returns base info, repo adds photos/groups)
   Future<VKGroupUser> _getMockFullProfile(String userID) async {
     print("[MOCK] Getting mock full profile for user ID: $userID");
@@ -397,60 +375,6 @@ class VkApiProvider extends getx.GetxService {
   }
 
   // --- End Mock Data Section ---
-
-  // --- Existing API Methods (Implementations using _handleResponse, etc.) ---
-
-  Future<List<VKGroupUser>> getGroupUsers(
-      String vkToken, String groupId) async {
-    // --- MOCK SWITCH ---
-    if (_useMockData) return _getMockGroupUsers(); // <--- Corrected Call
-    // --- END MOCK SWITCH ---
-
-    if (vkToken.isEmpty || groupId.isEmpty) {
-      print("Error: VK Token or Group ID is missing for getGroupUsers.");
-      throw ArgumentError('VK Token and Group ID must be provided.');
-    }
-    // ... (rest of the method remains the same)
-    try {
-      print("VK API Call: groups.getMembers (groupId: $groupId)");
-      final response = await _dio.get(
-        'groups.getMembers',
-        queryParameters: {
-          'group_id': groupId,
-          'access_token': vkToken,
-          'fields':
-              'id,first_name,last_name,photo_100,photo_200,sex,online,city,country,bdate,relation,is_closed,can_write_private_message',
-          // Added relation, can_see_all_posts
-          'v': _apiVersion,
-          'count': 1000,
-        },
-      );
-      final responseData = _handleResponse(response);
-      if (responseData == null || responseData['items'] == null) {
-        print(
-            "Warning: groups.getMembers response data or items list is null.");
-        return [];
-      }
-      final List usersList = responseData['items'] ?? [];
-      // Filtering by sex is now handled in users.search, no need here generally
-      // return usersList
-      //     .where((userData) => (userData['sex'] ?? 0) == 1) // Remove this filter
-      //     .map((userData) =>
-      //         VKGroupUser.fromJson(userData as Map<String, dynamic>))
-      //     .toList();
-      return usersList
-          .map((userData) =>
-              VKGroupUser.fromJson(userData as Map<String, dynamic>))
-          .toList();
-    } on DioException catch (e) {
-      print("DioError fetching group users: ${e.message}");
-      throw Exception(
-          'Не удалось загрузить участников группы: ${e.message?.split(':').last.trim() ?? 'Ошибка сети'}');
-    } catch (e, stackTrace) {
-      print("Error parsing group users: $e\n$stackTrace");
-      throw Exception('Не удалось обработать данные участников группы.');
-    }
-  }
 
   Future<VKGroupUser> getFullProfile(String vkToken, String userID) async {
     // --- MOCK SWITCH ---
@@ -726,7 +650,8 @@ class VkApiProvider extends getx.GetxService {
         print(
             "Fetched ${groupIds.length} group subscription IDs for user $userId.");
         final maxLen = min(groupIds.length, 250);
-        return groupIds.sublist(0, maxLen); // Ограничиваем количество групп сверху
+        return groupIds.sublist(
+            0, maxLen); // Ограничиваем количество групп сверху
       } else {
         print(
             "Warning: users.getSubscriptions response did not contain a valid groups list for user $userId.");
