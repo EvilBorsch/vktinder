@@ -18,7 +18,7 @@ class SettingsController extends GetxController {
   final SettingsRepository _settingsRepository = Get.find<SettingsRepository>();
   final ThemeService _themeService = Get.find<ThemeService>();
   final VkApiProvider _apiProvider =
-  Get.find<VkApiProvider>(); // Needed for validating group URLs
+      Get.find<VkApiProvider>(); // Needed for validating group URLs
 
   // Observable settings
   final RxString _vkToken = ''.obs;
@@ -30,9 +30,12 @@ class SettingsController extends GetxController {
   final RxnInt ageFrom = RxnInt(); // Use RxnInt for nullable int
   final RxnInt ageTo = RxnInt(); // Use RxnInt for nullable int
   final RxInt sexFilter = 0.obs; // 0 = any, 1 = female, 2 = male
-  final RxList<String> groupUrls = <String>[].obs; // Store URLs as entered by user
-  final RxList<VKGroupInfo> groupInfos = <VKGroupInfo>[].obs; // Store resolved group info
-  final RxList<VKCityInfo> cityInfos = <VKCityInfo>[].obs; // Store resolved city info
+  final RxList<String> groupUrls =
+      <String>[].obs; // Store URLs as entered by user
+  final RxList<VKGroupInfo> groupInfos =
+      <VKGroupInfo>[].obs; // Store resolved group info
+  final RxList<VKCityInfo> cityInfos =
+      <VKCityInfo>[].obs; // Store resolved city info
   final RxBool skipClosedProfiles =
       true.obs; // Skip users with closed profiles - Default TRUE
   final RxBool skipRelationFilter =
@@ -47,14 +50,39 @@ class SettingsController extends GetxController {
 
   // Getters for settings
   String get vkToken => _vkToken.value;
+
   String get defaultMessage => _defaultMessage.value;
+
   String get theme => _theme.value;
+
   RxString get themeRx => _theme;
 
   @override
   void onInit() {
     super.onInit();
     loadSettings();
+  }
+
+  // Helper to save group infos to disk
+  void _saveGroupInfosToDisk() {
+    try {
+      _settingsRepository.saveSettings(
+        vkToken: _vkToken.value,
+        defaultMessage: _defaultMessage.value,
+        theme: _theme.value,
+        cities: cities.toList(),
+        ageFrom: ageFrom.value,
+        ageTo: ageTo.value,
+        sexFilter: sexFilter.value,
+        groupUrls: groupUrls.toList(),
+        groupInfos: groupInfos.toList(),
+        cityInfos: cityInfos.toList(),
+        skipClosedProfiles: skipClosedProfiles.value,
+        skipRelationFilter: skipRelationFilter.value,
+      );
+    } catch (e) {
+      print("Error saving group infos to disk: $e");
+    }
   }
 
   @override
@@ -92,8 +120,10 @@ class SettingsController extends GetxController {
     vkTokenController = TextEditingController(text: _vkToken.value);
     defaultMsgController = TextEditingController(text: _defaultMessage.value);
     citiesController = TextEditingController(text: cities.join(', '));
-    ageFromController = TextEditingController(text: ageFrom.value?.toString() ?? '');
-    ageToController = TextEditingController(text: ageTo.value?.toString() ?? '');
+    ageFromController =
+        TextEditingController(text: ageFrom.value?.toString() ?? '');
+    ageToController =
+        TextEditingController(text: ageTo.value?.toString() ?? '');
     newGroupUrlController = TextEditingController(); // Always start empty
 
     update(); // Force update if needed for non-reactive UI elements relying on controllers
@@ -110,9 +140,8 @@ class SettingsController extends GetxController {
   // Helper method to find a city info by name
   VKCityInfo? getCityInfoByName(String cityName) {
     final normalized = cityName.trim().toLowerCase();
-    return cityInfos.firstWhereOrNull(
-      (info) => info.name.toLowerCase() == normalized
-    );
+    return cityInfos
+        .firstWhereOrNull((info) => info.name.toLowerCase() == normalized);
   }
 
   Future<void> addGroupUrl(String url) async {
@@ -128,7 +157,8 @@ class SettingsController extends GetxController {
     }
 
     // Simple check for duplicates before API call
-    if (groupUrls.any((existing) => existing.trim().toLowerCase() == trimmedUrl.toLowerCase())) {
+    if (groupUrls.any((existing) =>
+        existing.trim().toLowerCase() == trimmedUrl.toLowerCase())) {
       Get.snackbar(
         'Информация',
         'Эта группа уже добавлена.',
@@ -141,7 +171,8 @@ class SettingsController extends GetxController {
     // Validate against VK API before adding
     isGroupUrlValidating.value = true;
     try {
-      final groupInfo = await _apiProvider.getGroupInfoByScreenName(vkToken, trimmedUrl);
+      final groupInfo =
+          await _apiProvider.getGroupInfoByScreenName(vkToken, trimmedUrl);
       if (groupInfo != null) {
         // Check if ID is already present via another URL/name
         bool idExists = groupInfos.any((g) => g.id == groupInfo.id);
@@ -156,6 +187,9 @@ class SettingsController extends GetxController {
         } else {
           groupUrls.add(trimmedUrl); // Add the original URL/name
           groupInfos.add(groupInfo); // Store the resolved group info
+
+          // Save the group info to disk immediately
+          _saveGroupInfosToDisk();
 
           Get.snackbar(
             'Успех',
@@ -194,14 +228,21 @@ class SettingsController extends GetxController {
   }
 
   void removeGroupUrl(String url) {
+    // Get the group info before removing it
+    final groupInfo = getGroupInfoByUrl(url);
+    final displayName = groupInfo?.name ?? url;
+
     groupUrls.remove(url);
 
     // Also remove the corresponding group info
     groupInfos.removeWhere((info) => info.sourceUrl == url);
 
+    // Save the changes to disk immediately
+    _saveGroupInfosToDisk();
+
     Get.snackbar(
       'Удалено',
-      'Группа "$url" удалена из списка. Не забудьте сохранить настройки.',
+      'Группа "$displayName" удалена из списка. Не забудьте сохранить настройки.',
       snackPosition: SnackPosition.BOTTOM,
       margin: const EdgeInsets.all(8),
       duration: const Duration(seconds: 2),
@@ -213,17 +254,20 @@ class SettingsController extends GetxController {
     if (vkToken.isEmpty || cityNames.isEmpty) return;
 
     // Clear existing city info entries that aren't in the new list
-    cityInfos.removeWhere((info) => 
-        !cityNames.any((name) => name.trim().toLowerCase() == info.name.toLowerCase()));
+    cityInfos.removeWhere((info) => !cityNames
+        .any((name) => name.trim().toLowerCase() == info.name.toLowerCase()));
 
     // Filter out cities that already have info
-    final unresolved = cityNames.where((name) => 
-        !cityInfos.any((info) => info.name.toLowerCase() == name.trim().toLowerCase())).toList();
+    final unresolved = cityNames
+        .where((name) => !cityInfos.any(
+            (info) => info.name.toLowerCase() == name.trim().toLowerCase()))
+        .toList();
 
     if (unresolved.isEmpty) return; // All cities already resolved
 
     try {
-      final cityIdMap = await _apiProvider.getCityIdsByNames(vkToken, unresolved);
+      final cityIdMap =
+          await _apiProvider.getCityIdsByNames(vkToken, unresolved);
 
       // Add resolved cities to cityInfos
       cityIdMap.forEach((name, id) {
@@ -367,7 +411,8 @@ class SettingsController extends GetxController {
   // Helper to resolve and add a group info
   Future<void> _resolveAndAddGroupInfo(String url) async {
     try {
-      final groupInfo = await _apiProvider.getGroupInfoByScreenName(vkToken, url);
+      final groupInfo =
+          await _apiProvider.getGroupInfoByScreenName(vkToken, url);
       if (groupInfo != null) {
         // Remove any existing info for this URL
         groupInfos.removeWhere((info) => info.sourceUrl == url);

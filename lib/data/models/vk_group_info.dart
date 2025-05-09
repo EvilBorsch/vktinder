@@ -36,7 +36,7 @@ class VKGroupInfo {
       photo200: json['photo_200'] as String?,
       membersCount: json['members_count'] as int?,
       type: json['type'] as String? ?? 'group',
-      sourceUrl: sourceUrl, // Assign here
+      sourceUrl: json['sourceUrl'] as String? ?? sourceUrl, // First try to get from JSON, then use parameter
     );
   }
 

@@ -48,11 +48,11 @@ class SettingsPage extends GetView<SettingsController> {
     final themeRx = controller.themeRx; // Get the RxString directly
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       children: [
         // --- VK Token ---
         _buildSectionHeader('Авторизация', Icons.key_rounded),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _buildTextField(
           controller: vkTokenController,
           labelText: 'VK API Токен',
@@ -60,7 +60,7 @@ class SettingsPage extends GetView<SettingsController> {
           icon: Icons.vpn_key_outlined,
           obscureText: true, // Hide token
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         ElevatedButton.icon(
           icon: const Icon(Icons.open_in_new, size: 18),
           // Keep icon small
@@ -76,19 +76,19 @@ class SettingsPage extends GetView<SettingsController> {
             elevation: 2, // Slight elevation
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // --- Search Filters ---
         _buildSectionHeader('Фильтры поиска', Icons.filter_alt_outlined),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // Group Bank First (logical flow: define *where* to search first)
         _buildSectionHeader('В каких группах ищем?', Icons.groups_2_outlined),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _buildGroupManagementSection(context, newGroupUrlController),
         _buildHelpText(
             'Поиск будет вестись по участникам всех добавленных групп.'),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // Cities Input
         _buildTextField(
@@ -99,7 +99,7 @@ class SettingsPage extends GetView<SettingsController> {
         ),
         _buildHelpText(
             'Введите названия городов через запятую. Оставьте пустым для поиска по всем городам.'),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Age Range Input
         Row(
@@ -124,7 +124,7 @@ class SettingsPage extends GetView<SettingsController> {
           ],
         ),
         _buildHelpText('Оставьте поля пустыми, чтобы не ограничивать возраст.'),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Sex Filter
         Obx(() => Card(
@@ -160,7 +160,7 @@ class SettingsPage extends GetView<SettingsController> {
                 ],
               ),
             )),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Skip Closed Profiles Option
         Obx(() => SwitchListTile(
@@ -188,7 +188,7 @@ class SettingsPage extends GetView<SettingsController> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               dense: true,
             )),
-        const SizedBox(height: 16), // Spacing after switch
+        const SizedBox(height: 10), // Spacing after switch
 
         // --- NEW: Skip Relation Filter ---
         Obx(() => SwitchListTile(
@@ -213,11 +213,11 @@ class SettingsPage extends GetView<SettingsController> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               dense: true,
             )),
-        const SizedBox(height: 24), // Spacing after switch
+        const SizedBox(height: 16), // Spacing after switch
 
         // --- Default Message ---
         _buildSectionHeader('Стандартное сообщение', Icons.message_outlined),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _buildTextField(
           controller: defaultMsgController,
           labelText: 'Шаблон сообщения',
@@ -227,11 +227,11 @@ class SettingsPage extends GetView<SettingsController> {
         ),
         _buildHelpText(
             'Используйте как основу для сообщений при свайпе вправо'),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // --- Theme Selection ---
         _buildSectionHeader('Тема приложения', Icons.palette_outlined),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Obx(() => Card(
               // Obx needed for groupValue reactivity
               elevation: 1,
@@ -266,13 +266,13 @@ class SettingsPage extends GetView<SettingsController> {
                 ],
               ),
             )),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // --- Data Transfer Section ---
         _buildSectionHeader('Перенос данных', Icons.sync_alt),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _buildDataTransferSection(),
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
 
         // --- Save Button ---
         ElevatedButton.icon(
@@ -449,11 +449,23 @@ class SettingsPage extends GetView<SettingsController> {
                           backgroundColor: Colors.grey.shade200,
                         )
                       : Icon(Icons.group, color: Get.theme.colorScheme.primary),
-                  title: Text(displayName, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(url,
-                      style:
-                          Get.textTheme.bodySmall?.copyWith(color: Colors.grey),
-                      overflow: TextOverflow.ellipsis),
+                  title: Text(
+                    displayName, 
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        url,
+                        style: Get.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                   trailing: IconButton(
                     icon: const Icon(Icons.remove_circle_outline,
                         color: Colors.redAccent), // Use clearer red
