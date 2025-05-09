@@ -7,6 +7,7 @@ class UserCard extends StatelessWidget {
   final VKGroupUser user;
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
+  final VoidCallback? onSwipeDown;
   final VoidCallback? onTap;
 
   const UserCard({
@@ -14,6 +15,7 @@ class UserCard extends StatelessWidget {
     required this.user,
     this.onSwipeLeft,
     this.onSwipeRight,
+    this.onSwipeDown,
     this.onTap,
   }) : super(key: key);
 
@@ -25,6 +27,7 @@ class UserCard extends StatelessWidget {
       child: AnimatedSwipeCard(
         onSwipeLeft: onSwipeLeft,
         onSwipeRight: onSwipeRight,
+        onSwipeDown: onSwipeDown,
         onTap: onTap,
         swipeThreshold: 0.3,
         leftSwipeBackground: _buildSwipeBackground(
@@ -36,6 +39,11 @@ class UserCard extends StatelessWidget {
           alignment: Alignment.centerLeft,
           color: Colors.green,
           icon: Icons.message_rounded,
+        ),
+        downSwipeBackground: _buildSwipeBackground(
+          alignment: Alignment.topCenter,
+          color: Colors.amber,
+          icon: Icons.bookmark_rounded,
         ),
         child: Card(
           margin: EdgeInsets.zero, // No margin
@@ -191,7 +199,7 @@ class UserCard extends StatelessWidget {
           const SizedBox(width: UIConstants.paddingS),
           Flexible(
             child: Text(
-              "Свайпните влево или вправо\nКликните чтобы узнать больше",
+              "Свайпните влево, вправо или вниз\nКликните чтобы узнать больше",
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,

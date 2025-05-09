@@ -7,6 +7,7 @@ import 'dart:convert';
 
 const ActionLike = "like";
 const ActionDislike = "dislike";
+const ActionShelf = "shelf";
 
 class StatisticsUserAction {
   // Store only essential identifier and display data

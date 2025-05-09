@@ -45,6 +45,7 @@ class StatisticsPage extends GetView<StatisticsController> {
     // State variables for filtering and sorting (local to this build method)
     final selectedGroup = RxString('all_groups');
     final sortByLatestLikes = RxBool(true); // Default sort
+    final showOnlyShelfed = RxBool(false); // Toggle for showing only shelfed users
 
     return Scaffold(
       appBar: AppBar(
@@ -53,95 +54,128 @@ class StatisticsPage extends GetView<StatisticsController> {
       ),
       body: Column(
         children: [
-          // Filter and sort controls
-          Padding(
-            padding: const EdgeInsets.all(8),
+          // Filter and sort controls - more compact layout
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Group selection dropdown
-                Obx(() {
-                  // Get distinct group URLs from the loaded actions
-                  final availableGroups = <String>{'all_groups'};
-                  controller.userActions.forEach((groupUrl, actions) {
-                    if (groupUrl.isNotEmpty && actions.isNotEmpty) {
-                      // Only add if there are actions for this group
-                      availableGroups.add(groupUrl);
-                    }
-                  });
+                // Group selection and toggles in a row
+                Row(
+                  children: [
+                    // Group selection dropdown - takes 40% of width
+                    Expanded(
+                      flex: 4,
+                      child: Obx(() {
+                        // Get distinct group URLs from the loaded actions
+                        final availableGroups = <String>{'all_groups'};
+                        controller.userActions.forEach((groupUrl, actions) {
+                          if (groupUrl.isNotEmpty && actions.isNotEmpty) {
+                            availableGroups.add(groupUrl);
+                          }
+                        });
 
-                  // Make sure selectedGroup value is valid
-                  if (!availableGroups.contains(selectedGroup.value)) {
-                    selectedGroup.value = 'all_groups';
-                  }
+                        // Make sure selectedGroup value is valid
+                        if (!availableGroups.contains(selectedGroup.value)) {
+                          selectedGroup.value = 'all_groups';
+                        }
 
-                  // Sort group names for better usability
-                  final sortedGroupList = availableGroups.toList()
-                    ..sort((a, b) {
-                      if (a == 'all_groups') return -1;
-                      if (b == 'all_groups') return 1;
-                      // Basic sort by name for now
-                      return _extractGroupName(a)
-                          .compareTo(_extractGroupName(b));
-                    });
+                        // Sort group names for better usability
+                        final sortedGroupList = availableGroups.toList()
+                          ..sort((a, b) {
+                            if (a == 'all_groups') return -1;
+                            if (b == 'all_groups') return 1;
+                            return _extractGroupName(a)
+                                .compareTo(_extractGroupName(b));
+                          });
 
-                  return DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: 'Группа',
-                      prefixIcon: const Icon(Icons.group),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                    ),
-                    value: selectedGroup.value,
-                    isExpanded: true,
-                    // Allow long names to fit
-                    items: sortedGroupList
-                        .map((groupUrl) => DropdownMenuItem(
-                              value: groupUrl,
-                              child: Text(
-                                groupUrl == 'all_groups'
-                                    ? 'Все группы'
-                                    : _extractGroupName(groupUrl),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        selectedGroup.value = value;
-                        // No need to explicitly call controller.refresh or update()
-                        // The Obx below rebuilding the list will react to selectedGroup change.
-                      }
-                    },
-                  );
-                }),
-
-                const SizedBox(height: 8),
-
-                // Sort option
-                Obx(() => SwitchListTile(
-                      title: Row(
-                        children: [
-                          Icon(
-                            Icons.favorite,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.primary,
+                        return DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            labelText: 'Группа',
+                            prefixIcon: const Icon(Icons.group, size: 18),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            isDense: true,
                           ),
-                          const SizedBox(width: 8),
-                          const Text('Сначала последние лайки'),
+                          value: selectedGroup.value,
+                          isExpanded: true,
+                          items: sortedGroupList
+                              .map((groupUrl) => DropdownMenuItem(
+                                    value: groupUrl,
+                                    child: Text(
+                                      groupUrl == 'all_groups'
+                                          ? 'Все группы'
+                                          : _extractGroupName(groupUrl),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              selectedGroup.value = value;
+                            }
+                          },
+                        );
+                      }),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Toggles in a column - takes 60% of width
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        children: [
+                          // Sort option
+                          Obx(() => SwitchListTile(
+                            title: Row(
+                              children: [
+                                Icon(
+                                  Icons.favorite,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                const Text('Сначала лайки', style: TextStyle(fontSize: 13)),
+                              ],
+                            ),
+                            value: sortByLatestLikes.value,
+                            onChanged: (value) {
+                              sortByLatestLikes.value = value;
+                            },
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                          )),
+
+                          // Show only shelfed toggle
+                          Obx(() => SwitchListTile(
+                            title: Row(
+                              children: [
+                                Icon(
+                                  Icons.bookmark,
+                                  size: 18,
+                                  color: Colors.amber,
+                                ),
+                                const SizedBox(width: 4),
+                                const Text('Только на полке', style: TextStyle(fontSize: 13)),
+                              ],
+                            ),
+                            value: showOnlyShelfed.value,
+                            onChanged: (value) {
+                              showOnlyShelfed.value = value;
+                            },
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                          )),
                         ],
                       ),
-                      value: sortByLatestLikes.value,
-                      onChanged: (value) {
-                        sortByLatestLikes.value = value;
-                        // Re-sorting happens in the Obx below
-                      },
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    )),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -157,6 +191,8 @@ class StatisticsPage extends GetView<StatisticsController> {
 
               // --- Filtering ---
               var filteredActions = <StatisticsUserAction>[];
+
+              // First filter by group
               if (selectedGroup.value == 'all_groups') {
                 controller.userActions.values.forEach((rxList) {
                   filteredActions.addAll(rxList);
@@ -167,22 +203,43 @@ class StatisticsPage extends GetView<StatisticsController> {
                     .addAll(controller.userActions[selectedGroup.value]!);
               }
 
+              // Then filter by shelf status if needed
+              if (showOnlyShelfed.value) {
+                filteredActions = filteredActions
+                    .where((action) => action.action == ActionShelf)
+                    .toList();
+              }
+
               if (filteredActions.isEmpty) {
+                // Determine the appropriate empty state message
+                String emptyMessage;
+                IconData emptyIcon;
+
+                if (showOnlyShelfed.value) {
+                  // No shelfed users
+                  emptyMessage = 'Нет пользователей на полке\nДобавьте их свайпом вниз!';
+                  emptyIcon = Icons.bookmark_border;
+                } else if (selectedGroup.value == 'all_groups') {
+                  // No actions at all
+                  emptyMessage = 'Нет данных статистики\nНачните свайпать!';
+                  emptyIcon = Icons.analytics_outlined;
+                } else {
+                  // No actions for selected group
+                  emptyMessage = 'Нет действий для группы\n"${_extractGroupName(selectedGroup.value)}"';
+                  emptyIcon = Icons.filter_alt_off_outlined;
+                }
+
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                          selectedGroup.value == 'all_groups'
-                              ? Icons.analytics_outlined
-                              : Icons.filter_alt_off_outlined,
+                          emptyIcon,
                           size: 64,
                           color: Colors.grey),
                       const SizedBox(height: 16),
                       Text(
-                        selectedGroup.value == 'all_groups'
-                            ? 'Нет данных статистики\nНачните свайпать!'
-                            : 'Нет действий для группы\n"${_extractGroupName(selectedGroup.value)}"',
+                        emptyMessage,
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey),
                       ),
@@ -218,22 +275,29 @@ class StatisticsPage extends GetView<StatisticsController> {
 
               return Column(
                 children: [
-                  // Summary stats
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  // Summary stats - more compact layout
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                    height: 60, // Fixed height to save space
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
                       children: [
                         _buildStatCard(
                             context,
-                            'Всего просмотрено', // Updated label
-                            '${totalLikes + totalDislikes}',
+                            'Всего', // Shorter label
+                            '${filteredActions.length}',
                             Icons.people,
                             Colors.blue),
                         _buildStatCard(context, 'Лайки', '$totalLikes',
                             Icons.favorite, Colors.red),
                         _buildStatCard(context, 'Пропущено', '$totalDislikes',
                             Icons.close, Colors.grey),
+                        _buildStatCard(
+                            context, 
+                            'На полке', 
+                            '${filteredActions.where((a) => a.action == ActionShelf).length}',
+                            Icons.bookmark, 
+                            Colors.amber),
                       ],
                     ),
                   ),
@@ -387,24 +451,32 @@ class StatisticsPage extends GetView<StatisticsController> {
   Widget _buildStatCard(BuildContext context, String title, String value,
       IconData icon, Color color) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.labelSmall, // Use labelSmall
-            ),
-            Text(
-              value,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge // Use titleLarge for more emphasis
-                  ?.copyWith(fontWeight: FontWeight.bold),
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -464,8 +536,16 @@ class StatisticsPage extends GetView<StatisticsController> {
                         ),
                       ),
                       Icon(
-                        isLike ? Icons.favorite : Icons.close,
-                        color: isLike ? Colors.redAccent : Colors.blueGrey,
+                        action.action == ActionLike 
+                            ? Icons.favorite 
+                            : (action.action == ActionShelf 
+                                ? Icons.bookmark 
+                                : Icons.close),
+                        color: action.action == ActionLike 
+                            ? Colors.redAccent 
+                            : (action.action == ActionShelf 
+                                ? Colors.amber 
+                                : Colors.blueGrey),
                         size: 20,
                       ),
                     ],

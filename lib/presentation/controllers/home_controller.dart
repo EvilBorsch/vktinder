@@ -250,7 +250,7 @@ class HomeController extends BaseController {
     }
   }
 
-  /// Dismisses the top card with the given direction (like/dislike)
+  /// Dismisses the top card with the given direction (like/dislike/shelf)
   Future<void> dismissCard(DismissDirection direction) async {
     // Skip if busy or no cards
     if (users.isEmpty ||
@@ -264,8 +264,16 @@ class HomeController extends BaseController {
     // Process the dismissed card
     final dismissedUser = users.removeAt(0);
     final groupURL = dismissedUser.groupURL ?? "unknown_group";
-    final actionType =
-        direction == DismissDirection.startToEnd ? ActionLike : ActionDislike;
+
+    // Determine action type based on swipe direction
+    String actionType;
+    if (direction == DismissDirection.startToEnd) {
+      actionType = ActionLike;
+    } else if (direction == DismissDirection.down) {
+      actionType = ActionShelf;
+    } else {
+      actionType = ActionDislike;
+    }
 
     // Record the action in statistics
     await _statisticsController.addUserAction(

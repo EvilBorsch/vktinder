@@ -152,6 +152,9 @@ class HomePage extends GetView<HomeController> {
                         onSwipeRight: () {
                           controller.dismissCard(DismissDirection.startToEnd);
                         },
+                        onSwipeDown: () {
+                          controller.dismissCard(DismissDirection.down);
+                        },
                       ),
 
                     // Loading more indicator at the bottom
