@@ -55,18 +55,10 @@ class StatisticsPage extends GetView<StatisticsController> {
         children: [
           // Filter and sort controls
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Фильтры и сортировка',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 12),
-
                 // Group selection dropdown
                 Obx(() {
                   // Get distinct group URLs from the loaded actions
@@ -127,7 +119,7 @@ class StatisticsPage extends GetView<StatisticsController> {
                   );
                 }),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
                 // Sort option
                 Obx(() => SwitchListTile(
@@ -228,7 +220,7 @@ class StatisticsPage extends GetView<StatisticsController> {
                 children: [
                   // Summary stats
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(4.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [

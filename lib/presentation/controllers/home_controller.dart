@@ -218,6 +218,9 @@ class HomeController extends BaseController {
         .toList();
 
     if (uniqueNewUsers.isNotEmpty) {
+      // Shuffle new users before adding them to the stack
+      uniqueNewUsers.shuffle();
+
       users.addAll(uniqueNewUsers);
       if (errorMessage.value != null) errorMessage.value = null;
       _saveCurrentStackWithDebounce();

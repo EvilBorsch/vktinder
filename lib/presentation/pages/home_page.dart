@@ -16,6 +16,26 @@ class HomePage extends GetView<HomeController> {
       appBar: AppBar(
         title: const Text("VK Tinder"),
         actions: [
+          // Display remaining cards counter
+          Obx(() => Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${controller.users.length}",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ),
+              )),
           Obx(() => controller.isLoading.value || controller.isLoadingMore.value
               ? const Padding(
                   padding: EdgeInsets.only(right: 16.0),
