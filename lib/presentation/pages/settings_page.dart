@@ -178,12 +178,44 @@ class SettingsPage extends GetView<SettingsController> {
               value: controller.skipClosedProfiles.value,
               onChanged: (value) {
                 controller.skipClosedProfiles.value = value;
+                // If turning off skip closed profiles, also turn off show closed profiles with message ability
+                if (!value) {
+                  controller.showClosedProfilesWithMessageAbility.value = false;
+                }
               },
               // Use same card styling as theme/sex options
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               tileColor: Get.theme.cardTheme.color ?? Get.theme.cardColor,
               // Use theme card color
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              dense: true,
+            )),
+        const SizedBox(height: 10), // Spacing after switch
+
+        // Show Closed Profiles With Message Ability Option
+        Obx(() => SwitchListTile(
+              title: const Row(
+                children: [
+                  Icon(Icons.message_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Показывать закрытые профили с возможностью отправки сообщений',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+              value: controller.showClosedProfilesWithMessageAbility.value,
+              onChanged: controller.skipClosedProfiles.value 
+                  ? (value) {
+                      controller.showClosedProfilesWithMessageAbility.value = value;
+                    }
+                  : null, // Disable toggle when skipClosedProfiles is false
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              tileColor: Get.theme.cardTheme.color ?? Get.theme.cardColor,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               dense: true,
@@ -298,6 +330,8 @@ class SettingsPage extends GetView<SettingsController> {
               currentGroupUrls: controller.groupUrls.toList(),
               // Get current list from controller
               skipClosedProfiles: controller.skipClosedProfiles.value,
+              // Pass reactive value
+              showClosedProfilesWithMessageAbility: controller.showClosedProfilesWithMessageAbility.value,
               // Pass reactive value
               skipRelationFilter:
                   controller.skipRelationFilter.value, // Pass reactive value

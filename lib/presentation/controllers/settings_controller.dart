@@ -38,6 +38,8 @@ class SettingsController extends GetxController {
       <VKCityInfo>[].obs; // Store resolved city info
   final RxBool skipClosedProfiles =
       true.obs; // Skip users with closed profiles - Default TRUE
+  final RxBool showClosedProfilesWithMessageAbility =
+      false.obs; // Show closed profiles with message ability - Default FALSE
   final RxBool skipRelationFilter =
       true.obs; // Skip users with specific relations - Default TRUE
 
@@ -78,6 +80,7 @@ class SettingsController extends GetxController {
         groupInfos: groupInfos.toList(),
         cityInfos: cityInfos.toList(),
         skipClosedProfiles: skipClosedProfiles.value,
+        showClosedProfilesWithMessageAbility: showClosedProfilesWithMessageAbility.value,
         skipRelationFilter: skipRelationFilter.value,
       );
     } catch (e) {
@@ -110,6 +113,7 @@ class SettingsController extends GetxController {
     sexFilter.value = _settingsRepository.getSexFilter();
     groupUrls.assignAll(_settingsRepository.getGroupUrls());
     skipClosedProfiles.value = _settingsRepository.getSkipClosedProfiles();
+    showClosedProfilesWithMessageAbility.value = _settingsRepository.getShowClosedProfilesWithMessageAbility();
     skipRelationFilter.value = _settingsRepository.getSkipRelationFilter();
 
     // Load resolved infos
@@ -292,6 +296,7 @@ class SettingsController extends GetxController {
     required int sexFilter,
     required List<String> currentGroupUrls,
     required bool skipClosedProfiles,
+    required bool showClosedProfilesWithMessageAbility,
     required bool skipRelationFilter,
   }) async {
     // Validate and parse age
@@ -326,6 +331,7 @@ class SettingsController extends GetxController {
         this.sexFilter.value != sexFilter ||
         !listEquals(groupUrls, currentGroupUrls) ||
         this.skipClosedProfiles.value != skipClosedProfiles ||
+        this.showClosedProfilesWithMessageAbility.value != showClosedProfilesWithMessageAbility ||
         this.skipRelationFilter.value != skipRelationFilter;
 
     // Update reactive variables
@@ -338,6 +344,7 @@ class SettingsController extends GetxController {
     ageTo.value = parsedAgeTo;
     this.sexFilter.value = sexFilter;
     this.skipClosedProfiles.value = skipClosedProfiles;
+    this.showClosedProfilesWithMessageAbility.value = showClosedProfilesWithMessageAbility;
     this.skipRelationFilter.value = skipRelationFilter;
 
     // 1. Resolve group URLs and update groupInfos if needed
@@ -371,6 +378,7 @@ class SettingsController extends GetxController {
         groupInfos: this.groupInfos.toList(),
         cityInfos: this.cityInfos.toList(),
         skipClosedProfiles: this.skipClosedProfiles.value,
+        showClosedProfilesWithMessageAbility: this.showClosedProfilesWithMessageAbility.value,
         skipRelationFilter: this.skipRelationFilter.value,
       );
 

@@ -38,6 +38,10 @@ class SettingsRepository {
     return _storageProvider.getSkipClosedProfiles();
   }
 
+  bool getShowClosedProfilesWithMessageAbility() {
+    return _storageProvider.getShowClosedProfilesWithMessageAbility();
+  }
+
   bool getSkipRelationFilter() { // Added getter
     return _storageProvider.getSkipRelationFilter();
   }
@@ -45,12 +49,12 @@ class SettingsRepository {
   List<String> getGroupUrls() {
     return _storageProvider.getGroupUrls();
   }
-  
+
   List<VKGroupInfo> getGroupInfos() {
     final infos = _storageProvider.getGroupInfos();
     return infos.map((info) => VKGroupInfo.fromJson(info)).toList();
   }
-  
+
   List<VKCityInfo> getCityInfos() {
     final infos = _storageProvider.getCityInfos();
     return infos.map((info) => VKCityInfo.fromJson(info)).toList();
@@ -70,12 +74,13 @@ class SettingsRepository {
     required List<VKGroupInfo> groupInfos,
     required List<VKCityInfo> cityInfos,
     required bool skipClosedProfiles,
+    required bool showClosedProfilesWithMessageAbility,
     required bool skipRelationFilter,
   }) async {
     // Convert objects to JSON maps for storage
     final groupInfosJson = groupInfos.map((info) => info.toJson()).toList();
     final cityInfosJson = cityInfos.map((info) => info.toJson()).toList();
-    
+
     await Future.wait([
       _storageProvider.saveVkToken(vkToken),
       _storageProvider.saveDefaultMessage(defaultMessage),
@@ -87,6 +92,7 @@ class SettingsRepository {
       _storageProvider.saveGroupInfos(groupInfosJson),
       _storageProvider.saveCityInfos(cityInfosJson),
       _storageProvider.saveSkipClosedProfiles(skipClosedProfiles),
+      _storageProvider.saveShowClosedProfilesWithMessageAbility(showClosedProfilesWithMessageAbility),
       _storageProvider.saveSkipRelationFilter(skipRelationFilter),
     ]);
   }

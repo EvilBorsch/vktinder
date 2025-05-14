@@ -96,6 +96,7 @@ class DataTransferService extends GetxService {
     final groupInfos = _settingsRepository.getGroupInfos();
     final cityInfos = _settingsRepository.getCityInfos();
     final skipClosedProfiles = _settingsRepository.getSkipClosedProfiles();
+    final showClosedProfilesWithMessageAbility = _settingsRepository.getShowClosedProfilesWithMessageAbility();
     final skipRelationFilter = _settingsRepository.getSkipRelationFilter();
 
     // Collect statistics
@@ -116,6 +117,7 @@ class DataTransferService extends GetxService {
         'groupInfos': groupInfos.map((info) => info.toJson()).toList(),
         'cityInfos': cityInfos.map((info) => info.toJson()).toList(),
         'skipClosedProfiles': skipClosedProfiles,
+        'showClosedProfilesWithMessageAbility': showClosedProfilesWithMessageAbility,
         'skipRelationFilter': skipRelationFilter,
       },
       'statistics': {
@@ -165,6 +167,7 @@ class DataTransferService extends GetxService {
       cityInfos:
           cityInfosJson.map((json) => VKCityInfo.fromJson(json)).toList(),
       skipClosedProfiles: skipClosedProfiles,
+      showClosedProfilesWithMessageAbility: settings['showClosedProfilesWithMessageAbility'] as bool? ?? false,
       skipRelationFilter: skipRelationFilter,
     );
 

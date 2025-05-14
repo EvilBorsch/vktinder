@@ -23,6 +23,7 @@ class LocalStorageProvider extends GetxService {
   static const String _cityInfosKey = 'search_city_infos_v1';
   static const String _sexFilterKey = 'search_sex_filter';
   static const String _skipClosedProfilesKey = 'skip_closed_profiles_v2';
+  static const String _showClosedProfilesWithMessageAbilityKey = 'show_closed_profiles_with_message_ability';
   static const String _skipRelationFilterKey = 'skip_relation_filter';
 
   // Hive provider for persisted cards
@@ -215,6 +216,14 @@ class LocalStorageProvider extends GetxService {
 
   Future<void> saveSkipClosedProfiles(bool skip) async {
     await _storage.write(_skipClosedProfilesKey, skip);
+  }
+
+  bool getShowClosedProfilesWithMessageAbility() {
+    return _storage.read<bool>(_showClosedProfilesWithMessageAbilityKey) ?? false; // Default false
+  }
+
+  Future<void> saveShowClosedProfilesWithMessageAbility(bool show) async {
+    await _storage.write(_showClosedProfilesWithMessageAbilityKey, show);
   }
 
   bool getSkipRelationFilter() {

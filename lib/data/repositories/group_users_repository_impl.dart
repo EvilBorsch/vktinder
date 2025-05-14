@@ -26,8 +26,9 @@ class GroupUsersRepository {
     final sexFilter = _settingsRepository.getSexFilter();
     final groupUrls = _settingsRepository.getGroupUrls();
     final skipClosedProfiles = _settingsRepository.getSkipClosedProfiles();
+    final showClosedProfilesWithMessageAbility = _settingsRepository.getShowClosedProfilesWithMessageAbility();
     final skipRelationFilter = _settingsRepository.getSkipRelationFilter();
-    
+
     // Get resolved information from settings
     final List<VKGroupInfo> storedGroupInfos = _settingsRepository.getGroupInfos();
     final List<VKCityInfo> storedCityInfos = _settingsRepository.getCityInfos();
@@ -44,14 +45,14 @@ class GroupUsersRepository {
 
     // 2. Use stored info or resolve when needed
     final Map<String, int> cityIdMap = _getCityIdMap(storedCityInfos, cityNames);
-    
+
     // If we don't have all city info, resolve the missing ones
     if (cityNames.isNotEmpty && cityIdMap.length < cityNames.length) {
       final missingCityNames = cityNames.where((name) => !cityIdMap.containsKey(name)).toList();
       final resolvedMap = await _resolveCityNames(vkToken, missingCityNames);
       cityIdMap.addAll(resolvedMap);
     }
-    
+
     // Get group infos from stored data when available
     List<VKGroupInfo> groupInfos = [];
     for (final url in groupUrls) {
@@ -83,7 +84,7 @@ class GroupUsersRepository {
     }
 
     print(
-        "Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo, Sex=$sexFilter, SkipClosed=$skipClosedProfiles, SkipRelation=$skipRelationFilter");
+        "Search Params: Groups=${targetGroupIds.join(',')}, Cities=${targetCityIds.join(',')}, Age=$ageFrom-$ageTo, Sex=$sexFilter, SkipClosed=$skipClosedProfiles, ShowClosedWithMsg=$showClosedProfilesWithMessageAbility, SkipRelation=$skipRelationFilter");
 
     // 3. Perform Search using users.search
     final Set<VKGroupUser> foundUsers = {}; // Use a Set to automatically handle duplicates
@@ -110,15 +111,15 @@ class GroupUsersRepository {
 
       for (final cityId in searchCityIds) {
         if (reachedVkLimit) break; // Stop searching cities if hit limit
-        
+
         try {
           // Add a delay before each API request (0.2 sec base + random 0.1-0.5 sec)
           // This respects VK's rate limit of max 3 RPS
           final randomDelay = 100 + random.nextInt(400); // 100-500ms random component
           await Future.delayed(Duration(milliseconds: 200 + randomDelay));
-          
+
           print("Requesting users: Group $groupId / City ${cityId ?? 'any'}");
-          
+
           // Single request with maximum count (1000)
           final List<VKGroupUser> users = await _apiProvider.searchUsers(
             vkToken: vkToken,
@@ -156,13 +157,25 @@ class GroupUsersRepository {
               continue;
             }
 
-            // Check profile access filter (using is_closed)
+            // Check profile access filter (using is_closed and canWritePrivateMessage)
             bool isLimitedAccess = _isProfileAccessLimited(user);
             if (isLimitedAccess) {
               profileAccessLimitedIds.add(user.userID);
+
+              // Skip based on the combination of settings
               if (skipClosedProfiles) {
-                skippedClosedCount++;
-                continue; // Skip this user
+                // If showClosedProfilesWithMessageAbility is true, only skip profiles that are closed AND can't send messages
+                if (showClosedProfilesWithMessageAbility) {
+                  // Skip only if both conditions are true: profile is closed AND can't send messages
+                  if (user.isClosed == true && user.canWritePrivateMessage == false) {
+                    skippedClosedCount++;
+                    continue; // Skip this user
+                  }
+                } else {
+                  // Original behavior: skip all limited access profiles
+                  skippedClosedCount++;
+                  continue; // Skip this user
+                }
               }
             }
 
@@ -171,24 +184,24 @@ class GroupUsersRepository {
               addedCount++;
             }
           }
-          
+
           print(
               "Group $groupId / City ${cityId ?? 'any'}: Found ${users.length}, Added $addedCount new. Skipped: $skippedAlreadySeenCount (seen), $skippedRelationCount (relation), $skippedClosedCount (closed). Total unique: ${foundUsers.length}");
 
         } catch (e) {
           print("Error during users.search (group $groupId, city ${cityId ?? 'any'}): $e");
-          
+
           if (e.toString().contains('Too many requests') || e.toString().contains('rate limit')) {
             print("Rate limit hit, adding longer delay before retry");
             await Future.delayed(Duration(seconds: 2));
-            
+
             // Try again with same group/city
             try {
               final randomDelay = 100 + random.nextInt(400);
               await Future.delayed(Duration(milliseconds: 200 + randomDelay));
-              
+
               print("Retrying: Group $groupId / City ${cityId ?? 'any'}");
-              
+
               final List<VKGroupUser> retryUsers = await _apiProvider.searchUsers(
                 vkToken: vkToken,
                 groupId: groupId,
@@ -200,7 +213,7 @@ class GroupUsersRepository {
                 offset: 0,
                 groupURL: groupURL,
               );
-              
+
               // Process users from retry (same logic as above)
               int addedCount = 0;
               int skippedClosedCount = 0;
@@ -222,9 +235,21 @@ class GroupUsersRepository {
                 bool isLimitedAccess = _isProfileAccessLimited(user);
                 if (isLimitedAccess) {
                   profileAccessLimitedIds.add(user.userID);
+
+                  // Skip based on the combination of settings
                   if (skipClosedProfiles) {
-                    skippedClosedCount++;
-                    continue;
+                    // If showClosedProfilesWithMessageAbility is true, only skip profiles that are closed AND can't send messages
+                    if (showClosedProfilesWithMessageAbility) {
+                      // Skip only if both conditions are true: profile is closed AND can't send messages
+                      if (user.isClosed == true && user.canWritePrivateMessage == false) {
+                        skippedClosedCount++;
+                        continue; // Skip this user
+                      }
+                    } else {
+                      // Original behavior: skip all limited access profiles
+                      skippedClosedCount++;
+                      continue; // Skip this user
+                    }
                   }
                 }
 
@@ -232,9 +257,9 @@ class GroupUsersRepository {
                   addedCount++;
                 }
               }
-              
+
               print("RETRY Group $groupId / City ${cityId ?? 'any'}: Found ${retryUsers.length}, Added $addedCount new. Total unique: ${foundUsers.length}");
-              
+
             } catch (retryError) {
               print("Retry failed for group $groupId / city ${cityId ?? 'any'}: $retryError");
               // Continue to next city/group after retry failure
@@ -244,7 +269,7 @@ class GroupUsersRepository {
           }
         }
       } // End city loop
-      
+
       if (reachedVkLimit) break; // Stop searching groups
     } // End group loop
 
@@ -260,10 +285,10 @@ class GroupUsersRepository {
   // Helper to get city ID map from stored city infos
   Map<String, int> _getCityIdMap(List<VKCityInfo> cityInfos, List<String> cityNames) {
     final Map<String, int> result = {};
-    
+
     // Normalize city names for comparison (lowercase, trim)
     final normalizedNames = cityNames.map((name) => name.trim().toLowerCase()).toList();
-    
+
     for (final info in cityInfos) {
       final normalized = info.name.toLowerCase();
       final index = normalizedNames.indexOf(normalized);
@@ -272,7 +297,7 @@ class GroupUsersRepository {
         result[cityNames[index]] = info.id;
       }
     }
-    
+
     return result;
   }
 

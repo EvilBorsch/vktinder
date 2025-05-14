@@ -44,7 +44,7 @@ class StatisticsPage extends GetView<StatisticsController> {
 
     // State variables for filtering and sorting (local to this build method)
     final selectedGroup = RxString('all_groups');
-    final sortByLatestLikes = RxBool(true); // Default sort
+    final sortByLatestLikes = RxBool(false);
     final showOnlyShelfed = RxBool(false); // Toggle for showing only shelfed users
 
     return Scaffold(
