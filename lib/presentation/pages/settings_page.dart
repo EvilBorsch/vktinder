@@ -258,7 +258,7 @@ class SettingsPage extends GetView<SettingsController> {
           maxLines: 3,
         ),
         _buildHelpText(
-            'Используйте как основу для сообщений при свайпе вправо'),
+            'Используйте как основу для сообщений при свайпе вправо, также поддерживает синтаксис: sticker_id:4275'),
         const SizedBox(height: 16),
 
         // --- Theme Selection ---

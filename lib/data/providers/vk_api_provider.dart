@@ -150,11 +150,21 @@ class VkApiProvider extends getx.GetxService {
 
   // Mock for sendMessage
   Future<bool> _sendMockMessage(String userId, String message) async {
-    print("[MOCK] Sending message to user ID: $userId | Message: '$message'");
+    // Check if message contains sticker_id
+    final stickerIdRegex = RegExp(r'sticker_id:(\d+)');
+    final match = stickerIdRegex.firstMatch(message);
+
+    if (match != null) {
+      final stickerId = match.group(1);
+      print("[MOCK] Sending sticker to user ID: $userId | Sticker ID: '$stickerId'");
+    } else {
+      print("[MOCK] Sending message to user ID: $userId | Message: '$message'");
+    }
+
     await Future.delayed(const Duration(milliseconds: 600));
     // Simulate potential failure randomly
     final success = Random().nextDouble() > 0.1; // 90% success rate
-    print("[MOCK] Send message result: $success");
+    print("[MOCK] Send ${match != null ? 'sticker' : 'message'} result: $success");
     if (!success) {
       // Simulate a privacy error snackbar like the real implementation might do
       getx.Get.snackbar(
@@ -526,14 +536,29 @@ class VkApiProvider extends getx.GetxService {
       return false;
     }
     try {
-      print("VK API Call: messages.send (userId: $userId)");
-      final response = await _dio.post('messages.send', queryParameters: {
+      // Check if message contains sticker_id
+      final stickerIdRegex = RegExp(r'sticker_id:(\d+)');
+      final match = stickerIdRegex.firstMatch(message);
+
+      Map<String, dynamic> queryParams = {
         'user_id': userId,
-        'message': message,
         'access_token': vkToken,
         'random_id': Random().nextInt(2147483647),
         'v': _apiVersion,
-      });
+      };
+
+      if (match != null) {
+        // Extract sticker_id and send sticker instead of message
+        final stickerId = match.group(1);
+        print("VK API Call: messages.send with sticker (userId: $userId, stickerId: $stickerId)");
+        queryParams['sticker_id'] = stickerId;
+      } else {
+        // Send regular text message
+        print("VK API Call: messages.send (userId: $userId)");
+        queryParams['message'] = message;
+      }
+
+      final response = await _dio.post('messages.send', queryParameters: queryParams);
       if (response.data != null && response.data['error'] != null) {
         final error = response.data['error'];
         final errorCode = error['error_code'] ?? -1;
